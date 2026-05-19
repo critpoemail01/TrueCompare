@@ -88,11 +88,14 @@ builder.Services.AddRateLimiter(options =>
 });
 builder.Services.Configure<StripeOptions>(builder.Configuration.GetSection("Stripe"));
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Email"));
+builder.Services.Configure<LlmOptions>(builder.Configuration.GetSection("Llm"));
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<ComparisonDataService>();
 builder.Services.AddScoped<SearchQuotaService>();
 builder.Services.AddScoped<TargetPriceAlertService>();
+builder.Services.AddHttpClient<IProductSuggestionService, LlmSuggestionService>();
 builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
 builder.Services.AddHostedService<TargetPriceMonitorService>();
 

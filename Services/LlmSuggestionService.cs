@@ -1,0 +1,327 @@
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
+using TrueCompare.Models;
+using TrueCompare.Options;
+
+namespace TrueCompare.Services;
+
+public sealed class LlmSuggestionService(
+    HttpClient httpClient,
+    IOptions<LlmOptions> optionsAccessor,
+    IMemoryCache cache,
+    ILogger<LlmSuggestionService> logger) : IProductSuggestionService
+{
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        PropertyNameCaseInsensitive = true
+    };
+
+    private readonly LlmOptions options = optionsAccessor.Value;
+
+    public async Task<LlmSuggestionResult> GetSuggestionsAsync(
+        string? query,
+        IReadOnlyList<ProductResult> products,
+        IReadOnlyList<SellerOffer> offers,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedQuery = string.IsNullOrWhiteSpace(query)
+            ? "produto com melhor relação preço, garantia e baixo risco"
+            : query.Trim();
+
+        var cacheKey = $"llm-suggestions:{normalizedQuery.ToLowerInvariant()}:{string.Join('|', products.Select(product => product.Slug))}";
+        if (cache.TryGetValue(cacheKey, out LlmSuggestionResult? cached) && cached is not null)
+        {
+            return cached;
+        }
+
+        var fallback = BuildFallback(normalizedQuery, products, offers);
+        if (!IsConfigured())
+        {
+            return fallback;
+        }
+
+        try
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeout.CancelAfter(TimeSpan.FromSeconds(Math.Clamp(options.TimeoutSeconds, 5, 60)));
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, options.Endpoint);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ResolveApiKey());
+            request.Content = new StringContent(BuildRequestJson(normalizedQuery, products, offers), Encoding.UTF8, "application/json");
+
+            using var response = await httpClient.SendAsync(request, timeout.Token);
+            if (!response.IsSuccessStatusCode)
+            {
+                logger.LogWarning("LLM request failed with status {StatusCode}", response.StatusCode);
+                return fallback;
+            }
+
+            var responseJson = await response.Content.ReadAsStringAsync(timeout.Token);
+            var content = ExtractAssistantContent(responseJson);
+            var parsed = JsonSerializer.Deserialize<LlmPayload>(content, JsonOptions);
+            var result = NormalizePayload(parsed, fallback);
+
+            cache.Set(cacheKey, result, TimeSpan.FromMinutes(20));
+            return result;
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            logger.LogWarning("LLM request timed out");
+            return fallback;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "LLM suggestion generation failed");
+            return fallback;
+        }
+    }
+
+    private bool IsConfigured()
+    {
+        return options.Enabled
+            && Uri.TryCreate(options.Endpoint, UriKind.Absolute, out _)
+            && !string.IsNullOrWhiteSpace(options.Model)
+            && !string.IsNullOrWhiteSpace(ResolveApiKey());
+    }
+
+    private string ResolveApiKey()
+    {
+        if (!string.IsNullOrWhiteSpace(options.ApiKey))
+        {
+            return options.ApiKey;
+        }
+
+        return Environment.GetEnvironmentVariable("TRUECOMPARE_LLM_API_KEY")
+            ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY")
+            ?? string.Empty;
+    }
+
+    private string BuildRequestJson(string query, IReadOnlyList<ProductResult> products, IReadOnlyList<SellerOffer> offers)
+    {
+        var knownProducts = products.Select(product => new
+        {
+            product.Name,
+            product.Brand,
+            product.Price,
+            product.Score,
+            product.Badge,
+            Specs = product.Specs.Take(5),
+            Highlights = product.Highlights
+        });
+
+        var knownOffers = offers.Select(offer => new
+        {
+            offer.Seller,
+            offer.Price,
+            offer.Delivery,
+            offer.Warranty,
+            offer.Status,
+            offer.Preferred
+        });
+
+        var request = new
+        {
+            model = options.Model,
+            temperature = options.Temperature,
+            max_tokens = Math.Clamp(options.MaxTokens, 300, 1800),
+            response_format = new { type = "json_object" },
+            messages = new object[]
+            {
+                new
+                {
+                    role = "system",
+                    content = """
+                    És o motor de sugestões da TrueCompare. Responde em pt-PT e devolve apenas JSON válido.
+                    Não inventes preços em tempo real, stock, links ou vendedores. Usa preços só quando vierem em "ofertasConhecidas".
+                    Se sugerires produtos fora do catálogo, marca source como "Sugestão IA" e usa targetPrice como "confirmar".
+                    O JSON deve ter: intent, summary, confidence, buyingSignals, suggestedQueries, warnings, productLeads.
+                    productLeads deve ter no máximo 4 itens com name, reason, targetPrice, searchHint e source.
+                    """
+                },
+                new
+                {
+                    role = "user",
+                    content = JsonSerializer.Serialize(new
+                    {
+                        pedido = query,
+                        produtosConhecidos = knownProducts,
+                        ofertasConhecidas = knownOffers
+                    }, JsonOptions)
+                }
+            }
+        };
+
+        return JsonSerializer.Serialize(request, JsonOptions);
+    }
+
+    private static string ExtractAssistantContent(string responseJson)
+    {
+        using var document = JsonDocument.Parse(responseJson);
+        var root = document.RootElement;
+        var content = root
+            .GetProperty("choices")[0]
+            .GetProperty("message")
+            .GetProperty("content")
+            .GetString();
+
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            throw new InvalidOperationException("LLM response did not include assistant content.");
+        }
+
+        return ExtractJsonObject(content);
+    }
+
+    private static LlmSuggestionResult NormalizePayload(LlmPayload? payload, LlmSuggestionResult fallback)
+    {
+        if (payload is null)
+        {
+            return fallback;
+        }
+
+        var leads = Clean(payload.ProductLeads)
+            .Select(lead => new LlmProductLead(
+                CleanText(lead.Name),
+                CleanText(lead.Reason),
+                CleanText(lead.TargetPrice, "confirmar"),
+                CleanText(lead.SearchHint),
+                CleanText(lead.Source, "Sugestão IA")))
+            .Where(lead => !string.IsNullOrWhiteSpace(lead.Name) && !string.IsNullOrWhiteSpace(lead.Reason))
+            .Take(4)
+            .ToList();
+
+        return new LlmSuggestionResult(
+            true,
+            "LLM ativo",
+            CleanText(payload.Intent, fallback.Intent),
+            CleanText(payload.Summary, fallback.Summary),
+            payload.Confidence <= 0 ? fallback.Confidence : Math.Clamp(payload.Confidence, 0, 100),
+            Clean(payload.BuyingSignals).Select(signal => CleanText(signal)).Where(signal => signal.Length > 0).Take(5).ToList(),
+            Clean(payload.SuggestedQueries).Select(item => CleanText(item)).Where(item => item.Length > 0).Take(4).ToList(),
+            Clean(payload.Warnings).Select(item => CleanText(item)).Where(item => item.Length > 0).Take(4).ToList(),
+            leads.Count > 0 ? leads : fallback.ProductLeads);
+    }
+
+    private static string ExtractJsonObject(string content)
+    {
+        var trimmed = content.Trim();
+        var firstBrace = trimmed.IndexOf('{');
+        var lastBrace = trimmed.LastIndexOf('}');
+
+        return firstBrace >= 0 && lastBrace > firstBrace
+            ? trimmed[firstBrace..(lastBrace + 1)]
+            : trimmed;
+    }
+
+    private static LlmSuggestionResult BuildFallback(string query, IReadOnlyList<ProductResult> products, IReadOnlyList<SellerOffer> offers)
+    {
+        var bestProduct = products.OrderByDescending(product => product.Score).FirstOrDefault();
+        var bestOffer = offers.OrderBy(offer => offer.PriceCents).FirstOrDefault();
+
+        var summary = bestProduct is null
+            ? "Define orçamento, garantia e risco para gerar uma comparação mais forte."
+            : $"Melhor ponto de partida: {bestProduct.Name}. Melhor vendedor conhecido: {bestOffer?.Seller ?? "confirmar"} {bestOffer?.Price ?? string.Empty}.";
+
+        var leads = products
+            .OrderByDescending(product => product.Score)
+            .Take(3)
+            .Select(product => new LlmProductLead(
+                product.Name,
+                product.AiSummary,
+                product.Price,
+                $"{product.Brand} {product.Name} melhor preço garantia Portugal",
+                "Catálogo"))
+            .ToList();
+
+        var warnings = products
+            .SelectMany(product => product.FraudAlerts)
+            .Select(alert => $"{alert.Source}: {alert.Reason}")
+            .DefaultIfEmpty("Confirma sempre garantia, NIF do vendedor e política de devolução.")
+            .Take(4)
+            .ToList();
+
+        return new LlmSuggestionResult(
+            false,
+            "Modo local",
+            query,
+            summary.Trim(),
+            bestProduct?.Score ?? 72,
+            BuildFallbackSignals(bestProduct, bestOffer),
+            BuildFallbackQueries(query),
+            warnings,
+            leads);
+    }
+
+    private static IReadOnlyList<string> BuildFallbackSignals(ProductResult? product, SellerOffer? offer)
+    {
+        var signals = new List<string>();
+        if (product is not null)
+        {
+            signals.AddRange(product.Highlights.Take(3));
+            signals.Add($"{product.Score}% match");
+        }
+
+        if (offer is not null)
+        {
+            signals.Add($"{offer.Seller}: {offer.Price}");
+        }
+
+        return signals.Count > 0 ? signals : new[] { "Preço", "Garantia", "Risco", "Entrega" };
+    }
+
+    private static IReadOnlyList<string> BuildFallbackQueries(string query)
+    {
+        return new[]
+        {
+            $"{query} melhor preço vendedor autorizado",
+            $"{query} garantia Portugal",
+            $"{query} alternativa melhor preço",
+            $"{query} alerta preço alvo"
+        };
+    }
+
+    private static IReadOnlyList<T> Clean<T>(IReadOnlyList<T>? values)
+    {
+        return values ?? Array.Empty<T>();
+    }
+
+    private static string CleanText(string? value, string fallback = "")
+    {
+        return string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
+    }
+
+    private sealed class LlmPayload
+    {
+        public string? Intent { get; set; }
+
+        public string? Summary { get; set; }
+
+        public int Confidence { get; set; }
+
+        public IReadOnlyList<string>? BuyingSignals { get; set; }
+
+        public IReadOnlyList<string>? SuggestedQueries { get; set; }
+
+        public IReadOnlyList<string>? Warnings { get; set; }
+
+        public IReadOnlyList<LlmLeadPayload>? ProductLeads { get; set; }
+    }
+
+    private sealed class LlmLeadPayload
+    {
+        public string? Name { get; set; }
+
+        public string? Reason { get; set; }
+
+        public string? TargetPrice { get; set; }
+
+        public string? SearchHint { get; set; }
+
+        public string? Source { get; set; }
+    }
+}

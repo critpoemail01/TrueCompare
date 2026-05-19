@@ -76,6 +76,30 @@ Evento necessário:
 checkout.session.completed
 ```
 
+## LLM de sugestões
+
+As sugestões aparecem nos resultados e correm no servidor. A chave nunca é enviada para o browser. Sem chave configurada, a app usa o catálogo local como fallback.
+
+```powershell
+dotnet user-secrets set "Llm:ApiKey" "sk-..."
+dotnet user-secrets set "Llm:Model" "gpt-4o-mini"
+```
+
+Também podes usar variável de ambiente:
+
+```powershell
+$env:TRUECOMPARE_LLM_API_KEY="sk-..."
+```
+
+Endpoint por omissão:
+
+```json
+"Llm": {
+  "Endpoint": "https://api.openai.com/v1/chat/completions",
+  "Model": "gpt-4o-mini"
+}
+```
+
 ## Regra de créditos
 
 - Cada utilizador tem 3 pesquisas gratuitas.

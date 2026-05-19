@@ -1,5 +1,6 @@
 @page "/results"
 @inject ComparisonDataService Data
+@inject IProductSuggestionService SuggestionService
 
 <PageTitle>Resultados - TrueCompare</PageTitle>
 
@@ -9,6 +10,64 @@
         <p>@Products.Count produtos · preço, garantia, risco e performance ponderados.</p>
     </div>
     <a class="secondary-button" href="@CriteriaUrl">+ Adicionar produto</a>
+</section>
+
+<section class="ai-suggestion-panel" aria-live="polite">
+    <div class="ai-suggestion-head">
+        <div>
+            <p class="eyebrow">Sugestão IA</p>
+            <h2>@(AiSuggestions?.Intent ?? ActiveQuery)</h2>
+        </div>
+        <span class="ai-source-pill">@(IsLoadingSuggestions ? "A analisar" : AiSuggestions?.SourceLabel)</span>
+    </div>
+
+    @if (IsLoadingSuggestions)
+    {
+        <div class="ai-loading">
+            <span></span>
+            <strong>A preparar recomendações...</strong>
+        </div>
+    }
+    else if (AiSuggestions is not null)
+    {
+        <p class="ai-summary">@AiSuggestions.Summary</p>
+
+        <div class="signal-row">
+            @foreach (var signal in AiSuggestions.BuyingSignals)
+            {
+                <span>@signal</span>
+            }
+        </div>
+
+        <div class="ai-leads">
+            @foreach (var lead in AiSuggestions.ProductLeads)
+            {
+                <article class="ai-lead-card">
+                    <span>@lead.Source</span>
+                    <h3>@lead.Name</h3>
+                    <p>@lead.Reason</p>
+                    <small>@lead.TargetPrice</small>
+                </article>
+            }
+        </div>
+
+        <div class="ai-query-row">
+            @foreach (var suggestedQuery in AiSuggestions.SuggestedQueries)
+            {
+                <a href="/criteria?query=@Uri.EscapeDataString(suggestedQuery)">@suggestedQuery</a>
+            }
+        </div>
+
+        @if (AiSuggestions.Warnings.Count > 0)
+        {
+            <div class="ai-warning-row">
+                @foreach (var warning in AiSuggestions.Warnings)
+                {
+                    <span>@warning</span>
+                }
+            </div>
+        }
+    }
 </section>
 
 <section class="results-grid">
@@ -48,11 +107,27 @@
     [SupplyParameterFromQuery]
     public string? Query { get; set; }
 
-    private IReadOnlyList<ProductResult> Products => Data.GetProducts(Query);
+    private IReadOnlyList<ProductResult> Products { get; set; } = Array.Empty<ProductResult>();
+
+    private LlmSuggestionResult? AiSuggestions { get; set; }
+
+    private bool IsLoadingSuggestions { get; set; }
+
+    private string ActiveQuery => string.IsNullOrWhiteSpace(Query)
+        ? "produto com melhor preço, garantia e baixo risco"
+        : Query;
 
     private string CriteriaUrl => string.IsNullOrWhiteSpace(Query)
         ? "/criteria"
         : $"/criteria?query={Uri.EscapeDataString(Query)}";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        Products = Data.GetProducts(Query);
+        IsLoadingSuggestions = true;
+        AiSuggestions = await SuggestionService.GetSuggestionsAsync(ActiveQuery, Products, Data.GetSellerOffers(Query));
+        IsLoadingSuggestions = false;
+    }
 
     private string ProductUrl(ProductResult product)
     {
