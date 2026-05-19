@@ -66,4 +66,19 @@ public sealed class SearchQuotaServiceTests
         Assert.True(request.UsedPaidCredit);
         Assert.Equal("comprar smartphones", request.Query);
     }
+
+    [Fact]
+    public async Task GetStatusAndTryConsume_ReturnSafeStatus_WhenUserDoesNotExist()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var service = new SearchQuotaService(dbContext);
+
+        var status = await service.GetStatusAsync("missing-user");
+        var result = await service.TryConsumeAsync("missing-user", "comprar smartphones");
+
+        Assert.Equal(ApplicationUser.FreeSearchLimit, status.FreeSearchesRemaining);
+        Assert.False(result.Allowed);
+        Assert.Equal(0, result.Status.Credits);
+        Assert.Empty(await dbContext.SearchRequests.ToListAsync());
+    }
 }

@@ -42,7 +42,15 @@ public sealed class SearchQuotaService(ApplicationDbContext dbContext)
         await using var transaction = await dbContext.Database.BeginTransactionAsync(
             IsolationLevel.Serializable,
             cancellationToken);
-        var user = await dbContext.Users.SingleAsync(candidate => candidate.Id == userId, cancellationToken);
+        var user = await dbContext.Users.SingleOrDefaultAsync(candidate => candidate.Id == userId, cancellationToken);
+        if (user is null)
+        {
+            return new SearchConsumptionResult(false, new SearchQuotaStatus(
+                ApplicationUser.FreeSearchLimit,
+                0,
+                ApplicationUser.FreeSearchLimit,
+                0));
+        }
 
         var usedPaidCredit = false;
         if (user.FreeSearchesUsed < ApplicationUser.FreeSearchLimit)
