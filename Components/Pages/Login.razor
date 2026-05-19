@@ -1,0 +1,55 @@
+@page "/login"
+
+<PageTitle>Login - TrueCompare</PageTitle>
+
+<section class="auth-shell">
+    <div class="auth-card">
+        <p class="eyebrow">Acesso TrueCompare</p>
+        <h1>Entrar</h1>
+
+        @if (!string.IsNullOrWhiteSpace(Message))
+        {
+            <div class="form-message">@Message</div>
+        }
+
+        <a class="google-button" href="@GoogleUrl">Entrar com Gmail</a>
+
+        <div class="divider"><span>ou</span></div>
+
+        <form method="post" action="/auth/login" class="auth-form">
+            <AntiforgeryToken />
+            <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
+
+            <label>
+                Email
+                <input name="Email" type="email" autocomplete="email" required />
+            </label>
+
+            <label>
+                Password
+                <input name="Password" type="password" autocomplete="current-password" required />
+            </label>
+
+            <label class="check-line">
+                <input name="RememberMe" type="checkbox" value="true" />
+                Manter sessão iniciada
+            </label>
+
+            <button class="primary-button wide" type="submit">Entrar</button>
+        </form>
+
+        <p class="auth-switch">Ainda não tens conta? <a href="@RegisterUrl">Criar conta</a></p>
+    </div>
+</section>
+
+@code {
+    [SupplyParameterFromQuery]
+    public string? ReturnUrl { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? Message { get; set; }
+
+    private string GoogleUrl => $"/auth/google?returnUrl={Uri.EscapeDataString(ReturnUrl ?? "/")}";
+
+    private string RegisterUrl => $"/register?returnUrl={Uri.EscapeDataString(ReturnUrl ?? "/")}";
+}

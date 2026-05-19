@@ -1,0 +1,90 @@
+@page "/criteria"
+@inject ComparisonDataService Data
+
+<PageTitle>Critérios - TrueCompare</PageTitle>
+
+<section class="page-header">
+    <h1>Define o que valorizas</h1>
+    <p>Ajusta os pesos. A IA irá ranquear os produtos com base nas tuas prioridades - sem influência de marcas.</p>
+</section>
+
+<div class="tab-strip" role="tablist" aria-label="Modo de análise">
+    <button class="active" type="button">IA</button>
+    <button type="button">TIMELINE</button>
+    <button type="button">CONTACTOS</button>
+    <button type="button">DOCS</button>
+    <button type="button">NOTAS</button>
+</div>
+
+<div class="comparison-command">
+    <div class="query-card">
+        <span>Procuro:</span>
+        <strong>@ActiveQuery</strong>
+    </div>
+    <a class="primary-button command-button" href="@ResultsUrl">Comparar produtos →</a>
+</div>
+
+<div class="workspace-grid">
+    <section class="criteria-workbench">
+        <div class="criteria-grid">
+            @foreach (var weight in Weights)
+            {
+                <article class="weight-row" style="--accent:@weight.Accent;--value:@weight.Value">
+                    <div class="weight-header">
+                        <label for="@weight.Id">@weight.Name</label>
+                        <output>@weight.Value%</output>
+                    </div>
+                    <input id="@weight.Id" type="range" min="0" max="100" @bind="weight.Value" @bind:event="oninput" />
+                </article>
+            }
+        </div>
+    </section>
+
+    <aside class="analysis-panel">
+        <div class="analysis-copy">
+            <h2>Análise isenta</h2>
+            <p>Sem patrocínios, sem afiliados, sem promoções pagas.</p>
+        </div>
+        <h2>Como funciona o ranking:</h2>
+        <ol class="process-list">
+            <li>Recolha de specs oficiais</li>
+            <li>Validação cruzada em 3+ fontes</li>
+            <li>Score ponderado pelos teus pesos</li>
+            <li>Verificação de autenticidade</li>
+        </ol>
+        <div class="confidence-meter">
+            <span>Confiança do ranking</span>
+            <strong>@Confidence%</strong>
+        </div>
+    </aside>
+</div>
+
+@code {
+    [SupplyParameterFromQuery]
+    public string? Query { get; set; }
+
+    private List<WeightState> Weights { get; set; } = new();
+
+    private string ActiveQuery => string.IsNullOrWhiteSpace(Query)
+        ? "portátil profissional 14\", até 1500€, autonomia >10h, leve"
+        : Query;
+
+    private string ResultsUrl => $"/results?query={Uri.EscapeDataString(ActiveQuery)}";
+
+    private int Confidence => Math.Clamp((int)Math.Round(Weights.Average(weight => weight.Value) + 18), 0, 98);
+
+    protected override void OnInitialized()
+    {
+        Weights = Data.DefaultWeights
+            .Select((weight, index) => new WeightState($"weight-{index}", weight.Name, weight.Value, weight.Accent))
+            .ToList();
+    }
+
+    private sealed class WeightState(string id, string name, int value, string accent)
+    {
+        public string Id { get; } = id;
+        public string Name { get; } = name;
+        public int Value { get; set; } = value;
+        public string Accent { get; } = accent;
+    }
+}

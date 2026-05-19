@@ -1,0 +1,40 @@
+@page "/tutorials"
+@inject ComparisonDataService Data
+
+<PageTitle>Tutoriais - TrueCompare</PageTitle>
+
+<section class="page-header">
+    <h1>Centro de tutoriais</h1>
+    <p>Vídeo-explicações curtas para cada funcionalidade. Aprende em minutos.</p>
+</section>
+
+<div class="filter-row" role="tablist" aria-label="Filtro de tutoriais">
+    @foreach (var filter in Filters)
+    {
+        <button type="button" class="@(ActiveFilter == filter ? "active" : null)" @onclick="() => ActiveFilter = filter">@filter</button>
+    }
+</div>
+
+<section class="tutorial-grid">
+    @foreach (var tutorial in FilteredTutorials)
+    {
+        <article class="tutorial-card">
+            <div class="video-thumb">
+                <span class="play-button">▶</span>
+                <span class="duration">@tutorial.Duration</span>
+            </div>
+            <span class="tutorial-category">@tutorial.Category</span>
+            <h2>@tutorial.Title</h2>
+        </article>
+    }
+</section>
+
+@code {
+    private string ActiveFilter { get; set; } = "Todos";
+
+    private IReadOnlyList<string> Filters => new[] { "Todos", "Iniciantes", "Avançado", "Segurança", "Encomendas" };
+
+    private IEnumerable<TutorialItem> FilteredTutorials => ActiveFilter == "Todos"
+        ? Data.Tutorials
+        : Data.Tutorials.Where(tutorial => tutorial.Category == ActiveFilter);
+}

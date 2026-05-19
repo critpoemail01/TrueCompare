@@ -1,0 +1,125 @@
+.brand-block {
+    padding: 1.65rem 0.8rem 0.95rem 1.1rem;
+}
+
+.brand-mark {
+    color: var(--text-strong);
+    display: grid;
+    gap: 0.15rem;
+    text-decoration: none;
+}
+
+.brand-mark,
+.brand-mark *,
+.brand-mark.active {
+    text-decoration: none;
+}
+
+.brand-mark strong {
+    color: var(--text-strong);
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0;
+}
+
+.brand-mark small {
+    color: var(--text-muted);
+    font-size: 0.65rem;
+}
+
+.navbar-toggler {
+    appearance: none;
+    background: var(--panel-strong);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    display: none;
+    height: 2.5rem;
+    position: absolute;
+    right: 1rem;
+    top: 1rem;
+    width: 2.5rem;
+}
+
+.navbar-toggler::before {
+    color: var(--text-strong);
+    content: "☰";
+    display: block;
+    font-size: 1.2rem;
+    line-height: 2.35rem;
+    text-align: center;
+}
+
+.nav-scrollable {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: calc(100vh - 5.5rem);
+    padding: 0 1.05rem 1.1rem;
+}
+
+.nav-list {
+    display: grid;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+.nav-link,
+.footer-link {
+    align-items: center;
+    color: var(--text-soft);
+    display: flex;
+    gap: 0.7rem;
+    justify-content: space-between;
+    min-height: 2.35rem;
+    padding: 0.35rem 0.62rem;
+    text-decoration: none;
+}
+
+.nav-link.primary-nav,
+.nav-link.active {
+    background: var(--panel-strong);
+    color: var(--text-strong);
+}
+
+.nav-link:hover,
+.footer-link:hover {
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-strong);
+}
+
+.nav-footer {
+    color: var(--text-dim);
+    display: grid;
+    gap: 0.15rem;
+}
+
+.footer-link {
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    justify-content: flex-start;
+}
+
+@media (max-width: 860px) {
+    .brand-block {
+        padding: 1rem 4.2rem 1rem 1rem;
+    }
+
+    .navbar-toggler {
+        display: block;
+    }
+
+    .nav-scrollable {
+        display: none;
+        min-height: unset;
+        padding-bottom: 1rem;
+    }
+
+    .navbar-toggler:checked ~ .nav-scrollable {
+        display: block;
+    }
+
+    .nav-footer {
+        display: none;
+    }
+}

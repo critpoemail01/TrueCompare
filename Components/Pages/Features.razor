@@ -1,0 +1,20 @@
+@page "/features"
+@inject ComparisonDataService Data
+
+<PageTitle>Funcionalidades - TrueCompare</PageTitle>
+
+<section class="page-header">
+    <h1>Funcionalidades</h1>
+    <p>O que torna a TrueCompare diferente de uma pesquisa tradicional.</p>
+</section>
+
+<section class="feature-grid">
+    @foreach (var feature in Data.Features)
+    {
+        <article class="feature-tile" style="--accent:@feature.Accent">
+            <span>@feature.Number</span>
+            <h2>@feature.Title</h2>
+            <p>@feature.Description</p>
+        </article>
+    }
+</section>

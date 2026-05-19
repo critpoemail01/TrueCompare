@@ -1,0 +1,103 @@
+@page "/product/{Slug}"
+@inject ComparisonDataService Data
+
+<PageTitle>Detalhe - TrueCompare</PageTitle>
+
+@if (Product is null)
+{
+    <section class="empty-state">
+        <h1>Produto não encontrado</h1>
+        <a class="primary-button" href="results">Ver resultados</a>
+    </section>
+}
+else
+{
+    <section class="page-header compact-header">
+        <div>
+            <h1>Detalhe & verificação de autenticidade</h1>
+        </div>
+        <a class="secondary-button" href="@CheckoutUrl">Ver condições</a>
+    </section>
+
+    <div class="detail-grid">
+        <section class="product-summary">
+            <h2>@Product.Name</h2>
+            <p class="brand">@Product.Brand</p>
+
+            <div class="summary-line">
+                @foreach (var spec in Product.Specs.Take(3))
+                {
+                    <span>@spec</span>
+                }
+            </div>
+
+            <div class="score-block">
+                <span>Score IA</span>
+                <strong>@Product.Score</strong>
+                <em>@Product.Badge</em>
+            </div>
+
+            <div class="checklist">
+                <h2>✓ Verified by TrueCompare</h2>
+                <p class="muted-label">Cadeia de fornecimento auditada · proteção anti-fraude ativa</p>
+                @foreach (var check in Product.VerificationChecks)
+                {
+                    <p><span>✓</span>@check</p>
+                }
+            </div>
+        </section>
+
+        <aside class="verification-stack">
+            <section class="analysis-panel flat">
+                <h2>Análise IA</h2>
+                <p>@Product.AiSummary</p>
+                <div class="summary-specs compact-tags">
+                    @foreach (var highlight in Product.Highlights)
+                    {
+                        <span>@highlight</span>
+                    }
+                </div>
+            </section>
+
+            <section class="alert-panel">
+                <h2>! Alertas anti-fraude</h2>
+
+                @if (Product.FraudAlerts.Count == 0)
+                {
+                    <div class="safe-alert">Limpo</div>
+                }
+                else
+                {
+                    <div class="fraud-list">
+                        @foreach (var alert in Product.FraudAlerts)
+                        {
+                            <div>
+                                <span>✕ @alert.Source</span>
+                                <strong>@alert.Reason</strong>
+                            </div>
+                        }
+                    </div>
+                }
+            </section>
+        </aside>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string? Slug { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? Query { get; set; }
+
+    private ProductResult? Product { get; set; }
+
+    private string CheckoutUrl => Product is null
+        ? "/checkout"
+        : $"/checkout?product={Uri.EscapeDataString(Product.Slug)}";
+
+    protected override void OnParametersSet()
+    {
+        Product = string.IsNullOrWhiteSpace(Slug) ? null : Data.FindProduct(Slug);
+    }
+}

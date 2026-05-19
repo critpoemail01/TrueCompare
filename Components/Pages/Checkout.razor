@@ -1,0 +1,127 @@
+@page "/checkout"
+@inject ComparisonDataService Data
+
+<PageTitle>Compra - TrueCompare</PageTitle>
+
+<section class="page-header">
+    <h1>Condições de compra</h1>
+    <p>Vendedores autorizados, preços em tempo real, autenticidade garantida.</p>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(Message))
+{
+    <div class="form-message">@Message</div>
+}
+
+<div class="checkout-grid">
+    <section class="seller-table-wrap">
+        <table class="seller-table">
+            <thead>
+                <tr>
+                    <th>Vendedor</th>
+                    <th>Preço</th>
+                    <th>Entrega</th>
+                    <th>Garantia</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var offer in Offers)
+                {
+                    <tr class="@(SelectedOffer == offer ? "selected" : null)" @onclick="() => SelectedOffer = offer">
+                        <td>
+                            @offer.Seller
+                            @if (offer.Preferred)
+                            {
+                                <span class="recommended-label">Melhor preço</span>
+                            }
+                        </td>
+                        <td>@offer.Price</td>
+                        <td>@offer.Delivery</td>
+                        <td>@offer.Warranty</td>
+                        <td><span class="status-pill">✓ @offer.Status</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </section>
+
+    <aside class="order-panel">
+        <h2>Encomendar via app</h2>
+
+        <div class="selected-offer">
+            <strong>@SelectedOffer.Seller</strong>
+            <span>@SelectedOffer.Price · entrega @SelectedOffer.Delivery</span>
+            <small>✓ Melhor preço verificado pela TrueCompare</small>
+        </div>
+
+        <dl class="totals-list">
+            <div>
+                <dt>Subtotal</dt>
+                <dd>@SelectedOffer.Price</dd>
+            </div>
+            <div>
+                <dt>Envio</dt>
+                <dd>Confirmar no vendedor</dd>
+            </div>
+            <div>
+                <dt>Garantia</dt>
+                <dd>@SelectedOffer.Warranty</dd>
+            </div>
+            <div class="total">
+                <dt>Preço recomendado</dt>
+                <dd>@SelectedOffer.Price</dd>
+            </div>
+        </dl>
+
+        <a class="primary-button wide" href="@SelectedOffer.Url" target="_blank" rel="noopener noreferrer">
+            Encomendar agora
+        </a>
+
+        <section class="target-alert-panel">
+            <h2>Alerta de preço</h2>
+
+            <form method="post" action="/price-alerts/create" class="target-alert-form">
+                <AntiforgeryToken />
+                <input type="hidden" name="ProductSlug" value="@ResolvedProductSlug" />
+                <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
+                <label>
+                    Preço alvo
+                    <span>
+                        <input name="TargetPrice" type="number" min="1" step="0.01" value="@DefaultTargetPrice" required />
+                        <b>€</b>
+                    </span>
+                </label>
+                <button class="secondary-button wide" type="submit">Avisar-me</button>
+            </form>
+        </section>
+    </aside>
+</div>
+
+@code {
+    [SupplyParameterFromQuery]
+    public string? Message { get; set; }
+
+    [SupplyParameterFromQuery(Name = "product")]
+    public string? ProductSlug { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? Query { get; set; }
+
+    private string ResolvedProductSlug => string.IsNullOrWhiteSpace(ProductSlug) ? "macbook-air-m3" : ProductSlug;
+
+    private string CatalogKey => ProductSlug ?? Query ?? ResolvedProductSlug;
+
+    private IReadOnlyList<SellerOffer> Offers => Data.GetSellerOffers(CatalogKey);
+
+    private string ReturnUrl => $"/checkout?product={Uri.EscapeDataString(ResolvedProductSlug)}";
+
+    private string DefaultTargetPrice => Data.GetBestOffer(CatalogKey).PriceCents <= 90000 ? "699.00" : "1199.00";
+
+    private SellerOffer SelectedOffer { get; set; } = default!;
+
+    protected override void OnParametersSet()
+    {
+        SelectedOffer = Data.GetBestOffer(CatalogKey);
+    }
+}

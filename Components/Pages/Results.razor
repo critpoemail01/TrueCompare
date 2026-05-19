@@ -1,0 +1,63 @@
+@page "/results"
+@inject ComparisonDataService Data
+
+<PageTitle>Resultados - TrueCompare</PageTitle>
+
+<section class="page-header compact-header">
+    <div>
+        <h1>Resultados comparativos</h1>
+        <p>Ranking ponderado pelos teus critérios · @Products.Count produtos analisados.</p>
+    </div>
+    <a class="secondary-button" href="@CriteriaUrl">+ Adicionar produto</a>
+</section>
+
+<section class="results-grid">
+    @foreach (var product in Products)
+    {
+        <article class="product-card @(product.Rank == 1 ? "featured" : null)" style="--accent:@product.Accent">
+            <div class="rank-line">
+                <span>#@product.Rank</span>
+                <strong>@product.Score</strong>
+            </div>
+
+            <h2>@product.Name</h2>
+            <p class="brand">@product.Brand</p>
+            <div class="price">@product.Price</div>
+
+            <dl class="spec-list">
+                @foreach (var spec in product.Specs.Take(4))
+                {
+                    <div>
+                        <dt>Spec</dt>
+                        <dd>@spec</dd>
+                    </div>
+                }
+            </dl>
+
+            <p class="verified-line">✓ Verificado · sem patrocínio</p>
+            <span class="badge">@product.Badge</span>
+
+            <a class="card-action" href="@ProductUrl(product)">Ver detalhes</a>
+        </article>
+    }
+</section>
+
+<p class="disclaimer">Os resultados não são influenciados por marcas, retalhistas ou parceiros comerciais.</p>
+
+@code {
+    [SupplyParameterFromQuery]
+    public string? Query { get; set; }
+
+    private IReadOnlyList<ProductResult> Products => Data.GetProducts(Query);
+
+    private string CriteriaUrl => string.IsNullOrWhiteSpace(Query)
+        ? "/criteria"
+        : $"/criteria?query={Uri.EscapeDataString(Query)}";
+
+    private string ProductUrl(ProductResult product)
+    {
+        return string.IsNullOrWhiteSpace(Query)
+            ? $"/product/{product.Slug}"
+            : $"/product/{product.Slug}?query={Uri.EscapeDataString(Query)}";
+    }
+}

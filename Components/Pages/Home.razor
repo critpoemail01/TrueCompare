@@ -1,0 +1,107 @@
+@page "/"
+@inject ComparisonDataService Data
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SearchQuotaService QuotaService
+
+<PageTitle>TrueCompare</PageTitle>
+
+<section class="home-screen">
+    <div class="hero-copy">
+        <h1>O que queres comparar hoje?</h1>
+        <p class="lead">Pesquisa isenta. Sem patrocínios. Verificação anti-fraude integrada.</p>
+
+        <div class="prompt-panel mock-prompt">
+            <span class="prompt-plus">+</span>
+            <input id="prompt" aria-label="Produto a comparar" @bind="Prompt" @bind:event="oninput" />
+            <button class="search-send" type="button" @onclick="StartComparison" disabled="@IsSubmitting" aria-label="Comparar">
+                @(IsSubmitting ? "..." : "→")
+            </button>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(QuotaMessage))
+        {
+            <p class="quota-message">@QuotaMessage</p>
+        }
+
+        <div class="category-menu" id="categories">
+            @foreach (var category in Data.Categories)
+            {
+                <button type="button" class="@(category == ActiveCategory ? "active" : null)" @onclick="() => UseCategory(category)">
+                    @category
+                </button>
+            }
+        </div>
+    </div>
+</section>
+
+<section class="capability-strip" aria-label="Capacidades principais">
+    <a href="results" style="--accent:#7BE8E0">
+        <strong>Compare</strong>
+        <span>Products</span>
+    </a>
+    <a href="product/macbook-air-m3" style="--accent:#5EE9A8">
+        <strong>Verify</strong>
+        <span>Authenticity</span>
+    </a>
+    <a href="criteria" style="--accent:#B49CFF">
+        <strong>Smart</strong>
+        <span>Specs</span>
+    </a>
+    <a href="checkout" style="--accent:#E97B7B">
+        <strong>Trusted</strong>
+        <span>Sellers</span>
+    </a>
+    <a href="checkout" style="--accent:#E9D67B">
+        <strong>Direct</strong>
+        <span>Order</span>
+    </a>
+    <a href="tutorials" style="--accent:#F0A36A">
+        <strong>Tutorial</strong>
+        <span>Hub</span>
+    </a>
+</section>
+
+@code {
+    private string Prompt { get; set; } = "portátil profissional 14\", até 1500€, autonomia >10h, leve";
+    private string ActiveCategory { get; set; } = "Eletrodomésticos eficiência A+++";
+    private bool IsSubmitting { get; set; }
+    private string? QuotaMessage { get; set; }
+
+    private void UseCategory(string category)
+    {
+        ActiveCategory = category;
+        Prompt = $"{category}: melhor preço, vendedores verificados, baixo risco.";
+    }
+
+    private async Task StartComparison()
+    {
+        if (string.IsNullOrWhiteSpace(Prompt))
+        {
+            QuotaMessage = "Produto em falta.";
+            return;
+        }
+
+        IsSubmitting = true;
+        QuotaMessage = null;
+
+        var criteriaUrl = $"/criteria?query={Uri.EscapeDataString(Prompt)}";
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            Navigation.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(criteriaUrl)}", forceLoad: true);
+            return;
+        }
+
+        var result = await QuotaService.TryConsumeAsync(userId, Prompt);
+        if (!result.Allowed)
+        {
+            Navigation.NavigateTo($"/credits?returnUrl={Uri.EscapeDataString(criteriaUrl)}&message={Uri.EscapeDataString("Sem créditos disponíveis.")}", forceLoad: true);
+            return;
+        }
+
+        Navigation.NavigateTo(criteriaUrl);
+    }
+}

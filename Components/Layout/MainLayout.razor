@@ -1,0 +1,58 @@
+@inherits LayoutComponentBase
+
+<div class="app-shell">
+    <aside class="app-sidebar">
+        <NavMenu />
+    </aside>
+
+    <section class="app-workspace">
+        <header class="app-topbar">
+            <AuthorizeView>
+                <Authorized>
+                    <div class="topbar-actions">
+                        <a class="ghost-button" href="credits">Créditos</a>
+                        <form method="post" action="/auth/logout">
+                            <AntiforgeryToken />
+                            <button class="ghost-button" type="submit">Logout</button>
+                        </form>
+                        <div class="avatar" aria-label="Utilizador">@Initials(context.User.Identity?.Name)</div>
+                    </div>
+                </Authorized>
+                <NotAuthorized>
+                    <div class="topbar-actions">
+                        <a class="ghost-button" href="login">Login</a>
+                        <a class="primary-button compact" href="register">Criar conta</a>
+                    </div>
+                </NotAuthorized>
+            </AuthorizeView>
+        </header>
+
+        <main class="app-content">
+            @Body
+        </main>
+
+        <footer class="workspace-footer" aria-hidden="true">
+            <span>2025©All rights reserved.</span>
+            <strong>◇ TrueCompare V1</strong>
+        </footer>
+    </section>
+</div>
+
+<div id="blazor-error-ui">
+    An unhandled error has occurred.
+    <a href="" class="reload">Reload</a>
+    <a class="dismiss">x</a>
+</div>
+
+@code {
+    private static string Initials(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "TC";
+        }
+
+        var name = value.Split('@')[0];
+        return name.Length >= 2 ? name[..2].ToUpperInvariant() : name.ToUpperInvariant();
+    }
+}
