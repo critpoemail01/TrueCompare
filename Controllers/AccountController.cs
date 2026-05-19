@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using TrueCompare.Data;
+using TrueCompare.Services;
 
 namespace TrueCompare.Controllers;
 
@@ -12,7 +13,8 @@ namespace TrueCompare.Controllers;
 public sealed class AccountController(
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signInManager,
-    IConfiguration configuration) : Controller
+    IConfiguration configuration,
+    AppText text) : Controller
 {
     [HttpPost("/auth/login")]
     [EnableRateLimiting("auth")]
@@ -20,13 +22,13 @@ public sealed class AccountController(
     {
         if (!ModelState.IsValid || string.IsNullOrWhiteSpace(input.Email) || string.IsNullOrWhiteSpace(input.Password))
         {
-            return RedirectWithMessage("/login", input.ReturnUrl, "Preenche email e password.");
+            return RedirectWithMessage("/login", input.ReturnUrl, text.Pick("Preenche email e password.", "Enter email and password."));
         }
 
         var result = await signInManager.PasswordSignInAsync(input.Email, input.Password, input.RememberMe, lockoutOnFailure: true);
         if (!result.Succeeded)
         {
-            return RedirectWithMessage("/login", input.ReturnUrl, "Credenciais inválidas.");
+            return RedirectWithMessage("/login", input.ReturnUrl, text.Pick("Credenciais inválidas.", "Invalid credentials."));
         }
 
         return RedirectToLocal(input.ReturnUrl);
@@ -38,12 +40,12 @@ public sealed class AccountController(
     {
         if (string.IsNullOrWhiteSpace(input.Email) || string.IsNullOrWhiteSpace(input.Password))
         {
-            return RedirectWithMessage("/register", input.ReturnUrl, "Preenche email e password.");
+            return RedirectWithMessage("/register", input.ReturnUrl, text.Pick("Preenche email e password.", "Enter email and password."));
         }
 
         if (!string.Equals(input.Password, input.ConfirmPassword, StringComparison.Ordinal))
         {
-            return RedirectWithMessage("/register", input.ReturnUrl, "As passwords não coincidem.");
+            return RedirectWithMessage("/register", input.ReturnUrl, text.Pick("As passwords não coincidem.", "Passwords do not match."));
         }
 
         var user = new ApplicationUser
@@ -77,7 +79,7 @@ public sealed class AccountController(
     {
         if (!GoogleConfigured())
         {
-            return RedirectWithMessage("/login", returnUrl, "Login por Gmail ainda não configurado. Define Authentication:Google:ClientId e ClientSecret.");
+            return RedirectWithMessage("/login", returnUrl, text.Pick("Login por Gmail ainda não configurado. Define Authentication:Google:ClientId e ClientSecret.", "Gmail login is not configured yet. Set Authentication:Google:ClientId and ClientSecret."));
         }
 
         var redirectUrl = Url.Action(nameof(GoogleCallback), "Account", new { returnUrl });
@@ -91,7 +93,7 @@ public sealed class AccountController(
         var info = await signInManager.GetExternalLoginInfoAsync();
         if (info is null)
         {
-            return RedirectWithMessage("/login", returnUrl, "Não foi possível ler a resposta da Google.");
+            return RedirectWithMessage("/login", returnUrl, text.Pick("Não foi possível ler a resposta da Google.", "Could not read Google's response."));
         }
 
         var loginResult = await signInManager.ExternalLoginSignInAsync(
@@ -108,7 +110,7 @@ public sealed class AccountController(
         var email = info.Principal.FindFirstValue(ClaimTypes.Email);
         if (string.IsNullOrWhiteSpace(email))
         {
-            return RedirectWithMessage("/login", returnUrl, "A conta Google não devolveu email.");
+            return RedirectWithMessage("/login", returnUrl, text.Pick("A conta Google não devolveu email.", "The Google account did not return an email."));
         }
 
         var user = await userManager.FindByEmailAsync(email);

@@ -1,18 +1,19 @@
 @page "/Error"
 @using System.Diagnostics
+@inject AppText T
 
-<PageTitle>Erro - TrueCompare</PageTitle>
+<PageTitle>@T["Error.Title"] - TrueCompare</PageTitle>
 
 <section class="empty-state">
-    <p class="eyebrow">Erro</p>
-    <h1>Algo falhou</h1>
+    <p class="eyebrow">@T["Error.Title"]</p>
+    <h1>@T["Error.Message"]</h1>
 
     @if (ShowRequestId)
     {
         <code>@RequestId</code>
     }
 
-    <a class="primary-button" href="/">Voltar</a>
+    <a class="primary-button" href="/">@T["Error.Back"]</a>
 </section>
 
 @code {

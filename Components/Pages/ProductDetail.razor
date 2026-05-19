@@ -1,22 +1,23 @@
 @page "/product/{Slug}"
 @inject ComparisonDataService Data
+@inject AppText T
 
-<PageTitle>Detalhe - TrueCompare</PageTitle>
+<PageTitle>@T["Product.PageTitle"]</PageTitle>
 
 @if (Product is null)
 {
     <section class="empty-state">
-        <h1>Produto não encontrado</h1>
-        <a class="primary-button" href="results">Ver resultados</a>
+        <h1>@T["Product.NotFound"]</h1>
+        <a class="primary-button" href="results">@T["Product.Results"]</a>
     </section>
 }
 else
 {
     <section class="page-header compact-header">
         <div>
-            <h1>Produto verificado</h1>
+            <h1>@T["Product.Title"]</h1>
         </div>
-        <a class="secondary-button" href="@CheckoutUrl">Ver condições</a>
+        <a class="secondary-button" href="@CheckoutUrl">@T["Product.Conditions"]</a>
     </section>
 
     <div class="detail-grid">
@@ -32,14 +33,14 @@ else
             </div>
 
             <div class="score-block">
-                <span>Score IA</span>
+                <span>@T["Product.Score"]</span>
                 <strong>@Product.Score</strong>
                 <em>@Product.Badge</em>
             </div>
 
             <div class="checklist">
-                <h2>✓ Verified by TrueCompare</h2>
-                <p class="muted-label">Fornecedor, stock, garantia e risco validados</p>
+                <h2>@T["Product.Verified"]</h2>
+                <p class="muted-label">@T["Product.VerifiedLead"]</p>
                 @foreach (var check in Product.VerificationChecks)
                 {
                     <p><span>✓</span>@check</p>
@@ -49,7 +50,7 @@ else
 
         <aside class="verification-stack">
             <section class="analysis-panel flat">
-                <h2>Análise IA</h2>
+                <h2>@T["Product.AiAnalysis"]</h2>
                 <p>@Product.AiSummary</p>
                 <div class="summary-specs compact-tags">
                     @foreach (var highlight in Product.Highlights)
@@ -60,11 +61,11 @@ else
             </section>
 
             <section class="alert-panel">
-                <h2>! Alertas anti-fraude</h2>
+                <h2>@T["Product.FraudAlerts"]</h2>
 
                 @if (Product.FraudAlerts.Count == 0)
                 {
-                    <div class="safe-alert">Limpo</div>
+                    <div class="safe-alert">@T["Product.Clean"]</div>
                 }
                 else
                 {

@@ -2,58 +2,102 @@ using TrueCompare.Models;
 
 namespace TrueCompare.Services;
 
-public sealed class ComparisonDataService
+public sealed class ComparisonDataService(AppText text)
 {
     private const string LaptopCatalog = "laptops";
     private const string SmartphoneCatalog = "smartphones";
 
-    public IReadOnlyList<string> Categories { get; } = new List<string>
-    {
-        "Smartphones premium",
-        "Portáteis profissionais",
-        "Eletrodomésticos eficiência A+++",
-        "Ferramentas industriais",
-        "Equipamento desportivo",
-        "Acessórios automóvel",
-        "Móveis & decoração",
-        "Áudio & DJ equipment"
-    };
+    public IReadOnlyList<string> Categories => text.IsEnglish
+        ? new List<string>
+        {
+            "Premium smartphones",
+            "Professional laptops",
+            "A+++ efficient appliances",
+            "Industrial tools",
+            "Sports equipment",
+            "Car accessories",
+            "Furniture & decor",
+            "Audio & DJ equipment"
+        }
+        : new List<string>
+        {
+            "Smartphones premium",
+            "Portáteis profissionais",
+            "Eletrodomésticos eficiência A+++",
+            "Ferramentas industriais",
+            "Equipamento desportivo",
+            "Acessórios automóvel",
+            "Móveis & decoração",
+            "Áudio & DJ equipment"
+        };
 
-    public IReadOnlyList<CriteriaWeight> DefaultWeights { get; } = new List<CriteriaWeight>
-    {
-        new("Preço", 80, "#7BE8E0"),
-        new("Autonomia", 95, "#5EE9A8"),
-        new("Peso e portabilidade", 70, "#7BE8E0"),
-        new("Performance (CPU)", 60, "#7BE8E0"),
-        new("Qualidade do ecrã", 50, "#B49CFF"),
-        new("Garantia e suporte", 75, "#5EE9A8"),
-        new("Sustentabilidade", 40, "#E9D67B"),
-        new("Origem / fabrico", 30, "#F0A36A")
-    };
+    public IReadOnlyList<CriteriaWeight> DefaultWeights => text.IsEnglish
+        ? new List<CriteriaWeight>
+        {
+            new("Price", 80, "#7BE8E0"),
+            new("Battery life", 95, "#5EE9A8"),
+            new("Weight and portability", 70, "#7BE8E0"),
+            new("Performance (CPU)", 60, "#7BE8E0"),
+            new("Display quality", 50, "#B49CFF"),
+            new("Warranty and support", 75, "#5EE9A8"),
+            new("Sustainability", 40, "#E9D67B"),
+            new("Origin / manufacturing", 30, "#F0A36A")
+        }
+        : new List<CriteriaWeight>
+        {
+            new("Preço", 80, "#7BE8E0"),
+            new("Autonomia", 95, "#5EE9A8"),
+            new("Peso e portabilidade", 70, "#7BE8E0"),
+            new("Performance (CPU)", 60, "#7BE8E0"),
+            new("Qualidade do ecrã", 50, "#B49CFF"),
+            new("Garantia e suporte", 75, "#5EE9A8"),
+            new("Sustentabilidade", 40, "#E9D67B"),
+            new("Origem / fabrico", 30, "#F0A36A")
+        };
 
-    public IReadOnlyList<ProductResult> Products => LaptopProducts;
+    public IReadOnlyList<ProductResult> Products => GetProducts(null);
 
-    public IReadOnlyList<SellerOffer> SellerOffers => LaptopOffers;
+    public IReadOnlyList<SellerOffer> SellerOffers => GetSellerOffers(null);
 
-    public IReadOnlyList<FeatureItem> Features { get; } = new List<FeatureItem>
-    {
-        new("01", "Prompt inteligente", "Linguagem natural. Zero filtros.", "#7BE8E0"),
-        new("02", "Pesos personalizados", "Preço, autonomia, garantia.", "#5EE9A8"),
-        new("03", "Comparação isenta", "Zero patrocínios.", "#B49CFF"),
-        new("04", "Anti-fraude", "Listagens, vendedores, série.", "#E97B7B"),
-        new("05", "Checkout seguro", "Cartão, garantia, devolução.", "#E9D67B"),
-        new("06", "Tutoriais em vídeo", "Fluxos em 2 minutos.", "#F0A36A")
-    };
+    public IReadOnlyList<FeatureItem> Features => text.IsEnglish
+        ? new List<FeatureItem>
+        {
+            new("01", "Smart prompt", "Natural language. No filters.", "#7BE8E0"),
+            new("02", "Custom weights", "Price, battery, warranty.", "#5EE9A8"),
+            new("03", "Independent comparison", "Zero sponsorships.", "#B49CFF"),
+            new("04", "Anti-fraud", "Listings, sellers, serials.", "#E97B7B"),
+            new("05", "Secure checkout", "Card, warranty, returns.", "#E9D67B"),
+            new("06", "Video tutorials", "Flows in 2 minutes.", "#F0A36A")
+        }
+        : new List<FeatureItem>
+        {
+            new("01", "Prompt inteligente", "Linguagem natural. Zero filtros.", "#7BE8E0"),
+            new("02", "Pesos personalizados", "Preço, autonomia, garantia.", "#5EE9A8"),
+            new("03", "Comparação isenta", "Zero patrocínios.", "#B49CFF"),
+            new("04", "Anti-fraude", "Listagens, vendedores, série.", "#E97B7B"),
+            new("05", "Checkout seguro", "Cartão, garantia, devolução.", "#E9D67B"),
+            new("06", "Tutoriais em vídeo", "Fluxos em 2 minutos.", "#F0A36A")
+        };
 
-    public IReadOnlyList<TutorialItem> Tutorials { get; } = new List<TutorialItem>
-    {
-        new("Iniciantes", "Como criar o primeiro prompt", "1:42"),
-        new("Iniciantes", "Ajustar pesos dos critérios", "2:15"),
-        new("Iniciantes", "Ler o score da IA", "1:58"),
-        new("Avançado", "Adicionar produto manual", "1:30"),
-        new("Segurança", "Detectar vendedores falsos", "3:05"),
-        new("Encomendas", "Encomendar com pagamento seguro", "2:40")
-    };
+    public IReadOnlyList<TutorialItem> Tutorials => text.IsEnglish
+        ? new List<TutorialItem>
+        {
+            new("Beginners", "Create the first prompt", "1:42"),
+            new("Beginners", "Adjust criteria weights", "2:15"),
+            new("Beginners", "Read the AI score", "1:58"),
+            new("Advanced", "Add a product manually", "1:30"),
+            new("Security", "Detect fake sellers", "3:05"),
+            new("Orders", "Order with secure payment", "2:40")
+        }
+        : new List<TutorialItem>
+        {
+            new("Iniciantes", "Como criar o primeiro prompt", "1:42"),
+            new("Iniciantes", "Ajustar pesos dos critérios", "2:15"),
+            new("Iniciantes", "Ler o score da IA", "1:58"),
+            new("Avançado", "Adicionar produto manual", "1:30"),
+            new("Segurança", "Detectar vendedores falsos", "3:05"),
+            new("Encomendas", "Encomendar com pagamento seguro", "2:40")
+        };
 
     private static IReadOnlyList<ProductResult> LaptopProducts { get; } = new List<ProductResult>
     {
@@ -212,18 +256,22 @@ public sealed class ComparisonDataService
 
     public IReadOnlyList<ProductResult> GetProducts(string? query)
     {
-        return ResolveCatalog(query) == SmartphoneCatalog ? SmartphoneProducts : LaptopProducts;
+        var products = ResolveCatalog(query) == SmartphoneCatalog ? SmartphoneProducts : LaptopProducts;
+        return LocalizeProducts(products);
     }
 
     public IReadOnlyList<SellerOffer> GetSellerOffers(string? queryOrSlug)
     {
-        return ResolveCatalog(queryOrSlug) == SmartphoneCatalog ? SmartphoneOffers : LaptopOffers;
+        var offers = ResolveCatalog(queryOrSlug) == SmartphoneCatalog ? SmartphoneOffers : LaptopOffers;
+        return LocalizeOffers(offers);
     }
 
     public ProductResult? FindProduct(string slug)
     {
-        return LaptopProducts.Concat(SmartphoneProducts)
+        var product = LaptopProducts.Concat(SmartphoneProducts)
             .FirstOrDefault(product => product.Slug.Equals(slug, StringComparison.OrdinalIgnoreCase));
+
+        return product is null ? null : LocalizeProduct(product);
     }
 
     public SellerOffer GetBestOffer(string? queryOrSlug = null)
@@ -231,7 +279,7 @@ public sealed class ComparisonDataService
         return GetSellerOffers(queryOrSlug).OrderBy(offer => offer.PriceCents).First();
     }
 
-    private static string ResolveCatalog(string? queryOrSlug)
+    private string ResolveCatalog(string? queryOrSlug)
     {
         if (string.IsNullOrWhiteSpace(queryOrSlug))
         {
@@ -243,6 +291,8 @@ public sealed class ComparisonDataService
             || value.Contains("smartphone")
             || value.Contains("telemóvel")
             || value.Contains("telemovel")
+            || value.Contains("phone")
+            || value.Contains("mobile")
             || value.Contains("iphone")
             || value.Contains("samsung")
             || value.Contains("android")
@@ -254,5 +304,123 @@ public sealed class ComparisonDataService
         }
 
         return LaptopCatalog;
+    }
+
+    private IReadOnlyList<ProductResult> LocalizeProducts(IReadOnlyList<ProductResult> products)
+    {
+        return text.IsEnglish ? products.Select(LocalizeProduct).ToList() : products;
+    }
+
+    private ProductResult LocalizeProduct(ProductResult product)
+    {
+        if (!text.IsEnglish)
+        {
+            return product;
+        }
+
+        return product with
+        {
+            Badge = TranslateProductCopy(product.Badge),
+            Specs = product.Specs.Select(TranslateProductCopy).ToList(),
+            Highlights = product.Highlights.Select(TranslateProductCopy).ToList(),
+            VerificationChecks = product.VerificationChecks.Select(TranslateProductCopy).ToList(),
+            FraudAlerts = product.FraudAlerts.Select(alert => alert with { Reason = TranslateProductCopy(alert.Reason) }).ToList(),
+            AiSummary = TranslateProductCopy(product.AiSummary)
+        };
+    }
+
+    private IReadOnlyList<SellerOffer> LocalizeOffers(IReadOnlyList<SellerOffer> offers)
+    {
+        return text.IsEnglish
+            ? offers.Select(offer => offer with
+            {
+                Delivery = TranslateProductCopy(offer.Delivery),
+                Warranty = TranslateProductCopy(offer.Warranty),
+                Status = TranslateProductCopy(offer.Status)
+            }).ToList()
+            : offers;
+    }
+
+    private static string TranslateProductCopy(string value)
+    {
+        return value switch
+        {
+            "Recomendado" => "Recommended",
+            "Melhor garantia" => "Best warranty",
+            "Ecrã premium" => "Premium display",
+            "Melhor preço" => "Best price",
+            "Melhor Android" => "Best Android",
+            "Melhor câmara IA" => "Best AI camera",
+            "Melhor preço/performance" => "Best price/performance",
+            "18h autonomia" => "18h battery",
+            "15h autonomia" => "15h battery",
+            "12h autonomia" => "12h battery",
+            "11h autonomia" => "11h battery",
+            "23h vídeo" => "23h video",
+            "Garantia 2 anos" => "2-year warranty",
+            "Garantia 3 anos" => "3-year warranty",
+            "Autonomia 38% acima da média" => "Battery life 38% above average",
+            "Peso reduzido" => "Low weight",
+            "Garantia oficial em Portugal" => "Official warranty in Portugal",
+            "Mais leve da lista" => "Lightest on the list",
+            "Garantia superior" => "Stronger warranty",
+            "Bom equilíbrio profissional" => "Good professional balance",
+            "Boa performance" => "Good performance",
+            "Ecrã forte" => "Strong display",
+            "Construção sólida" => "Solid build",
+            "Preço competitivo" => "Competitive price",
+            "Leve" => "Light",
+            "Boa relação valor" => "Good value",
+            "Melhor ecossistema" => "Best ecosystem",
+            "Câmara consistente" => "Consistent camera",
+            "Suporte longo" => "Long support",
+            "Ecrã excelente" => "Excellent display",
+            "Atualizações longas" => "Long update window",
+            "Boa autonomia" => "Good battery",
+            "Fotografia forte" => "Strong photography",
+            "Android limpo" => "Clean Android",
+            "Excelente valor" => "Excellent value",
+            "Performance elevada" => "High performance",
+            "Carregamento rápido" => "Fast charging",
+            "Preço agressivo" => "Aggressive price",
+            "Número de série validado" => "Serial number validated",
+            "Revendedor autorizado" => "Authorized reseller",
+            "Stock real confirmado" => "Real stock confirmed",
+            "Garantia oficial registável em PT" => "Official warranty registerable in Portugal",
+            "Sem histórico de contrafação" => "No counterfeit history",
+            "Garantia validada" => "Warranty validated",
+            "Stock cruzado em 3 fontes" => "Stock cross-checked across 3 sources",
+            "Sem alertas críticos" => "No critical alerts",
+            "Vendedor autorizado" => "Authorized seller",
+            "Preço dentro do mercado" => "Market-aligned price",
+            "IMEI validável" => "IMEI can be validated",
+            "Garantia UE confirmada" => "EU warranty confirmed",
+            "Preço 60% abaixo do mercado" => "Price 60% below market",
+            "Domínio criado há 14 dias" => "Domain created 14 days ago",
+            "Sem registo fiscal verificável" => "No verifiable tax registration",
+            "Preço 45% abaixo do mercado" => "Price 45% below market",
+            "Sem informação fiscal verificável" => "No verifiable tax information",
+            "2 dias" => "2 days",
+            "3 dias" => "3 days",
+            "4 dias" => "4 days",
+            "5-7 dias" => "5-7 days",
+            "2-4 dias" => "2-4 days",
+            "2-3 dias" => "2-3 days",
+            "2 anos oficial" => "2-year official",
+            "3 anos UE" => "3-year EU",
+            "3 anos PT" => "3-year PT",
+            "3 anos oficial" => "3-year official",
+            "Verificado" => "Verified",
+            "Autorizado" => "Authorized",
+            "Este produto cumpre 94% dos critérios definidos. Pontos fortes: autonomia, peso reduzido e garantia oficial." => "This product meets 94% of the selected criteria. Strengths: battery life, low weight and official warranty.",
+            "Excelente opção para suporte e mobilidade. Fica atrás do primeiro lugar pelo preço mais alto." => "Excellent option for support and mobility. It sits behind first place because of the higher price.",
+            "Boa escolha se o ecrã for prioritário. Penalizado pelo peso e autonomia abaixo dos líderes." => "Good choice if display quality is the priority. Penalized by weight and battery life below the leaders.",
+            "A melhor opção para orçamento controlado. Menos indicado para workloads pesados." => "The best option for a controlled budget. Less suited to heavy workloads.",
+            "Melhor escolha premium para quem valoriza câmara, desempenho e suporte prolongado." => "Best premium choice for camera, performance and long-term support.",
+            "A opção Android mais equilibrada para desempenho, ecrã e longevidade." => "The most balanced Android option for performance, display and longevity.",
+            "Ideal para fotografia computacional e experiência Android limpa." => "Ideal for computational photography and a clean Android experience.",
+            "Muito forte em performance e carregamento, com preço competitivo." => "Very strong on performance and charging, with a competitive price.",
+            _ => value
+        };
     }
 }

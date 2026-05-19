@@ -1,10 +1,12 @@
 @page "/credits/success"
 @attribute [Authorize]
+@inject AppText T
 
-<PageTitle>Pagamento recebido - TrueCompare</PageTitle>
+<PageTitle>@T["Credits.SuccessPageTitle"]</PageTitle>
 
 <section class="empty-state">
-    <p class="eyebrow">Stripe</p>
-    <h1>Pagamento em confirmação</h1>
-    <a class="primary-button" href="credits">Ver créditos</a>
+    <p class="eyebrow">@T["Credits.SuccessEyebrow"]</p>
+    <h1>@T["Credits.SuccessTitle"]</h1>
+    <p>@T["Credits.SuccessLead"]</p>
+    <a class="primary-button" href="credits">@T["Credits.ViewCredits"]</a>
 </section>

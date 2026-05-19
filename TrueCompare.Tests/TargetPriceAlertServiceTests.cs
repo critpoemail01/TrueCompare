@@ -30,7 +30,7 @@ public sealed class TargetPriceAlertServiceTests
         dbContext.Users.Add(user);
         await dbContext.SaveChangesAsync();
 
-        var service = new TargetPriceAlertService(dbContext, new ComparisonDataService());
+        var service = new TargetPriceAlertService(dbContext, new ComparisonDataService(new AppText()));
 
         var alert = await service.CreateAsync(user.Id, "iphone-15-pro", "iPhone 15 Pro", 700m);
 

@@ -13,7 +13,8 @@ public sealed class LlmSuggestionService(
     HttpClient httpClient,
     IOptions<LlmOptions> optionsAccessor,
     IMemoryCache cache,
-    ILogger<LlmSuggestionService> logger) : IProductSuggestionService
+    ILogger<LlmSuggestionService> logger,
+    AppText text) : IProductSuggestionService
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
@@ -30,7 +31,7 @@ public sealed class LlmSuggestionService(
         CancellationToken cancellationToken = default)
     {
         var normalizedQuery = string.IsNullOrWhiteSpace(query)
-            ? "produto com melhor relação preço, garantia e baixo risco"
+            ? text.Pick("produto com melhor relação preço, garantia e baixo risco", "product with best price, warranty and low risk")
             : query.Trim();
 
         var cacheKey = $"llm-suggestions:{normalizedQuery.ToLowerInvariant()}:{string.Join('|', products.Select(product => product.Slug))}";
@@ -136,7 +137,7 @@ public sealed class LlmSuggestionService(
                 {
                     role = "system",
                     content = """
-                    És o motor de sugestões da TrueCompare. Responde em pt-PT e devolve apenas JSON válido.
+                    És o motor de sugestões da TrueCompare. Responde na mesma língua do pedido do utilizador e devolve apenas JSON válido.
                     Não inventes preços em tempo real, stock, links ou vendedores. Usa preços só quando vierem em "ofertasConhecidas".
                     Se sugerires produtos fora do catálogo, marca source como "Sugestão IA" e usa targetPrice como "confirmar".
                     O JSON deve ter: intent, summary, confidence, buyingSignals, suggestedQueries, warnings, productLeads.
@@ -148,6 +149,7 @@ public sealed class LlmSuggestionService(
                     role = "user",
                     content = JsonSerializer.Serialize(new
                     {
+                        idioma = text.IsEnglish ? "en-US" : "pt-PT",
                         pedido = query,
                         produtosConhecidos = knownProducts,
                         ofertasConhecidas = knownOffers
@@ -177,7 +179,7 @@ public sealed class LlmSuggestionService(
         return ExtractJsonObject(content);
     }
 
-    private static LlmSuggestionResult NormalizePayload(LlmPayload? payload, LlmSuggestionResult fallback)
+    private LlmSuggestionResult NormalizePayload(LlmPayload? payload, LlmSuggestionResult fallback)
     {
         if (payload is null)
         {
@@ -188,16 +190,16 @@ public sealed class LlmSuggestionService(
             .Select(lead => new LlmProductLead(
                 CleanText(lead.Name),
                 CleanText(lead.Reason),
-                CleanText(lead.TargetPrice, "confirmar"),
+                CleanText(lead.TargetPrice, text.Pick("confirmar", "confirm")),
                 CleanText(lead.SearchHint),
-                CleanText(lead.Source, "Sugestão IA")))
+                CleanText(lead.Source, text.Pick("Sugestão IA", "AI suggestion"))))
             .Where(lead => !string.IsNullOrWhiteSpace(lead.Name) && !string.IsNullOrWhiteSpace(lead.Reason))
             .Take(4)
             .ToList();
 
         return new LlmSuggestionResult(
             true,
-            "LLM ativo",
+            text.Pick("LLM ativo", "LLM active"),
             CleanText(payload.Intent, fallback.Intent),
             CleanText(payload.Summary, fallback.Summary),
             payload.Confidence <= 0 ? fallback.Confidence : Math.Clamp(payload.Confidence, 0, 100),
@@ -218,14 +220,16 @@ public sealed class LlmSuggestionService(
             : trimmed;
     }
 
-    private static LlmSuggestionResult BuildFallback(string query, IReadOnlyList<ProductResult> products, IReadOnlyList<SellerOffer> offers)
+    private LlmSuggestionResult BuildFallback(string query, IReadOnlyList<ProductResult> products, IReadOnlyList<SellerOffer> offers)
     {
         var bestProduct = products.OrderByDescending(product => product.Score).FirstOrDefault();
         var bestOffer = offers.OrderBy(offer => offer.PriceCents).FirstOrDefault();
 
         var summary = bestProduct is null
-            ? "Define orçamento, garantia e risco para gerar uma comparação mais forte."
-            : $"Melhor ponto de partida: {bestProduct.Name}. Melhor vendedor conhecido: {bestOffer?.Seller ?? "confirmar"} {bestOffer?.Price ?? string.Empty}.";
+            ? text.Pick("Define orçamento, garantia e risco para gerar uma comparação mais forte.", "Define budget, warranty and risk to generate a stronger comparison.")
+            : text.Pick(
+                $"Melhor ponto de partida: {bestProduct.Name}. Melhor vendedor conhecido: {bestOffer?.Seller ?? "confirmar"} {bestOffer?.Price ?? string.Empty}.",
+                $"Best starting point: {bestProduct.Name}. Best known seller: {bestOffer?.Seller ?? "confirm"} {bestOffer?.Price ?? string.Empty}.");
 
         var leads = products
             .OrderByDescending(product => product.Score)
@@ -234,20 +238,20 @@ public sealed class LlmSuggestionService(
                 product.Name,
                 product.AiSummary,
                 product.Price,
-                $"{product.Brand} {product.Name} melhor preço garantia Portugal",
-                "Catálogo"))
+                text.Pick($"{product.Brand} {product.Name} melhor preço garantia Portugal", $"{product.Brand} {product.Name} best price warranty Portugal"),
+                text.Pick("Catálogo", "Catalog")))
             .ToList();
 
         var warnings = products
             .SelectMany(product => product.FraudAlerts)
             .Select(alert => $"{alert.Source}: {alert.Reason}")
-            .DefaultIfEmpty("Confirma sempre garantia, NIF do vendedor e política de devolução.")
+            .DefaultIfEmpty(text.Pick("Confirma sempre garantia, NIF do vendedor e política de devolução.", "Always confirm warranty, seller tax details and return policy."))
             .Take(4)
             .ToList();
 
         return new LlmSuggestionResult(
             false,
-            "Modo local",
+            text.Pick("Modo local", "Local mode"),
             query,
             summary.Trim(),
             bestProduct?.Score ?? 72,
@@ -257,7 +261,7 @@ public sealed class LlmSuggestionService(
             leads);
     }
 
-    private static IReadOnlyList<string> BuildFallbackSignals(ProductResult? product, SellerOffer? offer)
+    private IReadOnlyList<string> BuildFallbackSignals(ProductResult? product, SellerOffer? offer)
     {
         var signals = new List<string>();
         if (product is not null)
@@ -271,18 +275,28 @@ public sealed class LlmSuggestionService(
             signals.Add($"{offer.Seller}: {offer.Price}");
         }
 
-        return signals.Count > 0 ? signals : new[] { "Preço", "Garantia", "Risco", "Entrega" };
+        return signals.Count > 0
+            ? signals
+            : new[] { text.Pick("Preço", "Price"), text.Pick("Garantia", "Warranty"), text.Pick("Risco", "Risk"), text.Pick("Entrega", "Delivery") };
     }
 
-    private static IReadOnlyList<string> BuildFallbackQueries(string query)
+    private IReadOnlyList<string> BuildFallbackQueries(string query)
     {
-        return new[]
-        {
-            $"{query} melhor preço vendedor autorizado",
-            $"{query} garantia Portugal",
-            $"{query} alternativa melhor preço",
-            $"{query} alerta preço alvo"
-        };
+        return text.IsEnglish
+            ? new[]
+            {
+                $"{query} best price authorized seller",
+                $"{query} warranty Portugal",
+                $"{query} alternative best price",
+                $"{query} target price alert"
+            }
+            : new[]
+            {
+                $"{query} melhor preço vendedor autorizado",
+                $"{query} garantia Portugal",
+                $"{query} alternativa melhor preço",
+                $"{query} alerta preço alvo"
+            };
     }
 
     private static IReadOnlyList<T> Clean<T>(IReadOnlyList<T>? values)

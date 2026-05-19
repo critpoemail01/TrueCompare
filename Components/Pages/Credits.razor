@@ -3,15 +3,16 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SearchQuotaService QuotaService
 @inject Microsoft.Extensions.Options.IOptions<StripeOptions> StripeOptionsAccessor
+@inject AppText T
 
-<PageTitle>Créditos - TrueCompare</PageTitle>
+<PageTitle>@T["Credits.PageTitle"]</PageTitle>
 
 <section class="page-header compact-header">
     <div>
-        <p class="eyebrow">Créditos TrueCompare</p>
-        <h1>Créditos</h1>
+        <p class="eyebrow">@T["Credits.Eyebrow"]</p>
+        <h1>@T["Credits.Title"]</h1>
     </div>
-    <a class="secondary-button" href="/">Nova pesquisa</a>
+    <a class="secondary-button" href="/">@T["Credits.NewSearch"]</a>
 </section>
 
 @if (!string.IsNullOrWhiteSpace(Message))
@@ -21,21 +22,21 @@
 
 @if (Status is null)
 {
-    <p class="muted-label">A carregar créditos...</p>
+    <p class="muted-label">@T["Credits.Loading"]</p>
 }
 else
 {
     <section class="credit-status-grid">
         <article>
-            <span>Pesquisas gratuitas usadas</span>
+            <span>@T["Credits.FreeUsed"]</span>
             <strong>@Status.FreeSearchesUsed / @Status.FreeSearchLimit</strong>
         </article>
         <article>
-            <span>Gratuitas restantes</span>
+            <span>@T["Credits.FreeRemaining"]</span>
             <strong>@Status.FreeSearchesRemaining</strong>
         </article>
         <article>
-            <span>Créditos disponíveis</span>
+            <span>@T["Credits.Available"]</span>
             <strong>@Status.Credits</strong>
         </article>
     </section>
@@ -45,13 +46,13 @@ else
     @foreach (var package in Packages)
     {
         <article class="credit-package">
-            <span>@package.Credits créditos</span>
+            <span>@T.Format("Credits.PackageCredits", package.Credits)</span>
             <h2>@package.Name</h2>
             <strong>@FormatPrice(package)</strong>
             <form method="post" action="/billing/create-checkout-session">
                 <AntiforgeryToken />
                 <input type="hidden" name="packageId" value="@package.Id" />
-                <button class="primary-button wide" type="submit">Pagar com cartão</button>
+                <button class="primary-button wide" type="submit">@T["Credits.PayByCard"]</button>
             </form>
         </article>
     }

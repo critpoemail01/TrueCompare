@@ -1,20 +1,21 @@
 @page "/register"
+@inject AppText T
 
-<PageTitle>Criar conta - TrueCompare</PageTitle>
+<PageTitle>@T["Auth.RegisterPageTitle"]</PageTitle>
 
 <section class="auth-shell">
     <div class="auth-card">
-        <p class="eyebrow">3 pesquisas gratuitas</p>
-        <h1>Criar conta</h1>
+        <p class="eyebrow">@T["Auth.FreeSearches"]</p>
+        <h1>@T["Auth.RegisterTitle"]</h1>
 
         @if (!string.IsNullOrWhiteSpace(Message))
         {
             <div class="form-message">@Message</div>
         }
 
-        <a class="google-button" href="@GoogleUrl">Criar com Gmail</a>
+        <a class="google-button" href="@GoogleUrl">@T["Auth.CreateWithGoogle"]</a>
 
-        <div class="divider"><span>ou</span></div>
+        <div class="divider"><span>@T["Auth.Or"]</span></div>
 
         <form method="post" action="/auth/register" class="auth-form">
             <AntiforgeryToken />
@@ -26,19 +27,19 @@
             </label>
 
             <label>
-                Password
+                @T["Auth.Password"]
                 <input name="Password" type="password" autocomplete="new-password" minlength="10" required />
             </label>
 
             <label>
-                Confirmar password
+                @T["Auth.ConfirmPassword"]
                 <input name="ConfirmPassword" type="password" autocomplete="new-password" minlength="10" required />
             </label>
 
-            <button class="primary-button wide" type="submit">Criar conta</button>
+            <button class="primary-button wide" type="submit">@T["Auth.CreateAccount"]</button>
         </form>
 
-        <p class="auth-switch">Já tens conta? <a href="@LoginUrl">Entrar</a></p>
+        <p class="auth-switch">@T["Auth.AlreadyHaveAccount"] <a href="@LoginUrl">@T["Auth.LoginButton"]</a></p>
     </div>
 </section>
 

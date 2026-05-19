@@ -1,14 +1,15 @@
 @page "/tutorials"
 @inject ComparisonDataService Data
+@inject AppText T
 
-<PageTitle>Tutoriais - TrueCompare</PageTitle>
+<PageTitle>@T["Tutorials.PageTitle"]</PageTitle>
 
 <section class="page-header">
-    <h1>Centro de tutoriais</h1>
-    <p>Fluxos curtos para compra, verificação e alertas.</p>
+    <h1>@T["Tutorials.Title"]</h1>
+    <p>@T["Tutorials.Lead"]</p>
 </section>
 
-<div class="filter-row" role="tablist" aria-label="Filtro de tutoriais">
+<div class="filter-row" role="tablist" aria-label='@T["Tutorials.FilterAria"]'>
     @foreach (var filter in Filters)
     {
         <button type="button" class="@(ActiveFilter == filter ? "active" : null)" @onclick="() => ActiveFilter = filter">@filter</button>
@@ -30,11 +31,16 @@
 </section>
 
 @code {
-    private string ActiveFilter { get; set; } = "Todos";
+    private string ActiveFilter { get; set; } = string.Empty;
 
-    private IReadOnlyList<string> Filters => new[] { "Todos", "Iniciantes", "Avançado", "Segurança", "Encomendas" };
+    private IReadOnlyList<string> Filters => new[] { T["Tutorials.All"], T["Tutorials.Beginners"], T["Tutorials.Advanced"], T["Tutorials.Security"], T["Tutorials.Orders"] };
 
-    private IEnumerable<TutorialItem> FilteredTutorials => ActiveFilter == "Todos"
+    private IEnumerable<TutorialItem> FilteredTutorials => ActiveFilter == T["Tutorials.All"]
         ? Data.Tutorials
         : Data.Tutorials.Where(tutorial => tutorial.Category == ActiveFilter);
+
+    protected override void OnInitialized()
+    {
+        ActiveFilter = T["Tutorials.All"];
+    }
 }

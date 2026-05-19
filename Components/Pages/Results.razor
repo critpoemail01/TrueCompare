@@ -1,31 +1,32 @@
 @page "/results"
 @inject ComparisonDataService Data
 @inject IProductSuggestionService SuggestionService
+@inject AppText T
 
-<PageTitle>Resultados - TrueCompare</PageTitle>
+<PageTitle>@T["Results.PageTitle"]</PageTitle>
 
 <section class="page-header compact-header">
     <div>
-        <h1>Resultados comparativos</h1>
-        <p>@Products.Count produtos · preço, garantia, risco e performance ponderados.</p>
+        <h1>@T["Results.Title"]</h1>
+        <p>@T.Format("Results.Subtitle", Products.Count)</p>
     </div>
-    <a class="secondary-button" href="@CriteriaUrl">+ Adicionar produto</a>
+    <a class="secondary-button" href="@CriteriaUrl">@T["Results.AddProduct"]</a>
 </section>
 
 <section class="ai-suggestion-panel" aria-live="polite">
     <div class="ai-suggestion-head">
         <div>
-            <p class="eyebrow">Sugestão IA</p>
+            <p class="eyebrow">@T["Results.AiSuggestion"]</p>
             <h2>@(AiSuggestions?.Intent ?? ActiveQuery)</h2>
         </div>
-        <span class="ai-source-pill">@(IsLoadingSuggestions ? "A analisar" : AiSuggestions?.SourceLabel)</span>
+        <span class="ai-source-pill">@(IsLoadingSuggestions ? T["Results.Analyzing"] : AiSuggestions?.SourceLabel)</span>
     </div>
 
     @if (IsLoadingSuggestions)
     {
         <div class="ai-loading">
             <span></span>
-            <strong>A preparar recomendações...</strong>
+            <strong>@T["Results.Preparing"]</strong>
         </div>
     }
     else if (AiSuggestions is not null)
@@ -87,21 +88,21 @@
                 @foreach (var spec in product.Specs.Take(4))
                 {
                     <div>
-                        <dt>Spec</dt>
+                        <dt>@T["Results.Spec"]</dt>
                         <dd>@spec</dd>
                     </div>
                 }
             </dl>
 
-            <p class="verified-line">✓ Verificado · sem patrocínio</p>
+            <p class="verified-line">@T["Results.Verified"]</p>
             <span class="badge">@product.Badge</span>
 
-            <a class="card-action" href="@ProductUrl(product)">Ver detalhes</a>
+            <a class="card-action" href="@ProductUrl(product)">@T["Results.Details"]</a>
         </article>
     }
 </section>
 
-<p class="disclaimer">Os resultados não são influenciados por marcas, retalhistas ou parceiros comerciais.</p>
+<p class="disclaimer">@T["Results.Disclaimer"]</p>
 
 @code {
     [SupplyParameterFromQuery]
@@ -114,7 +115,7 @@
     private bool IsLoadingSuggestions { get; set; }
 
     private string ActiveQuery => string.IsNullOrWhiteSpace(Query)
-        ? "produto com melhor preço, garantia e baixo risco"
+        ? T["Results.DefaultQuery"]
         : Query;
 
     private string CriteriaUrl => string.IsNullOrWhiteSpace(Query)

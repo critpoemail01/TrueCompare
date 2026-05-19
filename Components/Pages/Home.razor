@@ -3,18 +3,19 @@
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SearchQuotaService QuotaService
+@inject AppText T
 
 <PageTitle>TrueCompare</PageTitle>
 
 <section class="home-screen">
     <div class="hero-copy">
-        <h1>O que queres comparar hoje?</h1>
-        <p class="lead">3 pesquisas grátis · vendedores verificados · alertas de preço</p>
+        <h1>@T["Home.Title"]</h1>
+        <p class="lead">@T["Home.Lead"]</p>
 
         <div class="prompt-panel mock-prompt">
             <span class="prompt-plus">+</span>
-            <input id="prompt" aria-label="Produto a comparar" @bind="Prompt" @bind:event="oninput" />
-            <button class="search-send" type="button" @onclick="StartComparison" disabled="@IsSubmitting" aria-label="Comparar">
+            <input id="prompt" aria-label='@T["Home.ProductAria"]' @bind="Prompt" @bind:event="oninput" />
+            <button class="search-send" type="button" @onclick="StartComparison" disabled="@IsSubmitting" aria-label='@T["Home.CompareAria"]'>
                 @(IsSubmitting ? "..." : "→")
             </button>
         </div>
@@ -35,50 +36,56 @@
     </div>
 </section>
 
-<section class="capability-strip" aria-label="Capacidades principais">
+<section class="capability-strip" aria-label='@T["Home.Capabilities"]'>
     <a href="results" style="--accent:#7BE8E0">
-        <strong>Comparar</strong>
-        <span>Produtos</span>
+        <strong>@T["Home.Compare"]</strong>
+        <span>@T["Home.Products"]</span>
     </a>
     <a href="product/macbook-air-m3" style="--accent:#5EE9A8">
-        <strong>Verificar</strong>
-        <span>Autenticidade</span>
+        <strong>@T["Home.Verify"]</strong>
+        <span>@T["Home.Authenticity"]</span>
     </a>
     <a href="criteria" style="--accent:#B49CFF">
-        <strong>Ponderar</strong>
-        <span>Critérios</span>
+        <strong>@T["Home.Weigh"]</strong>
+        <span>@T["Home.Criteria"]</span>
     </a>
     <a href="checkout" style="--accent:#E97B7B">
-        <strong>Escolher</strong>
-        <span>Vendedor</span>
+        <strong>@T["Home.Choose"]</strong>
+        <span>@T["Home.Seller"]</span>
     </a>
     <a href="checkout" style="--accent:#E9D67B">
-        <strong>Comprar</strong>
-        <span>Agora</span>
+        <strong>@T["Home.Buy"]</strong>
+        <span>@T["Home.Now"]</span>
     </a>
     <a href="tutorials" style="--accent:#F0A36A">
-        <strong>Dominar</strong>
-        <span>Fluxos</span>
+        <strong>@T["Home.Master"]</strong>
+        <span>@T["Home.Flows"]</span>
     </a>
 </section>
 
 @code {
-    private string Prompt { get; set; } = "portátil profissional 14\", até 1500€, autonomia >10h, leve";
-    private string ActiveCategory { get; set; } = "Eletrodomésticos eficiência A+++";
+    private string Prompt { get; set; } = string.Empty;
+    private string ActiveCategory { get; set; } = string.Empty;
     private bool IsSubmitting { get; set; }
     private string? QuotaMessage { get; set; }
+
+    protected override void OnInitialized()
+    {
+        Prompt = T["Home.DefaultPrompt"];
+        ActiveCategory = T["Home.DefaultCategory"];
+    }
 
     private void UseCategory(string category)
     {
         ActiveCategory = category;
-        Prompt = $"{category}: melhor preço, vendedores verificados, baixo risco.";
+        Prompt = T.Format("Home.CategoryPrompt", category);
     }
 
     private async Task StartComparison()
     {
         if (string.IsNullOrWhiteSpace(Prompt))
         {
-            QuotaMessage = "Produto em falta.";
+            QuotaMessage = T["Home.MissingProduct"];
             return;
         }
 
@@ -98,7 +105,7 @@
         var result = await QuotaService.TryConsumeAsync(userId, Prompt);
         if (!result.Allowed)
         {
-            Navigation.NavigateTo($"/credits?returnUrl={Uri.EscapeDataString(criteriaUrl)}&message={Uri.EscapeDataString("Sem créditos disponíveis.")}", forceLoad: true);
+            Navigation.NavigateTo($"/credits?returnUrl={Uri.EscapeDataString(criteriaUrl)}&message={Uri.EscapeDataString(T["Home.NoCredits"])}", forceLoad: true);
             return;
         }
 

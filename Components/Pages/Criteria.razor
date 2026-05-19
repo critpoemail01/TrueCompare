@@ -1,27 +1,28 @@
 @page "/criteria"
 @inject ComparisonDataService Data
+@inject AppText T
 
-<PageTitle>Critérios - TrueCompare</PageTitle>
+<PageTitle>@T["Criteria.PageTitle"]</PageTitle>
 
 <section class="page-header">
-    <h1>Define o que valorizas</h1>
-    <p>Preço, qualidade, risco e garantia no peso certo.</p>
+    <h1>@T["Criteria.Title"]</h1>
+    <p>@T["Criteria.Lead"]</p>
 </section>
 
-<div class="tab-strip" role="tablist" aria-label="Modo de análise">
-    <button class="active" type="button">IA</button>
-    <button type="button">PREÇO</button>
-    <button type="button">GARANTIA</button>
-    <button type="button">ENTREGA</button>
-    <button type="button">RISCO</button>
+<div class="tab-strip" role="tablist" aria-label='@T["Criteria.ModeAria"]'>
+    <button class="active" type="button">@T["Criteria.TabAi"]</button>
+    <button type="button">@T["Criteria.TabPrice"]</button>
+    <button type="button">@T["Criteria.TabWarranty"]</button>
+    <button type="button">@T["Criteria.TabDelivery"]</button>
+    <button type="button">@T["Criteria.TabRisk"]</button>
 </div>
 
 <div class="comparison-command">
     <div class="query-card">
-        <span>Procuro:</span>
+        <span>@T["Criteria.LookingFor"]</span>
         <strong>@ActiveQuery</strong>
     </div>
-    <a class="primary-button command-button" href="@ResultsUrl">Comparar produtos →</a>
+    <a class="primary-button command-button" href="@ResultsUrl">@T["Criteria.CompareProducts"]</a>
 </div>
 
 <div class="workspace-grid">
@@ -42,18 +43,18 @@
 
     <aside class="analysis-panel">
         <div class="analysis-copy">
-            <h2>Ranking final</h2>
-            <p>Sem patrocínios. Sem afiliados. Sem ruído.</p>
+            <h2>@T["Criteria.RankingTitle"]</h2>
+            <p>@T["Criteria.RankingLead"]</p>
         </div>
-        <h2>Sinais usados</h2>
+        <h2>@T["Criteria.Signals"]</h2>
         <ol class="process-list">
-            <li>Specs oficiais</li>
-            <li>Vendedores verificados</li>
-            <li>Preço total</li>
-            <li>Risco anti-fraude</li>
+            <li>@T["Criteria.OfficialSpecs"]</li>
+            <li>@T["Criteria.VerifiedSellers"]</li>
+            <li>@T["Criteria.TotalPrice"]</li>
+            <li>@T["Criteria.FraudRisk"]</li>
         </ol>
         <div class="confidence-meter">
-            <span>Confiança do ranking</span>
+            <span>@T["Criteria.Confidence"]</span>
             <strong>@Confidence%</strong>
         </div>
     </aside>
@@ -66,7 +67,7 @@
     private List<WeightState> Weights { get; set; } = new();
 
     private string ActiveQuery => string.IsNullOrWhiteSpace(Query)
-        ? "portátil profissional 14\", até 1500€, autonomia >10h, leve"
+        ? T["Criteria.DefaultQuery"]
         : Query;
 
     private string ResultsUrl => $"/results?query={Uri.EscapeDataString(ActiveQuery)}";

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -15,7 +16,8 @@ public sealed class LlmSuggestionServiceTests
     [Fact]
     public async Task GetSuggestionsAsync_UsesLocalFallback_WhenLlmIsNotConfigured()
     {
-        var data = new ComparisonDataService();
+        using var culture = UseCulture("pt-PT");
+        var data = new ComparisonDataService(new AppText());
         var service = CreateService(new FakeHttpMessageHandler(_ => throw new InvalidOperationException("HTTP should not be called.")), new LlmOptions
         {
             ApiKey = string.Empty,
@@ -36,7 +38,8 @@ public sealed class LlmSuggestionServiceTests
     [Fact]
     public async Task GetSuggestionsAsync_ParsesOpenAiCompatibleJsonResponse()
     {
-        var data = new ComparisonDataService();
+        using var culture = UseCulture("pt-PT");
+        var data = new ComparisonDataService(new AppText());
         var assistantJson = """
             {
               "intent": "Smartphone premium",
@@ -95,7 +98,8 @@ public sealed class LlmSuggestionServiceTests
     [Fact]
     public async Task GetSuggestionsAsync_FallsBack_WhenProviderFails()
     {
-        var data = new ComparisonDataService();
+        using var culture = UseCulture("pt-PT");
+        var data = new ComparisonDataService(new AppText());
         var handler = new FakeHttpMessageHandler(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError)));
         var service = CreateService(handler, new LlmOptions
         {
@@ -120,6 +124,31 @@ public sealed class LlmSuggestionServiceTests
             new HttpClient(handler),
             Microsoft.Extensions.Options.Options.Create(options),
             new MemoryCache(new MemoryCacheOptions()),
-            NullLogger<LlmSuggestionService>.Instance);
+            NullLogger<LlmSuggestionService>.Instance,
+            new AppText());
+    }
+
+    private static CultureScope UseCulture(string cultureName)
+    {
+        return new CultureScope(cultureName);
+    }
+
+    private sealed class CultureScope : IDisposable
+    {
+        private readonly CultureInfo originalCulture = CultureInfo.CurrentCulture;
+        private readonly CultureInfo originalUiCulture = CultureInfo.CurrentUICulture;
+
+        public CultureScope(string cultureName)
+        {
+            var culture = CultureInfo.GetCultureInfo(cultureName);
+            CultureInfo.CurrentCulture = culture;
+            CultureInfo.CurrentUICulture = culture;
+        }
+
+        public void Dispose()
+        {
+            CultureInfo.CurrentCulture = originalCulture;
+            CultureInfo.CurrentUICulture = originalUiCulture;
+        }
     }
 }

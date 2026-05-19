@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Identity;
@@ -57,6 +59,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 });
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddLocalization();
 builder.Services.AddControllersWithViews(options =>
 {
     options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
@@ -92,6 +95,22 @@ builder.Services.Configure<LlmOptions>(builder.Configuration.GetSection("Llm"));
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddMemoryCache();
+builder.Services.Configure<RequestLocalizationOptions>(options =>
+{
+    var supportedCultures = new[]
+    {
+        new CultureInfo("pt-PT"),
+        new CultureInfo("pt"),
+        new CultureInfo("en-US"),
+        new CultureInfo("en")
+    };
+
+    options.DefaultRequestCulture = new RequestCulture("pt-PT");
+    options.SupportedCultures = supportedCultures;
+    options.SupportedUICultures = supportedCultures;
+    options.ApplyCurrentCultureToResponseHeaders = true;
+});
+builder.Services.AddSingleton<AppText>();
 builder.Services.AddSingleton<ComparisonDataService>();
 builder.Services.AddScoped<SearchQuotaService>();
 builder.Services.AddScoped<TargetPriceAlertService>();
@@ -112,6 +131,27 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseStaticFiles();
+app.UseRequestLocalization();
+app.Use(async (context, next) =>
+{
+    var requestCulture = context.Features.Get<IRequestCultureFeature>()?.RequestCulture;
+    if (requestCulture is not null
+        && (context.Request.Query.ContainsKey("culture") || context.Request.Query.ContainsKey("ui-culture")))
+    {
+        context.Response.Cookies.Append(
+            CookieRequestCultureProvider.DefaultCookieName,
+            CookieRequestCultureProvider.MakeCookieValue(requestCulture),
+            new CookieOptions
+            {
+                HttpOnly = false,
+                IsEssential = true,
+                SameSite = SameSiteMode.Lax,
+                Secure = !app.Environment.IsDevelopment()
+            });
+    }
+
+    await next();
+});
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();

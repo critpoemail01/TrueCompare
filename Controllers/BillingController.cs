@@ -9,13 +9,15 @@ using Stripe;
 using Stripe.Checkout;
 using TrueCompare.Data;
 using TrueCompare.Options;
+using TrueCompare.Services;
 
 namespace TrueCompare.Controllers;
 
 public sealed class BillingController(
     ApplicationDbContext dbContext,
     UserManager<ApplicationUser> userManager,
-    IOptions<StripeOptions> stripeOptionsAccessor) : Controller
+    IOptions<StripeOptions> stripeOptionsAccessor,
+    AppText text) : Controller
 {
     private readonly StripeOptions stripeOptions = stripeOptionsAccessor.Value;
 
@@ -27,12 +29,12 @@ public sealed class BillingController(
         var package = stripeOptions.CreditPackages.FirstOrDefault(candidate => candidate.Id == packageId);
         if (package is null)
         {
-            return Redirect("/credits?message=Pacote de créditos inválido.");
+            return Redirect($"/credits?message={Uri.EscapeDataString(text.Pick("Pacote de créditos inválido.", "Invalid credit package."))}");
         }
 
         if (string.IsNullOrWhiteSpace(stripeOptions.SecretKey))
         {
-            return Redirect("/credits?message=Stripe ainda não configurado. Define Stripe:SecretKey.");
+            return Redirect($"/credits?message={Uri.EscapeDataString(text.Pick("Stripe ainda não configurado. Define Stripe:SecretKey.", "Stripe is not configured yet. Set Stripe:SecretKey."))}");
         }
 
         var userId = userManager.GetUserId(User);
@@ -48,7 +50,7 @@ public sealed class BillingController(
             Mode = "payment",
             PaymentMethodTypes = new List<string> { "card" },
             SuccessUrl = $"{origin}/credits/success?session_id={{CHECKOUT_SESSION_ID}}",
-            CancelUrl = $"{origin}/credits?message=Pagamento cancelado.",
+            CancelUrl = $"{origin}/credits?message={Uri.EscapeDataString(text.Pick("Pagamento cancelado.", "Payment cancelled."))}",
             Metadata = new Dictionary<string, string>
             {
                 ["userId"] = userId,
@@ -67,7 +69,7 @@ public sealed class BillingController(
                         ProductData = new SessionLineItemPriceDataProductDataOptions
                         {
                             Name = package.Name,
-                            Description = $"{package.Credits} pesquisas adicionais TrueCompare"
+                            Description = text.Pick($"{package.Credits} pesquisas adicionais TrueCompare", $"{package.Credits} additional TrueCompare searches")
                         }
                     }
                 }

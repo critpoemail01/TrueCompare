@@ -11,7 +11,8 @@ namespace TrueCompare.Controllers;
 public sealed class PriceAlertsController(
     UserManager<ApplicationUser> userManager,
     ComparisonDataService comparisonData,
-    TargetPriceAlertService alertService) : Controller
+    TargetPriceAlertService alertService,
+    AppText text) : Controller
 {
     [HttpPost("/price-alerts/create")]
     [EnableRateLimiting("alerts")]
@@ -28,12 +29,16 @@ public sealed class PriceAlertsController(
 
         if (!TargetPriceAlertService.TryParsePrice(input.TargetPrice, out var targetPrice) || targetPrice <= 0)
         {
-            return RedirectWithMessage(input.ReturnUrl, "Define um preço alvo válido.");
+            return RedirectWithMessage(input.ReturnUrl, text.Pick("Define um preço alvo válido.", "Set a valid target price."));
         }
 
         await alertService.CreateAsync(userId, product.Slug, product.Name, targetPrice);
 
-        return RedirectWithMessage(input.ReturnUrl, $"Alerta criado. Enviamos email quando {product.Name} chegar a {targetPrice:0.00} €.");
+        return RedirectWithMessage(
+            input.ReturnUrl,
+            text.Pick(
+                $"Alerta criado. Enviamos email quando {product.Name} chegar a {targetPrice:0.00} €.",
+                $"Alert created. We will email you when {product.Name} reaches {targetPrice:0.00} €."));
     }
 
     private static IActionResult RedirectWithMessage(string? returnUrl, string message)

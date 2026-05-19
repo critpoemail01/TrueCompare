@@ -31,10 +31,26 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
 
         var html = await client.GetStringAsync("/results?query=comprar%20smartphones");
 
-        Assert.Contains("Sugestão IA", html);
+        Assert.Contains("Sugest", html);
         Assert.Contains("Modo local", html);
         Assert.Contains("Samsung Galaxy S24", html);
         Assert.Contains("Xiaomi 14", html);
+    }
+
+    [Fact]
+    public async Task HomePage_UsesBrowserLanguage_WhenAcceptLanguageIsEnglish()
+    {
+        var client = factory.CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/");
+        request.Headers.AcceptLanguage.ParseAdd("en-US,en;q=0.9");
+
+        using var response = await client.SendAsync(request);
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("en-US", response.Content.Headers.ContentLanguage);
+        Assert.Contains("What do you want to compare today?", html);
+        Assert.Contains("Create account", html);
+        Assert.DoesNotContain("O que queres comparar hoje?", html);
     }
 
     [Fact]
