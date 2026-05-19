@@ -2,7 +2,9 @@
 
 This repository contains a professional enterprise application built with C#, .NET, Blazor Web App and SQL Server.
 
-These instructions must be followed whenever code is generated, modified or refactored in this project.
+These instructions must be followed whenever code is generated, modified, reviewed or refactored in this project.
+
+The goal is not to create a weak demo application. The goal is to create a professional, secure, intuitive, maintainable and scalable foundation for a real business application.
 
 ---
 
@@ -20,6 +22,9 @@ Use:
 - Custom Razor components
 - HTML and CSS
 - Bootstrap only if it already exists in the Blazor template and only as auxiliary CSS
+- Automatic localization based on the browser language
+- Responsive UI that works correctly on mobile phones, tablets, laptops and desktops
+- Automated tests for all implemented features
 
 Do not use:
 
@@ -41,13 +46,68 @@ The application must use one normal SQL Server database.
 
 ---
 
-## 2. Database
+## 2. Product and UX principle
+
+Keep this principle in mind at all times:
+
+> For the application to be excellent, it must not need to be explained. The application itself must speak for itself.
+
+This means:
+
+- The UI must be intuitive.
+- The user must understand what to do without reading a manual.
+- Main actions must be obvious.
+- Navigation must be clear.
+- Labels must be meaningful.
+- Buttons must describe the action they perform.
+- Error messages must explain what happened and how to fix it.
+- Empty states must guide the user to the next step.
+- Loading states must make it clear that something is happening.
+- Success messages must confirm what was done.
+- Dangerous actions must be clearly identified and require confirmation.
+- Forms must be simple, logical and grouped by meaning.
+- The application must avoid unnecessary complexity.
+- The interface must feel natural on mobile, tablet, laptop and desktop.
+- The application must not rely on long explanations to be usable.
+- Every screen must have a clear purpose.
+- Every page must answer:
+  - Where am I?
+  - What can I do here?
+  - What should I do next?
+  - What happened after I performed an action?
+
+UX rules:
+
+- Prefer clarity over cleverness.
+- Prefer simple flows over complex flows.
+- Prefer explicit labels over ambiguous icons.
+- Icons may be used, but important actions must also have text when needed.
+- Avoid hidden functionality.
+- Avoid confusing technical language in the UI.
+- Use business-friendly language.
+- Keep visual hierarchy clear.
+- Primary actions must be visually distinguishable.
+- Secondary actions must not compete with primary actions.
+- Destructive actions must be visually distinct and confirmed.
+- A user should be able to use the application without training for common tasks.
+
+The application must feel self-explanatory, professional and trustworthy.
+
+---
+
+## 3. Database
 
 Use SQL Server instance:
 
 ```text
 Server=.\SQLEXPRESS
 ```
+
+Database naming rule:
+
+- The database name must always be the application name followed by `DB`.
+- Example: if the application is called `Workvert`, the database must be called `WorkvertDB`.
+- Do not ask for a separate database name unless explicitly requested.
 
 Development connection string format:
 
@@ -57,9 +117,6 @@ Server=.\\SQLEXPRESS;Database=[NOME_DA_APP]DB;Trusted_Connection=True;TrustServe
 
 Rules:
 
-- The database name must always be the application name followed by `DB`.
-- Example: if the application is called `Workvert`, the database must be called `WorkvertDB`.
-- Do not ask for a separate database name unless explicitly requested.
 - Use Entity Framework Core migrations.
 - Apply migrations automatically on application startup.
 - Use `Database.MigrateAsync()`.
@@ -73,6 +130,7 @@ Rules:
 - Never hardcode tokens or secrets.
 - In development, connection strings may be stored in `appsettings.Development.json`.
 - In production, use environment variables, User Secrets, Azure Key Vault or another secure secret provider.
+- Automatic migrations must be possible to enable or disable through configuration in production.
 
 Expected startup migration behavior:
 
@@ -100,13 +158,9 @@ using (var scope = app.Services.CreateScope())
 }
 ```
 
-Production rule:
-
-- Automatic migrations must be possible to enable or disable through configuration.
-
 ---
 
-## 3. Architecture
+## 4. Architecture
 
 Use a clean, maintainable and professional architecture.
 
@@ -127,7 +181,12 @@ src/
   [NOME_DA_APP].Shared/
 
 tests/
-  [NOME_DA_APP].Tests/
+  [NOME_DA_APP].Domain.Tests/
+  [NOME_DA_APP].Application.Tests/
+  [NOME_DA_APP].Infrastructure.Tests/
+  [NOME_DA_APP].Web.Tests/
+  [NOME_DA_APP].IntegrationTests/
+  [NOME_DA_APP].E2ETests/
 ```
 
 ### [NOME_DA_APP].Web
@@ -144,6 +203,8 @@ Responsibilities:
 - `Program.cs`
 - Middleware
 - Error boundaries
+- Responsive layout and device adaptation
+- Localization resources for UI text
 
 Rules:
 
@@ -164,6 +225,7 @@ Responsibilities:
 - Interfaces when needed
 - Application rules
 - Pagination, filters and result objects
+- Localized validation messages where applicable
 
 Rules:
 
@@ -212,18 +274,9 @@ Responsibilities:
 - Result objects
 - Shared models that do not belong exclusively to one layer
 
-### [NOME_DA_APP].Tests
-
-Responsibilities:
-
-- Unit tests
-- Application tests
-- Domain rule tests
-- Basic integration tests
-
 ---
 
-## 4. Architecture rules
+## 5. Architecture rules
 
 Follow these rules:
 
@@ -243,7 +296,7 @@ Follow these rules:
 
 ---
 
-## 5. Security
+## 6. Security
 
 Security is mandatory from the beginning.
 
@@ -332,7 +385,7 @@ Use rate limiting where appropriate, especially for sensitive endpoints such as:
 
 ---
 
-## 6. Secrets
+## 7. Secrets
 
 Rules:
 
@@ -346,7 +399,7 @@ Rules:
 
 ---
 
-## 7. Logging and error handling
+## 8. Logging and error handling
 
 ### Logging
 
@@ -390,7 +443,7 @@ Rules:
 
 ---
 
-## 8. Audit
+## 9. Audit
 
 Create audit logs for critical actions.
 
@@ -431,7 +484,7 @@ Main entities should include:
 
 ---
 
-## 9. Entity Framework Core
+## 10. Entity Framework Core
 
 Rules:
 
@@ -487,7 +540,156 @@ Create at least the `Cliente` entity with:
 
 ---
 
-## 10. Blazor UI
+## 11. Localization and language
+
+The application must support automatic language selection based on the user's current browser language.
+
+Rules:
+
+- Use ASP.NET Core localization.
+- Use `RequestLocalizationMiddleware`.
+- Detect the preferred language from the browser `Accept-Language` header.
+- The application must automatically use the browser language when it is supported.
+- If the browser language is not supported, use the default fallback culture.
+- The default fallback culture must be `pt-PT`, unless explicitly changed.
+- Supported cultures must be configurable.
+- At minimum, prepare the application for:
+  - `pt-PT`
+  - `en-US`
+- Do not hardcode visible UI text directly in Razor components.
+- Use resource files, such as `.resx`, for UI texts.
+- Use `IStringLocalizer` or an equivalent ASP.NET Core localization mechanism.
+- Localize:
+  - Menus
+  - Buttons
+  - Page titles
+  - Form labels
+  - Table headers
+  - Empty states
+  - Loading messages
+  - Error messages
+  - Success messages
+  - Validation messages
+  - Identity/authentication messages where applicable
+- Format dates, numbers and currency according to the current culture.
+- Store dates in UTC where appropriate.
+- Do not store localized display text in the database when stable keys/enums should be used instead.
+- Business logic must not depend on translated display strings.
+- If a manual language selector is added in the future, the selected language may be persisted in a cookie.
+- Browser language detection must remain the default behavior when no manual language preference exists.
+- Localization must work in Blazor components and application validation messages.
+
+Expected startup behavior:
+
+```csharp
+var supportedCultures = new[] { "pt-PT", "en-US" };
+
+var localizationOptions = new RequestLocalizationOptions()
+    .SetDefaultCulture("pt-PT")
+    .AddSupportedCultures(supportedCultures)
+    .AddSupportedUICultures(supportedCultures);
+
+app.UseRequestLocalization(localizationOptions);
+```
+
+Required service registration example:
+
+```csharp
+builder.Services.AddLocalization(options =>
+{
+    options.ResourcesPath = "Resources";
+});
+```
+
+Recommended resource structure:
+
+```text
+src/[NOME_DA_APP].Web/Resources/
+  Components/
+  Pages/
+  Shared/
+
+src/[NOME_DA_APP].Application/Resources/
+  ValidationMessages.pt-PT.resx
+  ValidationMessages.en-US.resx
+```
+
+Important:
+
+- The app must adapt automatically to the browser language.
+- Do not require the user to choose a language on first access.
+- Do not create a database setting for language unless explicitly requested.
+
+---
+
+## 12. Responsive design and device support
+
+The application must work correctly on:
+
+- Mobile phones
+- Tablets
+- Laptops
+- Desktop screens
+- Touch devices
+- Keyboard and mouse devices
+
+Responsive behavior is mandatory, not optional.
+
+Rules:
+
+- Use a mobile-first approach.
+- Use responsive CSS.
+- Use flexible layouts.
+- Avoid fixed widths that break on smaller screens.
+- Use `max-width`, `min-width`, `flex`, `grid` and responsive units where appropriate.
+- Tables must be usable on mobile.
+- Forms must be usable on mobile.
+- Dialogs/modals must be usable on mobile.
+- Navigation must be usable on mobile.
+- Sidebar must collapse or adapt on smaller screens.
+- Topbar must remain usable on small screens.
+- Buttons and inputs must have touch-friendly sizes.
+- Avoid hover-only interactions.
+- Important actions must be accessible on touch devices.
+- Text must remain readable on small screens.
+- Content must not overflow horizontally.
+- Forms must avoid excessive scrolling when possible.
+- Long pages must have clear sectioning.
+- Error messages must be visible near the relevant fields.
+- Loading and empty states must adapt to small screens.
+- The app must support modern browsers on mobile, tablet and desktop.
+
+Minimum responsive breakpoints should be considered for:
+
+- Small mobile screens
+- Large mobile screens
+- Tablets
+- Laptops
+- Desktop screens
+
+Testing requirement:
+
+- Responsive behavior must be tested manually and, where practical, with automated E2E tests.
+- Important pages must be tested at mobile, tablet and desktop viewport sizes.
+- At minimum, test:
+  - Login
+  - Dashboard
+  - Clientes list
+  - Cliente create/edit form
+  - Cliente details
+  - Modal/confirm dialog
+  - Navigation/sidebar
+  - Error page
+  - Access denied page
+
+UX expectation:
+
+- The application must not feel like a desktop-only system squeezed into a mobile screen.
+- It must feel intentionally designed for each device size.
+
+---
+
+## 13. Blazor UI
 
 Use only:
 
@@ -550,10 +752,13 @@ Rules:
 - Components must not contain business logic.
 - Components must be easy to replace in the future.
 - Use CSS isolation where appropriate.
+- Components must be responsive.
+- Components must be usable with touch.
+- Components must not assume a desktop-only layout.
 
 ---
 
-## 11. Layout
+## 14. Layout
 
 Create an enterprise layout with:
 
@@ -568,9 +773,18 @@ Create an enterprise layout with:
 - Loading state
 - Empty state
 
+Layout rules:
+
+- The sidebar must collapse/adapt on mobile and tablet.
+- The topbar must remain usable on small screens.
+- Breadcrumbs must not break the layout on small screens.
+- Main content must not overflow horizontally.
+- Layout must work in portrait and landscape orientation.
+- Navigation must be self-explanatory.
+
 ---
 
-## 12. Initial features
+## 15. Initial features
 
 Create real functionality for the following areas.
 
@@ -610,10 +824,11 @@ The `Clientes` list must use a custom table component with:
 - Empty state
 - Action buttons
 - No dependency on external libraries
+- Responsive behavior on mobile, tablet, laptop and desktop
 
 ---
 
-## 13. Validation
+## 16. Validation
 
 Server-side validation is mandatory.
 
@@ -632,10 +847,12 @@ Rules:
 - Validate maximum string lengths.
 - Validate required fields.
 - Create unique indexes where the business rule requires uniqueness, such as `Email` or `NIF`.
+- Validation messages must be clear, localized and useful.
+- Validation messages must help the user fix the problem without needing external explanation.
 
 ---
 
-## 14. Performance
+## 17. Performance
 
 Rules:
 
@@ -656,10 +873,13 @@ Rules:
 - Avoid unnecessary renders.
 - Split large components into smaller components.
 - Use caching only where it makes sense and does not compromise security.
+- Keep pages performant on mobile devices.
+- Avoid excessive client-side payloads.
+- Avoid unnecessary JavaScript.
 
 ---
 
-## 15. Code quality
+## 18. Code quality
 
 Follow:
 
@@ -696,23 +916,276 @@ Use simple patterns:
 
 ---
 
-## 16. Tests
+## 19. Definition of done
+
+No feature should be considered complete unless it includes tests.
+
+A feature is only complete when:
+
+- The code compiles.
+- Unit tests pass.
+- Integration tests pass where applicable.
+- Blazor component tests pass where applicable.
+- E2E tests pass for critical flows where applicable.
+- Responsive behavior was considered and tested where applicable.
+- Localization behavior was considered and tested where applicable.
+- Security/authorization behavior is tested where applicable.
+- Validation rules are tested.
+- Error cases are tested.
+- The happy path and relevant failure paths are tested.
+- Existing tests remain green.
+- No critical warnings are introduced.
+- The feature is understandable without additional explanation.
+- The UI makes the next action clear to the user.
+
+---
+
+## 20. Tests
+
+Automated tests are mandatory.
+
+The application must include tests to guarantee that all implemented functionalities are working correctly and continue working after future changes.
+
+Testing must be part of the normal development workflow, not an optional task.
+
+Testing libraries are allowed. The restriction on external UI component libraries applies only to the application UI.
+
+Use test libraries appropriate for .NET and Blazor, such as:
+
+- xUnit, NUnit or MSTest
+- FluentAssertions or equivalent assertion helpers
+- bUnit for Blazor component tests
+- WebApplicationFactory for integration tests
+- Playwright for end-to-end browser tests, when useful
+- EF Core SQLite in-memory mode or SQL Server test database for persistence tests
+
+### Minimum required test types
 
 Create tests for:
 
 - Domain rules
+- Entity behavior
 - `Cliente` validation
 - Application services
+- Query handlers/use cases
+- Command handlers/use cases
 - Pagination
+- Filtering
+- Sorting
 - Soft delete
-- Authorization of critical operations, when possible
-- Audit behavior, when possible
+- Audit behavior
+- Authorization and permission checks
+- Authentication flows where practical
+- Identity role checks where practical
+- EF Core mappings where useful
+- Database migrations where practical
+- Initial seed of roles and admin user
+- Automatic migration execution behavior where practical
+- Blazor UI components
+- Form validation
+- Error handling
+- Localization and browser culture behavior
+- Responsive behavior for critical pages
+- Security-sensitive operations
 
-Full coverage is not required at the beginning, but the structure must be ready to grow.
+### Feature coverage rule
+
+For every feature, create tests for:
+
+- Successful scenario
+- Invalid input
+- Unauthorized access
+- Forbidden access when the user is authenticated but lacks permission
+- Not found scenarios
+- Duplicate data scenarios where applicable
+- Validation errors
+- Persistence errors where practical
+- Audit log creation where applicable
+- Soft delete behavior where applicable
+- Concurrency conflicts where applicable
+- Localization behavior where applicable
+- Responsive behavior where applicable
+
+### Clientes feature tests
+
+The `Clientes` module must include tests for:
+
+- Listing clients
+- Creating a valid client
+- Rejecting invalid client data
+- Editing a client
+- Viewing client details
+- Soft deleting a client
+- Preventing access to deleted clients where appropriate
+- Searching clients server-side
+- Filtering clients server-side
+- Sorting clients server-side
+- Paginating clients server-side
+- Returning `PagedResult<T>` correctly
+- Preventing unauthorized create/update/delete operations
+- Creating audit logs for create/update/delete
+- Handling duplicate `Email` or `NIF` if the business rules require uniqueness
+- Handling concurrency conflicts using `RowVersion`
+
+### Blazor component tests
+
+Use bUnit or equivalent for important Blazor components.
+
+Test at least:
+
+- `AppButton`
+- `AppTextBox`
+- `AppTextArea`
+- `AppSelect`
+- `AppDatePicker`
+- `AppNumberInput`
+- `AppCheckbox`
+- `AppTable`
+- `AppPagination`
+- `AppModal`
+- `AppCard`
+- `AppPageHeader`
+- `AppSearchBox`
+- `AppConfirmDialog`
+- `AppLoading`
+- `AppEmptyState`
+- `AppAlert`
+- `AppValidationSummary`
+- `AppBreadcrumbs`
+
+Component tests should verify:
+
+- Correct rendering
+- Parameters
+- Disabled/loading states
+- Event callbacks
+- Validation display
+- Accessibility attributes where applicable
+- Empty/loading/error states
+- Responsive class behavior where applicable
+
+### Integration tests
+
+Create integration tests for important application flows.
+
+Test at least:
+
+- Application starts with a valid configuration.
+- Database migrations can be applied.
+- Roles are seeded.
+- Admin user is seeded from configuration/secrets.
+- Authentication-protected pages reject anonymous users.
+- Authorized users can access allowed pages.
+- Unauthorized users cannot execute restricted operations.
+- CRUD operations persist data correctly.
+- Soft delete does not physically remove records unless explicitly intended.
+- Audit logs are created for critical operations.
+- Localization middleware selects culture based on browser language where possible.
+
+### End-to-end tests
+
+Use Playwright or an equivalent tool when browser-level validation is useful.
+
+Create E2E tests for the most important flows:
+
+- Login
+- Logout
+- Open dashboard
+- Open clients list
+- Create client
+- Edit client
+- Search client
+- Delete client with confirmation
+- Access denied scenario
+- Browser language/culture behavior where practical
+- Mobile viewport behavior
+- Tablet viewport behavior
+- Desktop viewport behavior
+
+Do not overuse E2E tests for everything. Prefer unit and integration tests for most business logic.
+
+### Security tests
+
+Create tests for security-sensitive behavior:
+
+- Anonymous users cannot access protected pages.
+- Normal users cannot access admin-only features.
+- Users without permission cannot create, update or delete protected records.
+- Server-side authorization is enforced even if the UI hides buttons.
+- Invalid input is rejected on the server.
+- Login lockout behavior works if configured.
+- Sensitive values are not returned in DTOs.
+- Audit logs do not store passwords, tokens or unnecessary sensitive data.
+
+### Localization tests
+
+Create tests or examples for localization:
+
+- Default culture is `pt-PT`.
+- Browser language is detected from `Accept-Language`.
+- Supported browser culture is applied automatically.
+- Unsupported browser culture falls back to `pt-PT`.
+- Dates and numbers are formatted according to the current culture.
+- Validation messages can be localized.
+- UI labels come from resource files and are not hardcoded in Razor components.
+
+### Responsive tests
+
+Create tests or manual test checklists for responsive behavior:
+
+- Mobile viewport
+- Tablet viewport
+- Laptop viewport
+- Desktop viewport
+- Portrait orientation
+- Landscape orientation
+- Touch-friendly controls
+- Collapsible sidebar
+- Usable tables
+- Usable forms
+- Usable modals
+- No horizontal overflow on main pages
+
+### UX tests and review
+
+For each user-facing feature, verify:
+
+- The page is understandable without external explanation.
+- The main action is clear.
+- The user knows what to do next.
+- Error messages are actionable.
+- Empty states guide the user.
+- Success messages confirm the result.
+- Destructive actions are clear and confirmed.
+- Navigation is understandable.
+- The feature feels natural on all supported device sizes.
+
+### Test quality rules
+
+Tests must be:
+
+- Deterministic
+- Repeatable
+- Isolated
+- Fast where possible
+- Clear and readable
+- Named according to the behavior being tested
+
+Use a naming style similar to:
+
+```text
+MethodName_WhenCondition_ShouldExpectedResult
+```
+
+or:
+
+```text
+GivenCondition_WhenAction_ThenExpectedResult
+```
 
 ---
 
-## 17. Code generation rules
+## 21. Code generation rules
 
 Before generating code, confirm the assumed decisions:
 
@@ -720,6 +1193,7 @@ Before generating code, confirm the assumed decisions:
 - Interactive Server
 - .NET 10 LTS
 - SQL Server `.\SQLEXPRESS`
+- Database name equals application name plus `DB`
 - EF Core with automatic migrations
 - ASP.NET Core Identity
 - Native Blazor components only
@@ -730,6 +1204,10 @@ Before generating code, confirm the assumed decisions:
 - No TenantId
 - Light Clean Architecture
 - Mandatory server-side security
+- Automatic language based on browser culture
+- Responsive UI for mobile, tablet, laptop and desktop
+- Automated tests for all implemented features
+- UX must be self-explanatory: the application must speak for itself
 
 When generating code:
 
@@ -741,6 +1219,9 @@ When generating code:
 - Use DTOs and ViewModels.
 - Include required using statements.
 - Include dependency injection registrations where needed.
+- Include tests for new functionality.
+- Include localization resources for visible UI text.
+- Include responsive CSS where UI is created or modified.
 
 Example:
 
@@ -750,7 +1231,7 @@ File: src/[NOME_DA_APP].Domain/Entities/Cliente.cs
 
 ---
 
-## 18. Expected delivery order for large tasks
+## 22. Expected delivery order for large tasks
 
 When creating or expanding the application, deliver in this order:
 
@@ -770,22 +1251,43 @@ When creating or expanding the application, deliver in this order:
 14. Application services
 15. Validations
 16. Custom UI components
-17. Main layout
-18. Blazor pages
-19. Complete `Clientes` CRUD
-20. Custom table with server-side pagination, search and sorting
-21. Global error handling
-22. Logging
-23. Audit
-24. Basic tests
-25. Execution instructions
-26. Migration commands
-27. How to configure the initial admin with User Secrets
+17. Localization configuration and resource files
+18. Responsive layout and responsive CSS
+19. Main layout
+20. Blazor pages
+21. Complete `Clientes` CRUD
+22. Custom table with server-side pagination, search and sorting
+23. Global error handling
+24. Logging
+25. Audit
+26. Unit tests
+27. Component tests
+28. Integration tests
+29. E2E tests for critical flows where useful
+30. Responsive test checklist
+31. UX/self-explanatory review checklist
+32. Execution instructions
+33. Migration commands
+34. How to configure the initial admin with User Secrets
 
 ---
 
-## 19. Final objective
+## 23. Final objective
 
-The goal is not to create a weak demo application.
+The application must be:
 
-The goal is to create a professional, secure, maintainable and scalable foundation for a real business application.
+- Secure
+- Maintainable
+- Testable
+- Responsive
+- Localized automatically by browser language
+- Accessible
+- Fast enough for real business usage
+- Easy to understand
+- Easy to use
+- Professional
+- Self-explanatory
+
+The application must speak for itself.
+
+A user should not need an explanation to understand the main flow of each screen.
