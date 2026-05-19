@@ -93,6 +93,69 @@ public sealed class BillingController(
         return Redirect(session.Url);
     }
 
+    [HttpPost("/billing/create-subscription-session")]
+    [Authorize]
+    [EnableRateLimiting("billing")]
+    public async Task<IActionResult> CreateSubscriptionSession([FromForm] string planId)
+    {
+        var plan = stripeOptions.SubscriptionPlans.FirstOrDefault(candidate => candidate.Id == planId);
+        if (plan is null)
+        {
+            return Redirect($"/credits?message={Uri.EscapeDataString(text["Credits.InvalidSubscription"])}");
+        }
+
+        if (string.IsNullOrWhiteSpace(stripeOptions.SecretKey))
+        {
+            return Redirect($"/credits?message={Uri.EscapeDataString(text.Pick("Stripe ainda não configurado. Define Stripe:SecretKey.", "Stripe is not configured yet. Set Stripe:SecretKey."))}");
+        }
+
+        var userId = userManager.GetUserId(User);
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Redirect("/login?returnUrl=/credits");
+        }
+
+        var metadata = BuildSubscriptionMetadata(userId, plan);
+        var origin = $"{Request.Scheme}://{Request.Host}";
+        var options = new SessionCreateOptions
+        {
+            ClientReferenceId = userId,
+            Mode = "subscription",
+            PaymentMethodTypes = new List<string> { "card" },
+            SuccessUrl = $"{origin}/credits/success?session_id={{CHECKOUT_SESSION_ID}}",
+            CancelUrl = $"{origin}/credits?message={Uri.EscapeDataString(text.Pick("Pagamento cancelado.", "Payment cancelled."))}",
+            Metadata = metadata,
+            SubscriptionData = new SessionSubscriptionDataOptions
+            {
+                Metadata = metadata
+            },
+            LineItems = new List<SessionLineItemOptions>
+            {
+                BuildSubscriptionLineItem(plan)
+            }
+        };
+
+        var service = new SessionService(new StripeClient(stripeOptions.SecretKey));
+        var session = await service.CreateAsync(options);
+
+        dbContext.CreditPurchases.Add(new CreditPurchase
+        {
+            UserId = userId,
+            StripeSessionId = session.Id,
+            StripeSubscriptionId = session.SubscriptionId,
+            BillingKind = CreditBillingKind.Subscription,
+            PlanId = plan.Id,
+            BillingPeriod = NormalizeStripeInterval(plan.BillingPeriod),
+            Credits = plan.CreditsPerPeriod,
+            AmountCents = plan.AmountCents,
+            Currency = plan.Currency,
+            Status = PurchaseStatus.Pending
+        });
+        await dbContext.SaveChangesAsync();
+
+        return Redirect(session.Url);
+    }
+
     [HttpPost("/billing/stripe-webhook")]
     [AllowAnonymous]
     [IgnoreAntiforgeryToken]
@@ -122,6 +185,10 @@ public sealed class BillingController(
         {
             await CompletePurchaseAsync(session);
         }
+        else if (stripeEvent.Type == "invoice.paid" && stripeEvent.Data.Object is Invoice invoice)
+        {
+            await CompleteSubscriptionRenewalAsync(invoice);
+        }
 
         return Ok();
     }
@@ -149,9 +216,138 @@ public sealed class BillingController(
         user.Credits += purchase.Credits;
         purchase.Status = PurchaseStatus.Paid;
         purchase.StripePaymentIntentId = session.PaymentIntentId;
+        purchase.StripeSubscriptionId ??= session.SubscriptionId;
         purchase.CompletedUtc = DateTime.UtcNow;
 
         await dbContext.SaveChangesAsync();
         await transaction.CommitAsync();
+    }
+
+    private async Task CompleteSubscriptionRenewalAsync(Invoice invoice)
+    {
+        if (!string.Equals(invoice.BillingReason, "subscription_cycle", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var metadata = invoice.Parent?.SubscriptionDetails?.Metadata ?? invoice.Metadata;
+        if (!TryGetMetadata(metadata, "userId", out var userId)
+            || !TryGetMetadata(metadata, "planId", out var planId))
+        {
+            return;
+        }
+
+        var plan = stripeOptions.SubscriptionPlans.FirstOrDefault(candidate => candidate.Id == planId);
+        var credits = plan?.CreditsPerPeriod ?? ParsePositiveInt(metadata, "credits");
+        if (credits <= 0)
+        {
+            return;
+        }
+
+        var invoicePurchaseId = $"invoice:{invoice.Id}";
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
+        var alreadyCredited = await dbContext.CreditPurchases
+            .AnyAsync(candidate => candidate.StripeSessionId == invoicePurchaseId);
+        if (alreadyCredited)
+        {
+            return;
+        }
+
+        var user = await dbContext.Users.SingleOrDefaultAsync(candidate => candidate.Id == userId);
+        if (user is null)
+        {
+            return;
+        }
+
+        user.Credits += credits;
+        dbContext.CreditPurchases.Add(new CreditPurchase
+        {
+            UserId = userId,
+            StripeSessionId = invoicePurchaseId,
+            StripeSubscriptionId = invoice.Parent?.SubscriptionDetails?.SubscriptionId,
+            BillingKind = CreditBillingKind.Subscription,
+            PlanId = planId,
+            BillingPeriod = plan?.BillingPeriod ?? GetMetadata(metadata, "billingPeriod"),
+            Credits = credits,
+            AmountCents = invoice.AmountPaid,
+            Currency = invoice.Currency,
+            Status = PurchaseStatus.Paid,
+            CompletedUtc = DateTime.UtcNow
+        });
+
+        await dbContext.SaveChangesAsync();
+        await transaction.CommitAsync();
+    }
+
+    private static Dictionary<string, string> BuildSubscriptionMetadata(string userId, SubscriptionPlan plan)
+    {
+        return new Dictionary<string, string>
+        {
+            ["userId"] = userId,
+            ["planId"] = plan.Id,
+            ["credits"] = plan.CreditsPerPeriod.ToString(),
+            ["billingKind"] = CreditBillingKind.Subscription,
+            ["billingPeriod"] = NormalizeStripeInterval(plan.BillingPeriod)
+        };
+    }
+
+    private static SessionLineItemOptions BuildSubscriptionLineItem(SubscriptionPlan plan)
+    {
+        if (!string.IsNullOrWhiteSpace(plan.StripePriceId))
+        {
+            return new SessionLineItemOptions
+            {
+                Price = plan.StripePriceId,
+                Quantity = 1
+            };
+        }
+
+        return new SessionLineItemOptions
+        {
+            Quantity = 1,
+            PriceData = new SessionLineItemPriceDataOptions
+            {
+                Currency = plan.Currency,
+                UnitAmount = plan.AmountCents,
+                Recurring = new SessionLineItemPriceDataRecurringOptions
+                {
+                    Interval = NormalizeStripeInterval(plan.BillingPeriod)
+                },
+                ProductData = new SessionLineItemPriceDataProductDataOptions
+                {
+                    Name = plan.Name,
+                    Description = plan.Description
+                }
+            }
+        };
+    }
+
+    private static string NormalizeStripeInterval(string? billingPeriod)
+    {
+        return string.Equals(billingPeriod, "year", StringComparison.OrdinalIgnoreCase) ? "year" : "month";
+    }
+
+    private static bool TryGetMetadata(IReadOnlyDictionary<string, string>? metadata, string key, out string value)
+    {
+        value = string.Empty;
+        return metadata is not null
+            && metadata.TryGetValue(key, out var found)
+            && !string.IsNullOrWhiteSpace(value = found);
+    }
+
+    private static string? GetMetadata(IReadOnlyDictionary<string, string>? metadata, string key)
+    {
+        return metadata is not null && metadata.TryGetValue(key, out var found) ? found : null;
+    }
+
+    private static int ParsePositiveInt(IReadOnlyDictionary<string, string>? metadata, string key)
+    {
+        return metadata is not null
+            && metadata.TryGetValue(key, out var found)
+            && int.TryParse(found, out var parsed)
+            && parsed > 0
+            ? parsed
+            : 0;
     }
 }

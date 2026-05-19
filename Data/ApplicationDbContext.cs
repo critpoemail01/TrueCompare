@@ -38,6 +38,13 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
         {
             entity.Property(purchase => purchase.StripeSessionId).HasMaxLength(200).IsRequired();
             entity.Property(purchase => purchase.StripePaymentIntentId).HasMaxLength(200);
+            entity.Property(purchase => purchase.StripeSubscriptionId).HasMaxLength(200);
+            entity.Property(purchase => purchase.BillingKind)
+                .HasMaxLength(40)
+                .HasDefaultValue(CreditBillingKind.OneTime)
+                .IsRequired();
+            entity.Property(purchase => purchase.PlanId).HasMaxLength(80);
+            entity.Property(purchase => purchase.BillingPeriod).HasMaxLength(20);
             entity.Property(purchase => purchase.Currency).HasMaxLength(3).IsRequired();
             entity.Property(purchase => purchase.Status).HasMaxLength(40).IsRequired();
             entity.Property(purchase => purchase.CreatedUtc).HasDefaultValueSql("GETUTCDATE()");

@@ -1598,26 +1598,61 @@ input[type="range"]::-moz-range-thumb {
     font-weight: 800;
 }
 
+.billing-section {
+    margin-top: 1rem;
+}
+
+.billing-section + .billing-section {
+    margin-top: 1.35rem;
+}
+
+.section-heading p {
+    color: var(--text-muted);
+    margin: 0.35rem 0 0;
+}
+
 .credit-status-grid,
-.credit-packages {
+.credit-packages,
+.subscription-plans {
     display: grid;
     gap: 1rem;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
 }
 
 .credit-status-grid article,
-.credit-package {
+.credit-package,
+.subscription-plan {
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 1.2rem;
 }
 
+.subscription-plan {
+    display: flex;
+    flex-direction: column;
+    min-height: 17rem;
+    position: relative;
+}
+
+.subscription-plan.featured {
+    border-color: rgba(94, 233, 168, 0.55);
+    box-shadow: 0 0 0 1px rgba(94, 233, 168, 0.12);
+}
+
 .credit-status-grid article span,
-.credit-package span {
+.credit-package span,
+.subscription-plan span {
     color: var(--text-muted);
     display: block;
     font-size: 0.86rem;
+}
+
+.subscription-plan .recommended-label {
+    color: var(--accent-cyan);
+    display: inline-block;
+    margin: 0 0 0.85rem;
+    width: fit-content;
 }
 
 .credit-status-grid article strong {
@@ -1627,20 +1662,38 @@ input[type="range"]::-moz-range-thumb {
     margin-top: 0.5rem;
 }
 
-.credit-packages {
+.credit-packages,
+.subscription-plans {
     margin-top: 1rem;
 }
 
-.credit-package h2 {
+.credit-package h2,
+.subscription-plan h2 {
     font-size: 1.1rem;
     margin: 0.7rem 0;
 }
 
-.credit-package > strong {
+.subscription-plan p {
+    color: var(--text-muted);
+    line-height: 1.45;
+    margin: 0 0 1rem;
+}
+
+.credit-package > strong,
+.subscription-plan > strong {
     color: var(--accent-cyan);
     display: block;
     font-size: 1.7rem;
     margin-bottom: 1rem;
+}
+
+.subscription-plan > strong small {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.subscription-plan form {
+    margin-top: auto;
 }
 
 .valid.modified:not([type=checkbox]) {

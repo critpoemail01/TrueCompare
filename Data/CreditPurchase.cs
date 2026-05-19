@@ -12,6 +12,14 @@ public sealed class CreditPurchase
 
     public string? StripePaymentIntentId { get; set; }
 
+    public string? StripeSubscriptionId { get; set; }
+
+    public string BillingKind { get; set; } = CreditBillingKind.OneTime;
+
+    public string? PlanId { get; set; }
+
+    public string? BillingPeriod { get; set; }
+
     public int Credits { get; set; }
 
     public long AmountCents { get; set; }
@@ -30,4 +38,10 @@ public static class PurchaseStatus
     public const string Pending = "pending";
     public const string Paid = "paid";
     public const string Failed = "failed";
+}
+
+public static class CreditBillingKind
+{
+    public const string OneTime = "one_time";
+    public const string Subscription = "subscription";
 }

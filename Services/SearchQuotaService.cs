@@ -16,7 +16,16 @@ public sealed class SearchQuotaService(ApplicationDbContext dbContext)
                 candidate.FreeSearchesUsed,
                 candidate.Credits
             })
-            .SingleAsync(cancellationToken);
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (user is null)
+        {
+            return new SearchQuotaStatus(
+                ApplicationUser.FreeSearchLimit,
+                0,
+                ApplicationUser.FreeSearchLimit,
+                0);
+        }
 
         return new SearchQuotaStatus(
             ApplicationUser.FreeSearchLimit,

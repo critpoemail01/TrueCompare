@@ -1,5 +1,6 @@
 @page "/credits"
 @attribute [Authorize]
+@using System.Globalization
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SearchQuotaService QuotaService
 @inject Microsoft.Extensions.Options.IOptions<StripeOptions> StripeOptionsAccessor
@@ -42,6 +43,48 @@ else
     </section>
 }
 
+<section class="billing-section">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">@T["Credits.SubscriptionEyebrow"]</p>
+            <h2>@T["Credits.SubscriptionTitle"]</h2>
+            <p>@T["Credits.SubscriptionLead"]</p>
+        </div>
+    </div>
+
+    <div class="subscription-plans">
+        @foreach (var plan in SubscriptionPlans)
+        {
+            <article class="subscription-plan @(IsBestValue(plan) ? "featured" : null)">
+                @if (IsBestValue(plan))
+                {
+                    <span class="recommended-label">@T["Credits.BestValue"]</span>
+                }
+
+                <span>@T.Format("Credits.PlanCredits", plan.CreditsPerPeriod)</span>
+                <h2>@DisplayPlanName(plan)</h2>
+                <p>@DisplayPlanDescription(plan)</p>
+                <strong>@FormatPrice(plan.AmountCents, plan.Currency) <small>@BillingSuffix(plan)</small></strong>
+
+                <form method="post" action="/billing/create-subscription-session">
+                    <AntiforgeryToken />
+                    <input type="hidden" name="planId" value="@plan.Id" />
+                    <button class="primary-button wide" type="submit">@T["Credits.Subscribe"]</button>
+                </form>
+            </article>
+        }
+    </div>
+</section>
+
+<section class="billing-section">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">@T["Credits.OneTimeEyebrow"]</p>
+            <h2>@T["Credits.OneTimeTitle"]</h2>
+            <p>@T["Credits.OneTimeLead"]</p>
+        </div>
+    </div>
+
 <section class="credit-packages">
     @foreach (var package in Packages)
     {
@@ -57,6 +100,7 @@ else
         </article>
     }
 </section>
+</section>
 
 
 @code {
@@ -66,6 +110,8 @@ else
     private SearchQuotaStatus? Status { get; set; }
 
     private IReadOnlyList<CreditPackage> Packages => StripeOptionsAccessor.Value.CreditPackages;
+
+    private IReadOnlyList<SubscriptionPlan> SubscriptionPlans => StripeOptionsAccessor.Value.SubscriptionPlans;
 
     protected override async Task OnInitializedAsync()
     {
@@ -79,6 +125,50 @@ else
 
     private static string FormatPrice(CreditPackage package)
     {
-        return (package.AmountCents / 100m).ToString("C", System.Globalization.CultureInfo.GetCultureInfo("pt-PT"));
+        return FormatPrice(package.AmountCents, package.Currency);
+    }
+
+    private static string FormatPrice(long amountCents, string currency)
+    {
+        var numberFormat = (NumberFormatInfo)CultureInfo.CurrentCulture.NumberFormat.Clone();
+        if (string.Equals(currency, "eur", StringComparison.OrdinalIgnoreCase))
+        {
+            numberFormat.CurrencySymbol = "€";
+        }
+
+        return (amountCents / 100m).ToString("C", numberFormat);
+    }
+
+    private string DisplayPlanName(SubscriptionPlan plan)
+    {
+        return plan.Id switch
+        {
+            "monthly" => T.Pick("Mensal", "Monthly"),
+            "annual" => T.Pick("Anual", "Annual"),
+            _ => plan.Name
+        };
+    }
+
+    private string DisplayPlanDescription(SubscriptionPlan plan)
+    {
+        return plan.Id switch
+        {
+            "monthly" => T.Pick("100 créditos por mês para comparar sem paragens.", "100 credits per month to keep comparing without pauses."),
+            "annual" => T.Pick("1500 créditos por ano com dois meses de desconto.", "1500 credits per year with two months discounted."),
+            _ => plan.Description
+        };
+    }
+
+    private string BillingSuffix(SubscriptionPlan plan)
+    {
+        return string.Equals(plan.BillingPeriod, "year", StringComparison.OrdinalIgnoreCase)
+            ? T["Credits.PerYear"]
+            : T["Credits.PerMonth"];
+    }
+
+    private static bool IsBestValue(SubscriptionPlan plan)
+    {
+        return string.Equals(plan.BillingPeriod, "year", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(plan.Id, "annual", StringComparison.OrdinalIgnoreCase);
     }
 }
