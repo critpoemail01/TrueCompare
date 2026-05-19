@@ -689,7 +689,104 @@ UX expectation:
 
 ---
 
-## 13. Blazor UI
+## 13. Accessibility
+
+Accessibility is mandatory.
+
+The application must be usable by all users, including users who navigate with a keyboard, users with screen readers, users with low vision, users with motor limitations and users on different device sizes.
+
+Rules:
+
+- Follow WCAG principles where practical.
+- Use semantic HTML whenever possible.
+- All interactive elements must be reachable by keyboard.
+- Do not remove visible focus indicators.
+- Focus order must be logical.
+- Buttons must be real `<button>` elements.
+- Links must be real `<a>` elements.
+- Form inputs must have associated labels.
+- Use `aria-label`, `aria-describedby`, `aria-expanded`, `aria-controls` and `aria-live` where appropriate.
+- Do not overuse ARIA when semantic HTML is enough.
+- Error messages must be clearly associated with the relevant fields.
+- Validation summaries must be understandable by screen readers.
+- Loading states must be understandable for assistive technologies.
+- Success and error alerts should use appropriate live regions when needed.
+- Color must not be the only way to communicate meaning.
+- Text contrast must be readable.
+- Font sizes must remain readable on small screens.
+- Click/tap targets must be large enough for touch devices.
+- Modals and confirmation dialogs must manage focus correctly.
+- When a modal opens, focus must move into it.
+- When a modal closes, focus should return to the element that opened it when practical.
+- Tables must use correct table semantics.
+- Data tables must have clear headers.
+- Icons used for actions must have accessible names.
+- Images must have meaningful alt text or empty alt text when decorative.
+- The app must be usable without a mouse.
+- Avoid hover-only interactions.
+- Avoid time-limited interactions unless necessary.
+- Important flows must be tested using keyboard only.
+- Important flows should be tested with screen reader-friendly markup in mind.
+
+Accessibility testing must include at least:
+
+- Login
+- Dashboard
+- Navigation/sidebar
+- Clientes list
+- Cliente create/edit form
+- Cliente details
+- Modal/confirm dialog
+- Error page
+- Access denied page
+
+Accessibility is not optional. A feature is not complete if it is not accessible.
+
+---
+
+## 14. Privacy and GDPR
+
+The application must respect privacy and data protection principles from the beginning.
+
+Rules:
+
+- Collect only the data that is necessary for the business purpose.
+- Do not expose personal data unnecessarily.
+- Do not log passwords, tokens, secrets or unnecessary personal data.
+- Protect personal data in DTOs, ViewModels, logs, audit entries and UI responses.
+- Use authorization checks before showing personal or business-sensitive data.
+- Avoid returning sensitive fields to the UI unless strictly required.
+- Sensitive operations must be audited.
+- Audit logs must not contain passwords, tokens or unnecessary sensitive data.
+- Consider data retention rules for personal data.
+- Consider export, deletion and anonymization requirements where applicable.
+- Prefer soft delete for important business entities.
+- Permanent deletion must be explicit, restricted and auditable.
+- Do not store more personal information than required.
+- Do not store localized display text or personal preferences unless needed.
+- Do not use production personal data in development or tests unless anonymized.
+- Test data must not contain real personal data.
+- Database backups must be protected.
+- Access to production data must be restricted.
+- Users must only see data they are authorized to see.
+- Error messages must not leak personal data or internal technical details.
+- Logs must be useful for diagnosis without exposing private information.
+- Any future integrations with third-party services must consider data sharing and privacy impact.
+
+GDPR-conscious behavior:
+
+- Be able to identify where personal data is stored.
+- Be able to correct personal data when required.
+- Be able to delete or anonymize personal data when legally appropriate.
+- Be able to export relevant personal data when required.
+- Keep auditability for critical operations without storing excessive sensitive data.
+- Apply privacy by design and privacy by default.
+
+The application must be secure, privacy-aware and respectful of user data.
+
+---
+
+## 15. Blazor UI
 
 Use only:
 
@@ -758,7 +855,7 @@ Rules:
 
 ---
 
-## 14. Layout
+## 16. Layout
 
 Create an enterprise layout with:
 
@@ -784,7 +881,7 @@ Layout rules:
 
 ---
 
-## 15. Initial features
+## 17. Initial features
 
 Create real functionality for the following areas.
 
@@ -828,7 +925,7 @@ The `Clientes` list must use a custom table component with:
 
 ---
 
-## 16. Validation
+## 18. Validation
 
 Server-side validation is mandatory.
 
@@ -852,7 +949,7 @@ Rules:
 
 ---
 
-## 17. Performance
+## 19. Performance
 
 Rules:
 
@@ -879,7 +976,7 @@ Rules:
 
 ---
 
-## 18. Code quality
+## 20. Code quality
 
 Follow:
 
@@ -916,7 +1013,7 @@ Use simple patterns:
 
 ---
 
-## 19. Definition of done
+## 21. Definition of done
 
 No feature should be considered complete unless it includes tests.
 
@@ -940,7 +1037,7 @@ A feature is only complete when:
 
 ---
 
-## 20. Tests
+## 22. Tests
 
 Automated tests are mandatory.
 
@@ -1185,7 +1282,7 @@ GivenCondition_WhenAction_ThenExpectedResult
 
 ---
 
-## 21. Code generation rules
+## 23. Code generation rules
 
 Before generating code, confirm the assumed decisions:
 
@@ -1208,6 +1305,8 @@ Before generating code, confirm the assumed decisions:
 - Responsive UI for mobile, tablet, laptop and desktop
 - Automated tests for all implemented features
 - UX must be self-explanatory: the application must speak for itself
+- Accessibility is mandatory
+- Privacy/GDPR principles must be respected
 
 When generating code:
 
@@ -1231,7 +1330,7 @@ File: src/[NOME_DA_APP].Domain/Entities/Cliente.cs
 
 ---
 
-## 22. Expected delivery order for large tasks
+## 24. Expected delivery order for large tasks
 
 When creating or expanding the application, deliver in this order:
 
@@ -1253,26 +1352,27 @@ When creating or expanding the application, deliver in this order:
 16. Custom UI components
 17. Localization configuration and resource files
 18. Responsive layout and responsive CSS
-19. Main layout
-20. Blazor pages
-21. Complete `Clientes` CRUD
-22. Custom table with server-side pagination, search and sorting
-23. Global error handling
-24. Logging
-25. Audit
-26. Unit tests
-27. Component tests
-28. Integration tests
-29. E2E tests for critical flows where useful
-30. Responsive test checklist
-31. UX/self-explanatory review checklist
-32. Execution instructions
-33. Migration commands
-34. How to configure the initial admin with User Secrets
+19. Accessibility implementation and review
+20. Privacy/GDPR data protection review
+21. Main layout
+22. Blazor pages
+23. Complete `Clientes` CRUD
+24. Custom table with server-side pagination, search and sorting
+25. Global error handling
+26. Logging
+27. Audit
+28. Unit tests
+29. Component tests
+30. Integration tests
+31. E2E tests for critical flows where useful
+32. Responsive test checklist
+33. UX/self-explanatory review checklist
+34. Execution instructions
+35. Migration commands
+36. How to configure the initial admin with User Secrets
 
 ---
-
-## 23. Final objective
+## 25. Final objective
 
 The application must be:
 
@@ -1282,6 +1382,7 @@ The application must be:
 - Responsive
 - Localized automatically by browser language
 - Accessible
+- Privacy-aware and GDPR-conscious
 - Fast enough for real business usage
 - Easy to understand
 - Easy to use
