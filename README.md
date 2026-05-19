@@ -39,6 +39,14 @@ dotnet tool run dotnet-ef migrations add InitialCreate --output-dir Data\Migrati
 dotnet tool run dotnet-ef database update
 ```
 
+## Testes
+
+A solução inclui testes unitários e smoke tests HTTP para validar catálogo, quotas, alertas, sugestões LLM e páginas principais:
+
+```powershell
+dotnet test TrueCompare.slnx
+```
+
 ## Login Google
 
 Configura OAuth no Google Cloud Console e define os secrets localmente:

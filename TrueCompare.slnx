@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="TrueCompare.csproj" />
+  <Project Path="TrueCompare.Tests/TrueCompare.Tests.csproj" />
 </Solution>

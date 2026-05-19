@@ -18,4 +18,10 @@
     <PackageReference Include="Stripe.net" Version="51.1.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="TrueCompare.Tests\**\*.cs" />
+    <Content Remove="TrueCompare.Tests\**\*" />
+    <None Remove="TrueCompare.Tests\**\*" />
+  </ItemGroup>
+
 </Project>
