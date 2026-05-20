@@ -1,10 +1,12 @@
 @page "/"
+@implements IAsyncDisposable
 @using Microsoft.AspNetCore.Components.Forms
 @inject ComparisonDataService Data
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SearchQuotaService QuotaService
 @inject IProductImageSuggestionService ImageSuggestionService
+@inject IJSRuntime JS
 @inject AppText T
 
 <PageTitle>TrueCompare</PageTitle>
@@ -14,7 +16,7 @@
         <h1>@T["Home.Title"]</h1>
         <p class="lead">@T["Home.Lead"]</p>
 
-        <div class="prompt-panel mock-prompt">
+        <div id="@PromptPanelId" class="prompt-panel mock-prompt">
             <div class="image-upload-cell @(IsAnalyzingImage ? "is-busy" : null)" title='@T["Home.ImageUploadAria"]'>
                 <span class="prompt-plus" aria-hidden="true">+</span>
                 <InputFile id="product-image" class="image-file-input" accept="image/*" OnChange="HandleImageSelected" aria-label='@T["Home.ImageUploadAria"]' disabled="@IsAnalyzingImage" />
@@ -88,6 +90,7 @@
 
 @code {
     private const long MaxImageBytes = 5 * 1024 * 1024;
+    private const string PromptPanelId = "home-prompt-panel";
 
     private string Prompt { get; set; } = string.Empty;
     private string ActiveCategory { get; set; } = string.Empty;
@@ -97,6 +100,8 @@
     private string? SelectedImageName { get; set; }
     private string? SelectedImagePreviewDataUrl { get; set; }
     private ImageProductSuggestionResult? ImageSuggestion { get; set; }
+    private IJSObjectReference? pasteImagesModule;
+    private DotNetObjectReference<Home>? dotNetReference;
 
     protected override void OnInitialized()
     {
@@ -110,22 +115,23 @@
         Prompt = T.Format("Home.CategoryPrompt", category);
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        dotNetReference = DotNetObjectReference.Create(this);
+        pasteImagesModule = await JS.InvokeAsync<IJSObjectReference>("import", "./truecompare-paste-images.js?v=1");
+        await pasteImagesModule.InvokeVoidAsync("connect", PromptPanelId, dotNetReference, MaxImageBytes);
+    }
+
     private async Task HandleImageSelected(InputFileChangeEventArgs args)
     {
         var file = args.File;
         if (file is null)
         {
-            return;
-        }
-
-        QuotaMessage = null;
-        ImageSuggestion = null;
-        SelectedImageName = file.Name;
-
-        if (!file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
-        {
-            SelectedImagePreviewDataUrl = null;
-            QuotaMessage = T["Home.ImageInvalid"];
             return;
         }
 
@@ -142,18 +148,84 @@
             await using var stream = file.OpenReadStream(MaxImageBytes);
             using var memoryStream = new MemoryStream();
             await stream.CopyToAsync(memoryStream);
-            var imageBytes = memoryStream.ToArray();
 
-            SelectedImagePreviewDataUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(imageBytes)}";
-            ImageSuggestion = await ImageSuggestionService.AnalyzeImageAsync(file.Name, file.ContentType, imageBytes);
-            if (!string.IsNullOrWhiteSpace(ImageSuggestion.SuggestedQuery))
-            {
-                Prompt = ImageSuggestion.SuggestedQuery;
-            }
+            await AnalyzeImageBytesAsync(file.Name, file.ContentType, memoryStream.ToArray(), file.Size);
         }
         catch
         {
             QuotaMessage = T["Home.ImageAnalysisFailed"];
+        }
+        finally
+        {
+            IsAnalyzingImage = false;
+        }
+    }
+
+    [JSInvokable]
+    public async Task HandlePastedImageAsync(string fileName, string contentType, string base64Image, long size)
+    {
+        if (size > MaxImageBytes)
+        {
+            await HandlePastedImageRejectedAsync("too-large");
+            return;
+        }
+
+        try
+        {
+            var imageBytes = Convert.FromBase64String(base64Image);
+            await AnalyzeImageBytesAsync(fileName, contentType, imageBytes, size);
+        }
+        catch
+        {
+            QuotaMessage = T["Home.ImageAnalysisFailed"];
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    [JSInvokable]
+    public Task HandlePastedImageRejectedAsync(string reason)
+    {
+        ImageSuggestion = null;
+        SelectedImageName = null;
+        SelectedImagePreviewDataUrl = null;
+        QuotaMessage = reason.Equals("too-large", StringComparison.OrdinalIgnoreCase)
+            ? T["Home.ImageTooLarge"]
+            : T["Home.ImageInvalid"];
+
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private async Task AnalyzeImageBytesAsync(string fileName, string contentType, byte[] imageBytes, long size)
+    {
+        QuotaMessage = null;
+        ImageSuggestion = null;
+        SelectedImageName = string.IsNullOrWhiteSpace(fileName) ? T["Home.ImageSuggestion"] : fileName;
+
+        if (!contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) || imageBytes.Length == 0)
+        {
+            SelectedImagePreviewDataUrl = null;
+            QuotaMessage = T["Home.ImageInvalid"];
+            return;
+        }
+
+        if (size > MaxImageBytes || imageBytes.LongLength > MaxImageBytes)
+        {
+            SelectedImagePreviewDataUrl = null;
+            QuotaMessage = T["Home.ImageTooLarge"];
+            return;
+        }
+
+        IsAnalyzingImage = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            SelectedImagePreviewDataUrl = $"data:{contentType};base64,{Convert.ToBase64String(imageBytes)}";
+            ImageSuggestion = await ImageSuggestionService.AnalyzeImageAsync(SelectedImageName, contentType, imageBytes);
+            if (!string.IsNullOrWhiteSpace(ImageSuggestion.SuggestedQuery))
+            {
+                Prompt = ImageSuggestion.SuggestedQuery;
+            }
         }
         finally
         {
@@ -201,5 +273,22 @@
         }
 
         Navigation.NavigateTo(criteriaUrl);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (pasteImagesModule is not null)
+        {
+            try
+            {
+                await pasteImagesModule.InvokeVoidAsync("disconnect", PromptPanelId);
+                await pasteImagesModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+            }
+        }
+
+        dotNetReference?.Dispose();
     }
 }

@@ -38,6 +38,19 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
     }
 
     [Fact]
+    public async Task HomePage_ExposesImageUploadAndPasteSurface()
+    {
+        var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/");
+
+        Assert.Contains("id=\"home-prompt-panel\"", html);
+        Assert.Contains("id=\"product-image\"", html);
+        Assert.Contains("accept=\"image/*\"", html);
+        Assert.Contains("Adicionar ou colar imagem do produto", html);
+    }
+
+    [Fact]
     public async Task HomePage_UsesBrowserLanguage_WhenAcceptLanguageIsEnglish()
     {
         var client = factory.CreateClient();
