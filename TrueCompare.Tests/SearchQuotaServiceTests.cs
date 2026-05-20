@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using TrueCompare.Data;
 using TrueCompare.Services;
@@ -65,6 +66,46 @@ public sealed class SearchQuotaServiceTests
         Assert.Equal(1, result.Status.Credits);
         Assert.True(request.UsedPaidCredit);
         Assert.Equal("comprar smartphones", request.Query);
+    }
+
+    [Fact]
+    public async Task TryConsumeAsync_DoesNotConsumeCredits_WhenRequestIsFromLocalhost()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var user = new ApplicationUser
+        {
+            Id = "user-localhost",
+            UserName = "localhost@example.com",
+            Email = "localhost@example.com",
+            FreeSearchesUsed = ApplicationUser.FreeSearchLimit,
+            Credits = 0
+        };
+        dbContext.Users.Add(user);
+        await dbContext.SaveChangesAsync();
+
+        var httpContextAccessor = new HttpContextAccessor
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                Request =
+                {
+                    Host = new HostString("localhost:5241")
+                }
+            }
+        };
+        var service = new SearchQuotaService(dbContext, httpContextAccessor);
+
+        var result = await service.TryConsumeAsync(user.Id, "comprar eletrodomesticos");
+        var status = await service.GetStatusAsync(user.Id);
+        var persistedUser = await dbContext.Users.SingleAsync(candidate => candidate.Id == user.Id);
+
+        Assert.True(result.Allowed);
+        Assert.True(result.Status.HasUnlimitedCredits);
+        Assert.True(status.HasUnlimitedCredits);
+        Assert.Equal(int.MaxValue, result.Status.Credits);
+        Assert.Equal(ApplicationUser.FreeSearchLimit, persistedUser.FreeSearchesUsed);
+        Assert.Equal(0, persistedUser.Credits);
+        Assert.Empty(await dbContext.SearchRequests.ToListAsync());
     }
 
     [Fact]

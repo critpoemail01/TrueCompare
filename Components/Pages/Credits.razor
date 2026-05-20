@@ -27,18 +27,23 @@
 }
 else
 {
+    @if (Status.HasUnlimitedCredits)
+    {
+        <div class="form-message">@T["Credits.LocalUnlimited"]</div>
+    }
+
     <section class="credit-status-grid">
         <article>
             <span>@T["Credits.FreeUsed"]</span>
-            <strong>@Status.FreeSearchesUsed / @Status.FreeSearchLimit</strong>
+            <strong>@(Status.HasUnlimitedCredits ? T["Credits.Unlimited"] : $"{Status.FreeSearchesUsed} / {Status.FreeSearchLimit}")</strong>
         </article>
         <article>
             <span>@T["Credits.FreeRemaining"]</span>
-            <strong>@Status.FreeSearchesRemaining</strong>
+            <strong>@(Status.HasUnlimitedCredits ? T["Credits.Unlimited"] : Status.FreeSearchesRemaining.ToString(CultureInfo.CurrentCulture))</strong>
         </article>
         <article>
             <span>@T["Credits.Available"]</span>
-            <strong>@Status.Credits</strong>
+            <strong>@(Status.HasUnlimitedCredits ? T["Credits.Unlimited"] : Status.Credits.ToString(CultureInfo.CurrentCulture))</strong>
         </article>
     </section>
 }

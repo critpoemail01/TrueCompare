@@ -1,13 +1,33 @@
 using System.Data;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using TrueCompare.Data;
 
 namespace TrueCompare.Services;
 
-public sealed class SearchQuotaService(ApplicationDbContext dbContext)
+public sealed class SearchQuotaService
 {
+    private readonly ApplicationDbContext dbContext;
+    private readonly IHttpContextAccessor? httpContextAccessor;
+
+    public SearchQuotaService(ApplicationDbContext dbContext)
+        : this(dbContext, null)
+    {
+    }
+
+    public SearchQuotaService(ApplicationDbContext dbContext, IHttpContextAccessor? httpContextAccessor)
+    {
+        this.dbContext = dbContext;
+        this.httpContextAccessor = httpContextAccessor;
+    }
+
     public async Task<SearchQuotaStatus> GetStatusAsync(string userId, CancellationToken cancellationToken = default)
     {
+        if (HasLocalUnlimitedCredits())
+        {
+            return CreateLocalUnlimitedStatus();
+        }
+
         var user = await dbContext.Users
             .AsNoTracking()
             .Where(candidate => candidate.Id == userId)
@@ -39,6 +59,19 @@ public sealed class SearchQuotaService(ApplicationDbContext dbContext)
         string query,
         CancellationToken cancellationToken = default)
     {
+        if (HasLocalUnlimitedCredits())
+        {
+            var localUserExists = await dbContext.Users
+                .AsNoTracking()
+                .AnyAsync(candidate => candidate.Id == userId, cancellationToken);
+            if (!localUserExists)
+            {
+                return new SearchConsumptionResult(false, CreateLocalUnlimitedStatus());
+            }
+
+            return new SearchConsumptionResult(true, CreateLocalUnlimitedStatus());
+        }
+
         await using var transaction = await dbContext.Database.BeginTransactionAsync(
             IsolationLevel.Serializable,
             cancellationToken);
@@ -83,13 +116,33 @@ public sealed class SearchQuotaService(ApplicationDbContext dbContext)
             Math.Max(0, ApplicationUser.FreeSearchLimit - user.FreeSearchesUsed),
             user.Credits));
     }
+
+    private bool HasLocalUnlimitedCredits()
+    {
+        var host = httpContextAccessor?.HttpContext?.Request.Host.Host;
+        return string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(host, "127.0.0.1", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(host, "::1", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(host, "[::1]", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static SearchQuotaStatus CreateLocalUnlimitedStatus()
+    {
+        return new SearchQuotaStatus(
+            ApplicationUser.FreeSearchLimit,
+            0,
+            ApplicationUser.FreeSearchLimit,
+            int.MaxValue,
+            true);
+    }
 }
 
 public sealed record SearchQuotaStatus(
     int FreeSearchLimit,
     int FreeSearchesUsed,
     int FreeSearchesRemaining,
-    int Credits);
+    int Credits,
+    bool HasUnlimitedCredits = false);
 
 public sealed record SearchConsumptionResult(
     bool Allowed,
