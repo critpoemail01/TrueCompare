@@ -95,8 +95,7 @@ button {
     text-decoration: none;
 }
 
-.app-sidebar .nav-link,
-.app-sidebar .footer-link {
+.app-sidebar .nav-link {
     align-items: center;
     color: var(--text-soft);
     display: flex;
@@ -115,8 +114,7 @@ button {
     color: var(--text-strong);
 }
 
-.app-sidebar .nav-link:hover,
-.app-sidebar .footer-link:hover {
+.app-sidebar .nav-link:hover {
     background: rgba(255, 255, 255, 0.04);
     color: var(--text-strong);
 }
