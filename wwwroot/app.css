@@ -323,8 +323,8 @@ button {
     align-items: center;
     justify-content: center;
     text-align: center;
-    transform: translateX(clamp(-4rem, -5vw, -1rem));
-    width: min(100%, 54rem);
+    transform: none;
+    width: min(100%, 64rem);
 }
 
 .home-screen .hero-copy h1 {
@@ -349,7 +349,7 @@ button {
     min-height: 4.2rem;
     margin-top: 2.62rem;
     padding: 0;
-    width: min(100%, 42.6rem);
+    width: min(100%, 50.8rem);
 }
 
 .prompt-panel.mock-prompt {
@@ -397,7 +397,7 @@ button {
     overflow: auto;
     padding: 0.55rem;
     text-align: left;
-    width: min(100%, 28.2rem);
+    width: min(100%, 34rem);
 }
 
 .category-menu button {
