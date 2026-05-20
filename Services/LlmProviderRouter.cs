@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using TrueCompare.Options;
 
@@ -11,7 +12,8 @@ public sealed class LlmProviderRouter(
     HttpClient httpClient,
     IOptions<LlmOptions> optionsAccessor,
     LlmProviderQuotaService quotaService,
-    ILogger<LlmProviderRouter> logger)
+    ILogger<LlmProviderRouter> logger,
+    IConfiguration? configuration = null)
 {
     private readonly LlmOptions options = optionsAccessor.Value;
 
@@ -180,7 +182,9 @@ public sealed class LlmProviderRouter(
 
         if (!string.IsNullOrWhiteSpace(provider.ApiKeyEnvironmentVariable))
         {
-            var providerKey = Environment.GetEnvironmentVariable(provider.ApiKeyEnvironmentVariable);
+            var providerKey = Environment.GetEnvironmentVariable(provider.ApiKeyEnvironmentVariable)
+                ?? configuration?[provider.ApiKeyEnvironmentVariable];
+
             if (!string.IsNullOrWhiteSpace(providerKey))
             {
                 return providerKey;
