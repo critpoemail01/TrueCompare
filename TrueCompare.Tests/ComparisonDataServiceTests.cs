@@ -97,6 +97,75 @@ public sealed class ComparisonDataServiceTests
     }
 
     [Fact]
+    public void GetCriteriaWeights_ReturnsMouseCriteria_WhenQueryAsksForMouseUnder50()
+    {
+        var service = new ComparisonDataService(new AppText());
+
+        var weights = service.GetCriteriaWeights("quero um rato ate 50 euros");
+
+        Assert.Contains(weights, weight => weight.Name == "Sensor / DPI");
+        Assert.Contains(weights, weight => weight.Name == "Ergonomia");
+        Assert.DoesNotContain(weights, weight => weight.Name == "Performance (CPU)");
+    }
+
+    [Fact]
+    public void GetCriteriaWeights_ReturnsChairCriteria_WhenQueryAsksForOfficeChair()
+    {
+        var service = new ComparisonDataService(new AppText());
+
+        var weights = service.GetCriteriaWeights("quero uma cadeira escritorio ate 100 euros");
+
+        Assert.Contains(weights, weight => weight.Name == "Ergonomia / apoio lombar");
+        Assert.Contains(weights, weight => weight.Name == "Ajustes");
+        Assert.DoesNotContain(weights, weight => weight.Name == "Performance (CPU)");
+    }
+
+    [Fact]
+    public void GetCriteriaWeights_ReturnsApplianceCriteria_WhenQueryMentionsFridge()
+    {
+        var service = new ComparisonDataService(new AppText());
+
+        var weights = service.GetCriteriaWeights("bosch serie 6 frigorifico");
+
+        Assert.Contains(weights, weight => weight.Name == "Eficiência energética");
+        Assert.Contains(weights, weight => weight.Name == "Nível de ruído");
+        Assert.DoesNotContain(weights, weight => weight.Name == "Performance (CPU)");
+    }
+
+    [Fact]
+    public void GetProducts_DoesNotClassifyCheapLaptopAsMouse()
+    {
+        var service = new ComparisonDataService(new AppText());
+
+        var products = service.GetProducts("portatil barato ate 500 euros");
+
+        Assert.Contains(products, product => product.Name == "MacBook Air M3");
+        Assert.DoesNotContain(products, product => product.Name == "Logitech M650 Signature");
+    }
+
+    [Fact]
+    public void GetProducts_DoesNotClassifyGenericWirelessPeripheralAsMouse()
+    {
+        var service = new ComparisonDataService(new AppText());
+
+        var products = service.GetProducts("teclado sem fios ate 80 euros");
+
+        Assert.Empty(products);
+    }
+
+    [Fact]
+    public void GetCriteriaWeights_ReturnsKeyboardCriteria_WhenQueryAsksForKeyboard()
+    {
+        var service = new ComparisonDataService(new AppText());
+
+        var weights = service.GetCriteriaWeights("teclado sem fios ate 80 euros");
+
+        Assert.Contains(weights, weight => weight.Name == "Tipo de switch");
+        Assert.Contains(weights, weight => weight.Name == "Layout / compatibilidade");
+        Assert.DoesNotContain(weights, weight => weight.Name == "Sensor / DPI");
+    }
+
+    [Fact]
     public void GetProducts_ReturnsNoLocalProducts_WhenCatalogIsUnknown()
     {
         var service = new ComparisonDataService(new AppText());

@@ -70,9 +70,9 @@
 
     private string ResultsUrl => $"/results?query={Uri.EscapeDataString(ActiveQuery)}";
 
-    protected override void OnInitialized()
+    protected override void OnParametersSet()
     {
-        Weights = Data.DefaultWeights
+        Weights = Data.GetCriteriaWeights(ActiveQuery)
             .Select((weight, index) => new WeightState($"weight-{index}", weight.Name, weight.Value, weight.Accent))
             .ToList();
     }

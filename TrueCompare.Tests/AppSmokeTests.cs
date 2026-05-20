@@ -50,6 +50,18 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
     }
 
     [Fact]
+    public async Task CriteriaPage_RendersProductSpecificWeights()
+    {
+        var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/criteria?query=quero%20um%20rato%20ate%2050%20euros");
+
+        Assert.Contains("Sensor / DPI", html);
+        Assert.Contains("Ergonomia", html);
+        Assert.DoesNotContain("Performance (CPU)", html);
+    }
+
+    [Fact]
     public async Task HomePage_ExposesImageUploadAndPasteSurface()
     {
         var client = factory.CreateClient();

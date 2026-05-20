@@ -17,7 +17,9 @@ public sealed class ComparisonDataService(AppText text)
         "smartphones",
         "telemovel",
         "phone",
+        "phones",
         "mobile",
+        "mobiles",
         "iphone",
         "android",
         "pixel",
@@ -74,11 +76,7 @@ public sealed class ComparisonDataService(AppText text)
         "ratos",
         "mouse",
         "mice",
-        "periferico",
-        "perifericos",
-        "peripheral",
         "wireless mouse",
-        "sem fios",
         "bluetooth mouse",
         "gaming mouse",
         "rato gaming",
@@ -111,29 +109,7 @@ public sealed class ComparisonDataService(AppText text)
             "Áudio & DJ equipment"
         };
 
-    public IReadOnlyList<CriteriaWeight> DefaultWeights => text.IsEnglish
-        ? new List<CriteriaWeight>
-        {
-            new("Price", 80, "#7BE8E0"),
-            new("Battery life", 95, "#5EE9A8"),
-            new("Weight and portability", 70, "#7BE8E0"),
-            new("Performance (CPU)", 60, "#7BE8E0"),
-            new("Display quality", 50, "#B49CFF"),
-            new("Warranty and support", 75, "#5EE9A8"),
-            new("Sustainability", 40, "#E9D67B"),
-            new("Origin / manufacturing", 30, "#F0A36A")
-        }
-        : new List<CriteriaWeight>
-        {
-            new("Preço", 80, "#7BE8E0"),
-            new("Autonomia", 95, "#5EE9A8"),
-            new("Peso e portabilidade", 70, "#7BE8E0"),
-            new("Performance (CPU)", 60, "#7BE8E0"),
-            new("Qualidade do ecrã", 50, "#B49CFF"),
-            new("Garantia e suporte", 75, "#5EE9A8"),
-            new("Sustentabilidade", 40, "#E9D67B"),
-            new("Origem / fabrico", 30, "#F0A36A")
-        };
+    public IReadOnlyList<CriteriaWeight> DefaultWeights => GetCriteriaWeights(null);
 
     public IReadOnlyList<ProductResult> Products => GetProducts(null);
 
@@ -495,6 +471,49 @@ public sealed class ComparisonDataService(AppText text)
         return LocalizeProducts(ResolveProducts(query));
     }
 
+    public IReadOnlyList<CriteriaWeight> GetCriteriaWeights(string? query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return LaptopCriteria();
+        }
+
+        var normalizedQuery = NormalizeCatalogText(query);
+        if (ContainsAnyTerm(normalizedQuery, "rato", "ratos", "mouse", "mice"))
+        {
+            return MouseCriteria();
+        }
+
+        if (ContainsAnyTerm(normalizedQuery, "cadeira", "cadeiras", "chair", "chairs"))
+        {
+            return ChairCriteria();
+        }
+
+        if (ContainsAnyTerm(normalizedQuery, "teclado", "teclados", "keyboard", "keyboards"))
+        {
+            return KeyboardCriteria();
+        }
+
+        if (ContainsAnyTerm(normalizedQuery, "monitor", "monitores", "display", "ecra", "ecran"))
+        {
+            return MonitorCriteria();
+        }
+
+        if (ContainsAnyTerm(normalizedQuery, "auscultadores", "auriculares", "headphones", "headset", "earbuds"))
+        {
+            return HeadphonesCriteria();
+        }
+
+        return TryResolveCatalog(query.Trim(), out var catalog) switch
+        {
+            true when catalog == SmartphoneCatalog => SmartphoneCriteria(),
+            true when catalog == ApplianceCatalog => ApplianceCriteria(),
+            true when catalog == MouseCatalog => MouseCriteria(),
+            true when catalog == LaptopCatalog => LaptopCriteria(),
+            _ => GenericProductCriteria()
+        };
+    }
+
     public IReadOnlyList<SellerOffer> GetSellerOffers(string? queryOrSlug)
     {
         var offers = ResolveCatalog(queryOrSlug) switch
@@ -517,6 +536,11 @@ public sealed class ComparisonDataService(AppText text)
 
         var rawValue = query.Trim();
         var hasCatalog = TryResolveCatalog(rawValue, out var catalog);
+        if (!hasCatalog && IsUnsupportedKnownCategory(NormalizeCatalogText(rawValue)))
+        {
+            return Array.Empty<ProductResult>();
+        }
+
         var candidates = hasCatalog ? GetCatalogProducts(catalog) : AllProducts;
         var ranked = RankProducts(candidates, rawValue, hasCatalog);
 
@@ -791,6 +815,87 @@ public sealed class ComparisonDataService(AppText text)
         return true;
     }
 
+    private IReadOnlyList<CriteriaWeight> LaptopCriteria()
+    {
+        return text.IsEnglish
+            ? BuildCriteria(("Price", 80, "#7BE8E0"), ("Battery life", 95, "#5EE9A8"), ("Weight and portability", 70, "#7BE8E0"), ("Performance (CPU)", 60, "#7BE8E0"), ("Display quality", 50, "#B49CFF"), ("Warranty and support", 75, "#5EE9A8"), ("Sustainability", 40, "#E9D67B"), ("Origin / manufacturing", 30, "#F0A36A"))
+            : BuildCriteria(("Preço", 80, "#7BE8E0"), ("Autonomia", 95, "#5EE9A8"), ("Peso e portabilidade", 70, "#7BE8E0"), ("Performance (CPU)", 60, "#7BE8E0"), ("Qualidade do ecrã", 50, "#B49CFF"), ("Garantia e suporte", 75, "#5EE9A8"), ("Sustentabilidade", 40, "#E9D67B"), ("Origem / fabrico", 30, "#F0A36A"));
+    }
+
+    private IReadOnlyList<CriteriaWeight> SmartphoneCriteria()
+    {
+        return text.IsEnglish
+            ? BuildCriteria(("Price", 80, "#7BE8E0"), ("Camera quality", 92, "#B49CFF"), ("Battery life", 85, "#5EE9A8"), ("Updates and support", 88, "#5EE9A8"), ("Display", 72, "#7BE8E0"), ("Performance", 66, "#7BE8E0"), ("Storage", 55, "#E9D67B"), ("Warranty / authorized seller", 82, "#F0A36A"))
+            : BuildCriteria(("Preço", 80, "#7BE8E0"), ("Qualidade da câmara", 92, "#B49CFF"), ("Bateria", 85, "#5EE9A8"), ("Atualizações e suporte", 88, "#5EE9A8"), ("Ecrã", 72, "#7BE8E0"), ("Performance", 66, "#7BE8E0"), ("Armazenamento", 55, "#E9D67B"), ("Garantia / vendedor autorizado", 82, "#F0A36A"));
+    }
+
+    private IReadOnlyList<CriteriaWeight> ApplianceCriteria()
+    {
+        return text.IsEnglish
+            ? BuildCriteria(("Price", 75, "#7BE8E0"), ("Energy efficiency", 95, "#5EE9A8"), ("Capacity", 85, "#7BE8E0"), ("Noise level", 70, "#B49CFF"), ("Annual consumption", 85, "#5EE9A8"), ("Dimensions / installation", 65, "#E9D67B"), ("Warranty / assistance", 82, "#F0A36A"), ("Delivery / removal", 60, "#7BE8E0"))
+            : BuildCriteria(("Preço", 75, "#7BE8E0"), ("Eficiência energética", 95, "#5EE9A8"), ("Capacidade", 85, "#7BE8E0"), ("Nível de ruído", 70, "#B49CFF"), ("Consumo anual", 85, "#5EE9A8"), ("Dimensões / instalação", 65, "#E9D67B"), ("Garantia / assistência", 82, "#F0A36A"), ("Entrega / recolha", 60, "#7BE8E0"));
+    }
+
+    private IReadOnlyList<CriteriaWeight> MouseCriteria()
+    {
+        return text.IsEnglish
+            ? BuildCriteria(("Price", 80, "#7BE8E0"), ("Ergonomics", 90, "#5EE9A8"), ("Sensor / DPI", 78, "#B49CFF"), ("Connectivity", 72, "#7BE8E0"), ("Battery / cable", 65, "#5EE9A8"), ("Weight and size", 60, "#E9D67B"), ("Click noise", 45, "#F0A36A"), ("Warranty / seller", 75, "#7BE8E0"))
+            : BuildCriteria(("Preço", 80, "#7BE8E0"), ("Ergonomia", 90, "#5EE9A8"), ("Sensor / DPI", 78, "#B49CFF"), ("Conectividade", 72, "#7BE8E0"), ("Bateria / cabo", 65, "#5EE9A8"), ("Peso e tamanho", 60, "#E9D67B"), ("Ruído dos cliques", 45, "#F0A36A"), ("Garantia / vendedor", 75, "#7BE8E0"));
+    }
+
+    private IReadOnlyList<CriteriaWeight> ChairCriteria()
+    {
+        return text.IsEnglish
+            ? BuildCriteria(("Price", 80, "#7BE8E0"), ("Ergonomics / lumbar support", 95, "#5EE9A8"), ("Adjustability", 85, "#7BE8E0"), ("Materials", 70, "#B49CFF"), ("Size / supported weight", 72, "#E9D67B"), ("Daily comfort", 90, "#5EE9A8"), ("Assembly / delivery", 55, "#F0A36A"), ("Warranty / returns", 75, "#7BE8E0"))
+            : BuildCriteria(("Preço", 80, "#7BE8E0"), ("Ergonomia / apoio lombar", 95, "#5EE9A8"), ("Ajustes", 85, "#7BE8E0"), ("Materiais", 70, "#B49CFF"), ("Dimensões / peso suportado", 72, "#E9D67B"), ("Conforto diário", 90, "#5EE9A8"), ("Montagem / entrega", 55, "#F0A36A"), ("Garantia / devolução", 75, "#7BE8E0"));
+    }
+
+    private IReadOnlyList<CriteriaWeight> KeyboardCriteria()
+    {
+        return text.IsEnglish
+            ? BuildCriteria(("Price", 78, "#7BE8E0"), ("Layout / compatibility", 90, "#5EE9A8"), ("Switch type", 82, "#B49CFF"), ("Ergonomics", 75, "#7BE8E0"), ("Connectivity", 70, "#5EE9A8"), ("Noise", 45, "#F0A36A"), ("Build quality", 80, "#E9D67B"), ("Warranty / seller", 72, "#7BE8E0"))
+            : BuildCriteria(("Preço", 78, "#7BE8E0"), ("Layout / compatibilidade", 90, "#5EE9A8"), ("Tipo de switch", 82, "#B49CFF"), ("Ergonomia", 75, "#7BE8E0"), ("Conectividade", 70, "#5EE9A8"), ("Ruído", 45, "#F0A36A"), ("Qualidade de construção", 80, "#E9D67B"), ("Garantia / vendedor", 72, "#7BE8E0"));
+    }
+
+    private IReadOnlyList<CriteriaWeight> MonitorCriteria()
+    {
+        return text.IsEnglish
+            ? BuildCriteria(("Price", 78, "#7BE8E0"), ("Size / resolution", 92, "#5EE9A8"), ("Panel type", 84, "#B49CFF"), ("Refresh rate", 72, "#7BE8E0"), ("Ergonomics", 60, "#E9D67B"), ("Connectivity", 75, "#5EE9A8"), ("Consumption", 45, "#F0A36A"), ("Warranty / pixels", 80, "#7BE8E0"))
+            : BuildCriteria(("Preço", 78, "#7BE8E0"), ("Tamanho / resolução", 92, "#5EE9A8"), ("Tipo de painel", 84, "#B49CFF"), ("Taxa de atualização", 72, "#7BE8E0"), ("Ergonomia", 60, "#E9D67B"), ("Conectividade", 75, "#5EE9A8"), ("Consumo", 45, "#F0A36A"), ("Garantia / pixels", 80, "#7BE8E0"));
+    }
+
+    private IReadOnlyList<CriteriaWeight> HeadphonesCriteria()
+    {
+        return text.IsEnglish
+            ? BuildCriteria(("Price", 78, "#7BE8E0"), ("Sound quality", 92, "#5EE9A8"), ("ANC / isolation", 82, "#B49CFF"), ("Comfort", 88, "#7BE8E0"), ("Battery", 78, "#5EE9A8"), ("Microphone", 65, "#E9D67B"), ("Codec / connectivity", 72, "#F0A36A"), ("Warranty / seller", 70, "#7BE8E0"))
+            : BuildCriteria(("Preço", 78, "#7BE8E0"), ("Qualidade de som", 92, "#5EE9A8"), ("ANC / isolamento", 82, "#B49CFF"), ("Conforto", 88, "#7BE8E0"), ("Bateria", 78, "#5EE9A8"), ("Microfone", 65, "#E9D67B"), ("Codec / conectividade", 72, "#F0A36A"), ("Garantia / vendedor", 70, "#7BE8E0"));
+    }
+
+    private IReadOnlyList<CriteriaWeight> GenericProductCriteria()
+    {
+        return text.IsEnglish
+            ? BuildCriteria(("Price", 82, "#7BE8E0"), ("Warranty", 78, "#5EE9A8"), ("Authenticity", 88, "#B49CFF"), ("Reviews", 65, "#7BE8E0"), ("Delivery", 55, "#E9D67B"), ("Compatibility", 70, "#5EE9A8"), ("Durability", 74, "#F0A36A"), ("Seller risk", 90, "#7BE8E0"))
+            : BuildCriteria(("Preço", 82, "#7BE8E0"), ("Garantia", 78, "#5EE9A8"), ("Autenticidade", 88, "#B49CFF"), ("Avaliações", 65, "#7BE8E0"), ("Entrega", 55, "#E9D67B"), ("Compatibilidade", 70, "#5EE9A8"), ("Durabilidade", 74, "#F0A36A"), ("Risco do vendedor", 90, "#7BE8E0"));
+    }
+
+    private static IReadOnlyList<CriteriaWeight> BuildCriteria(params (string Name, int Value, string Accent)[] criteria)
+    {
+        return criteria.Select(item => new CriteriaWeight(item.Name, item.Value, item.Accent)).ToList();
+    }
+
+    private static bool ContainsAnyTerm(string normalizedQuery, params string[] terms)
+    {
+        return terms.Any(term => ContainsCatalogTerm(normalizedQuery, NormalizeCatalogText(term)));
+    }
+
+    private static bool IsUnsupportedKnownCategory(string normalizedQuery)
+    {
+        return ContainsAnyTerm(normalizedQuery, "cadeira", "cadeiras", "chair", "chairs")
+            || ContainsAnyTerm(normalizedQuery, "teclado", "teclados", "keyboard", "keyboards")
+            || ContainsAnyTerm(normalizedQuery, "monitor", "monitores")
+            || ContainsAnyTerm(normalizedQuery, "auscultadores", "auriculares", "headphones", "headset", "earbuds");
+    }
+
     private static bool MatchesKnownProduct(string normalizedQuery, string rawValue, IReadOnlyList<ProductResult> products)
     {
         return products.Any(product =>
@@ -804,7 +909,28 @@ public sealed class ComparisonDataService(AppText text)
 
     private static int ScoreCatalog(string normalizedQuery, IReadOnlyList<string> terms)
     {
-        return terms.Count(term => normalizedQuery.Contains(term, StringComparison.OrdinalIgnoreCase));
+        return terms.Count(term => ContainsCatalogTerm(normalizedQuery, term));
+    }
+
+    private static bool ContainsCatalogTerm(string normalizedQuery, string normalizedTerm)
+    {
+        if (string.IsNullOrWhiteSpace(normalizedTerm))
+        {
+            return false;
+        }
+
+        if (normalizedTerm.Any(character => !char.IsLetterOrDigit(character)))
+        {
+            return normalizedQuery.Contains(normalizedTerm, StringComparison.OrdinalIgnoreCase);
+        }
+
+        return GetCatalogTokens(normalizedQuery).Contains(normalizedTerm, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static IEnumerable<string> GetCatalogTokens(string normalizedQuery)
+    {
+        return normalizedQuery
+            .Split([' ', '-', '/', ',', '.', ';', ':', '(', ')', '[', ']', '{', '}'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     }
 
     private static string NormalizeCatalogText(string value)
