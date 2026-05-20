@@ -1,8 +1,10 @@
 @page "/"
+@using Microsoft.AspNetCore.Components.Forms
 @inject ComparisonDataService Data
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SearchQuotaService QuotaService
+@inject IProductImageSuggestionService ImageSuggestionService
 @inject AppText T
 
 <PageTitle>TrueCompare</PageTitle>
@@ -13,12 +15,33 @@
         <p class="lead">@T["Home.Lead"]</p>
 
         <div class="prompt-panel mock-prompt">
-            <span class="prompt-plus">+</span>
+            <div class="image-upload-cell @(IsAnalyzingImage ? "is-busy" : null)" title='@T["Home.ImageUploadAria"]'>
+                <span class="prompt-plus" aria-hidden="true">+</span>
+                <InputFile id="product-image" class="image-file-input" accept="image/*" OnChange="HandleImageSelected" aria-label='@T["Home.ImageUploadAria"]' disabled="@IsAnalyzingImage" />
+            </div>
             <input id="prompt" aria-label='@T["Home.ProductAria"]' @bind="Prompt" @bind:event="oninput" />
             <button class="search-send" type="button" @onclick="StartComparison" disabled="@IsSubmitting" aria-label='@T["Home.CompareAria"]'>
                 @(IsSubmitting ? "..." : "→")
             </button>
         </div>
+
+        @if (IsAnalyzingImage || ImageSuggestion is not null || !string.IsNullOrWhiteSpace(SelectedImagePreviewDataUrl))
+        {
+            <section class="image-suggestion-card" aria-live="polite">
+                @if (!string.IsNullOrWhiteSpace(SelectedImagePreviewDataUrl))
+                {
+                    <img src="@SelectedImagePreviewDataUrl" alt="" />
+                }
+                <div>
+                    <span>@(IsAnalyzingImage ? T["Home.ImageAnalyzing"] : ImageSuggestion?.SourceLabel)</span>
+                    <strong>@(ImageSuggestion?.DetectedProductType ?? SelectedImageName ?? T["Home.ImageSuggestion"])</strong>
+                    @if (ImageSuggestion is not null)
+                    {
+                        <p>@ImageSuggestion.Summary</p>
+                    }
+                </div>
+            </section>
+        }
 
         @if (!string.IsNullOrWhiteSpace(QuotaMessage))
         {
@@ -64,10 +87,16 @@
 </section>
 
 @code {
+    private const long MaxImageBytes = 5 * 1024 * 1024;
+
     private string Prompt { get; set; } = string.Empty;
     private string ActiveCategory { get; set; } = string.Empty;
     private bool IsSubmitting { get; set; }
+    private bool IsAnalyzingImage { get; set; }
     private string? QuotaMessage { get; set; }
+    private string? SelectedImageName { get; set; }
+    private string? SelectedImagePreviewDataUrl { get; set; }
+    private ImageProductSuggestionResult? ImageSuggestion { get; set; }
 
     protected override void OnInitialized()
     {
@@ -81,8 +110,70 @@
         Prompt = T.Format("Home.CategoryPrompt", category);
     }
 
+    private async Task HandleImageSelected(InputFileChangeEventArgs args)
+    {
+        var file = args.File;
+        if (file is null)
+        {
+            return;
+        }
+
+        QuotaMessage = null;
+        ImageSuggestion = null;
+        SelectedImageName = file.Name;
+
+        if (!file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+        {
+            SelectedImagePreviewDataUrl = null;
+            QuotaMessage = T["Home.ImageInvalid"];
+            return;
+        }
+
+        if (file.Size > MaxImageBytes)
+        {
+            SelectedImagePreviewDataUrl = null;
+            QuotaMessage = T["Home.ImageTooLarge"];
+            return;
+        }
+
+        IsAnalyzingImage = true;
+        try
+        {
+            await using var stream = file.OpenReadStream(MaxImageBytes);
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            var imageBytes = memoryStream.ToArray();
+
+            SelectedImagePreviewDataUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(imageBytes)}";
+            ImageSuggestion = await ImageSuggestionService.AnalyzeImageAsync(file.Name, file.ContentType, imageBytes);
+            if (!string.IsNullOrWhiteSpace(ImageSuggestion.SuggestedQuery))
+            {
+                Prompt = ImageSuggestion.SuggestedQuery;
+            }
+        }
+        catch
+        {
+            QuotaMessage = T["Home.ImageAnalysisFailed"];
+        }
+        finally
+        {
+            IsAnalyzingImage = false;
+        }
+    }
+
     private async Task StartComparison()
     {
+        if (IsAnalyzingImage)
+        {
+            QuotaMessage = T["Home.ImageAnalyzing"];
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(Prompt) && !string.IsNullOrWhiteSpace(ImageSuggestion?.SuggestedQuery))
+        {
+            Prompt = ImageSuggestion.SuggestedQuery;
+        }
+
         if (string.IsNullOrWhiteSpace(Prompt))
         {
             QuotaMessage = T["Home.MissingProduct"];
