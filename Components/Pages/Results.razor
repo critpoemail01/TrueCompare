@@ -5,7 +5,7 @@
 
 <PageTitle>@T["Results.PageTitle"]</PageTitle>
 
-<section class="page-header compact-header">
+<section class="page-header compact-header results-header">
     <div>
         <h1>@T["Results.Title"]</h1>
         <p>@T.Format("Results.Subtitle", Products.Count)</p>
@@ -13,7 +13,39 @@
     <a class="secondary-button" href="@CriteriaUrl">@T["Results.AddProduct"]</a>
 </section>
 
-<section class="ai-suggestion-panel" aria-live="polite">
+<section class="results-grid">
+    @foreach (var product in Products)
+    {
+        <article class="product-card @(product.Rank == 1 ? "featured" : null)" style="--accent:@product.Accent">
+            <div class="rank-line">
+                <span>#@product.Rank</span>
+                <strong>@product.Score</strong>
+            </div>
+
+            <h2>@product.Name</h2>
+            <div class="price">@product.Price</div>
+
+            <dl class="spec-list result-spec-list">
+                @foreach (var spec in CardSpecs(product))
+                {
+                    <div>
+                        <dt>@T["Results.Spec"]</dt>
+                        <dd>@spec</dd>
+                    </div>
+                }
+            </dl>
+
+            <p class="verified-line">@T["Results.Verified"]</p>
+            <span class="badge">@product.Badge</span>
+
+            <a class="card-action" href="@ProductUrl(product)">@T["Results.Details"]</a>
+        </article>
+    }
+</section>
+
+<p class="disclaimer">@T["Results.Disclaimer"]</p>
+
+<section class="ai-suggestion-panel results-ai-panel" aria-live="polite">
     <div class="ai-suggestion-head">
         <div>
             <p class="eyebrow">@T["Results.AiSuggestion"]</p>
@@ -71,39 +103,6 @@
     }
 </section>
 
-<section class="results-grid">
-    @foreach (var product in Products)
-    {
-        <article class="product-card @(product.Rank == 1 ? "featured" : null)" style="--accent:@product.Accent">
-            <div class="rank-line">
-                <span>#@product.Rank</span>
-                <strong>@product.Score</strong>
-            </div>
-
-            <h2>@product.Name</h2>
-            <p class="brand">@product.Brand</p>
-            <div class="price">@product.Price</div>
-
-            <dl class="spec-list">
-                @foreach (var spec in product.Specs.Take(4))
-                {
-                    <div>
-                        <dt>@T["Results.Spec"]</dt>
-                        <dd>@spec</dd>
-                    </div>
-                }
-            </dl>
-
-            <p class="verified-line">@T["Results.Verified"]</p>
-            <span class="badge">@product.Badge</span>
-
-            <a class="card-action" href="@ProductUrl(product)">@T["Results.Details"]</a>
-        </article>
-    }
-</section>
-
-<p class="disclaimer">@T["Results.Disclaimer"]</p>
-
 @code {
     [SupplyParameterFromQuery]
     public string? Query { get; set; }
@@ -121,6 +120,42 @@
     private string CriteriaUrl => string.IsNullOrWhiteSpace(Query)
         ? "/criteria"
         : $"/criteria?query={Uri.EscapeDataString(Query)}";
+
+    private static IReadOnlyList<string> CardSpecs(ProductResult product)
+    {
+        var specs = product.Specs;
+        var result = new List<string>(4);
+
+        if (specs.Count >= 2)
+        {
+            result.Add($"{specs[0]} \u00B7 {specs[1]}");
+        }
+        else if (specs.Count == 1)
+        {
+            result.Add(specs[0]);
+        }
+
+        if (specs.Count >= 3)
+        {
+            result.Add(specs[2]);
+        }
+
+        if (specs.Count >= 5)
+        {
+            result.Add($"{specs[3]} \u00B7 {specs[4]}");
+        }
+        else if (specs.Count >= 4)
+        {
+            result.Add(specs[3]);
+        }
+
+        if (specs.Count >= 6)
+        {
+            result.Add(specs[5]);
+        }
+
+        return result;
+    }
 
     protected override async Task OnParametersSetAsync()
     {

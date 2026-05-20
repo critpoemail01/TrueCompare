@@ -22,7 +22,7 @@ public sealed class AppText
         ["Nav.Settings"] = "Definições",
 
         ["Home.Title"] = "O que queres comparar hoje?",
-        ["Home.Lead"] = "3 pesquisas grátis · vendedores verificados · alertas de preço",
+        ["Home.Lead"] = "Pesquisa isenta. Sem patrocínios. Verificação anti-fraude integrada.",
         ["Home.ProductAria"] = "Produto a comparar",
         ["Home.CompareAria"] = "Comparar",
         ["Home.Capabilities"] = "Capacidades principais",
@@ -67,7 +67,7 @@ public sealed class AppText
 
         ["Results.PageTitle"] = "Resultados - TrueCompare",
         ["Results.Title"] = "Resultados comparativos",
-        ["Results.Subtitle"] = "{0} produtos · preço, garantia, risco e performance ponderados.",
+        ["Results.Subtitle"] = "Ranking ponderado pelos teus critérios · {0} produtos analisados.",
         ["Results.AddProduct"] = "+ Adicionar produto",
         ["Results.AiSuggestion"] = "Sugestão IA",
         ["Results.Analyzing"] = "A analisar",
@@ -194,7 +194,7 @@ public sealed class AppText
         ["Nav.Settings"] = "Settings",
 
         ["Home.Title"] = "What do you want to compare today?",
-        ["Home.Lead"] = "3 free searches · verified sellers · price alerts",
+        ["Home.Lead"] = "Independent search. No sponsorships. Built-in anti-fraud checks.",
         ["Home.ProductAria"] = "Product to compare",
         ["Home.CompareAria"] = "Compare",
         ["Home.Capabilities"] = "Main capabilities",
@@ -239,7 +239,7 @@ public sealed class AppText
 
         ["Results.PageTitle"] = "Results - TrueCompare",
         ["Results.Title"] = "Comparison results",
-        ["Results.Subtitle"] = "{0} products · price, warranty, risk and performance weighted.",
+        ["Results.Subtitle"] = "Weighted ranking from your criteria · {0} products analyzed.",
         ["Results.AddProduct"] = "+ Add product",
         ["Results.AiSuggestion"] = "AI suggestion",
         ["Results.Analyzing"] = "Analyzing",
