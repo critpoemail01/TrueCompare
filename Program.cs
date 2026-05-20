@@ -117,6 +117,7 @@ builder.Services.AddScoped<SearchQuotaService>();
 builder.Services.AddScoped<TargetPriceAlertService>();
 builder.Services.AddSingleton<LlmProviderQuotaService>();
 builder.Services.AddHttpClient<LlmProviderRouter>();
+builder.Services.AddScoped<IProductDiscoveryService, LlmProductDiscoveryService>();
 builder.Services.AddScoped<IProductSuggestionService, LlmSuggestionService>();
 builder.Services.AddScoped<IProductImageSuggestionService, LlmProductImageSuggestionService>();
 builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();

@@ -84,6 +84,29 @@ public sealed class ComparisonDataServiceTests
     }
 
     [Fact]
+    public void GetProducts_ReturnsMouseCatalog_WhenQueryAsksForMouseUnder50()
+    {
+        var service = new ComparisonDataService(new AppText());
+
+        var products = service.GetProducts("quero um rato ate 50 euros");
+
+        Assert.Contains(products, product => product.Name == "Logitech M650 Signature");
+        Assert.Contains(products, product => product.Name == "Microsoft Bluetooth Mouse");
+        Assert.DoesNotContain(products, product => product.Name == "MacBook Air M3");
+        Assert.All(products, product => Assert.Contains("50", string.Join(' ', product.Specs)));
+    }
+
+    [Fact]
+    public void GetProducts_ReturnsNoLocalProducts_WhenCatalogIsUnknown()
+    {
+        var service = new ComparisonDataService(new AppText());
+
+        var products = service.GetProducts("quero uma cadeira ergonomica ate 100 euros");
+
+        Assert.Empty(products);
+    }
+
+    [Fact]
     public void GetBestOffer_ReturnsLowestKnownApplianceOffer()
     {
         var service = new ComparisonDataService(new AppText());

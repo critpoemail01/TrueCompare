@@ -1,5 +1,5 @@
 @page "/product/{Slug}"
-@inject ComparisonDataService Data
+@inject IProductDiscoveryService DiscoveryService
 @inject AppText T
 
 <PageTitle>@T["Product.PageTitle"]</PageTitle>
@@ -84,12 +84,8 @@ else
 
     private ProductResult? Product { get; set; }
 
-    private string CheckoutUrl => Product is null
-        ? "/checkout"
-        : $"/checkout?product={Uri.EscapeDataString(Product.Slug)}";
-
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
-        Product = string.IsNullOrWhiteSpace(Slug) ? null : Data.FindProduct(Slug);
+        Product = await DiscoveryService.FindProductAsync(Slug, Query);
     }
 }

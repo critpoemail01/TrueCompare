@@ -85,6 +85,8 @@ public sealed class AppText
         ["Results.Details"] = "Ver detalhes →",
         ["Results.Disclaimer"] = "Os resultados não são influenciados por marcas, retalhistas ou parceiros comerciais.",
         ["Results.DefaultQuery"] = "produto com melhor preço, garantia e baixo risco",
+        ["Results.EmptyTitle"] = "Ainda não consegui validar produtos para esta pesquisa",
+        ["Results.EmptyLead"] = "Tenta escrever o tipo de produto, orçamento e prioridade principal. A app só mostra resultados quando a categoria e o preço fazem sentido.",
 
         ["Product.PageTitle"] = "Detalhe - TrueCompare",
         ["Product.NotFound"] = "Produto não encontrado",
@@ -300,6 +302,8 @@ public sealed class AppText
         ["Results.Details"] = "View details →",
         ["Results.Disclaimer"] = "Results are not influenced by brands, retailers or commercial partners.",
         ["Results.DefaultQuery"] = "product with best price, warranty and low risk",
+        ["Results.EmptyTitle"] = "I could not validate products for this search yet",
+        ["Results.EmptyLead"] = "Try adding the product type, budget and main priority. The app only shows results when category and price make sense.",
 
         ["Product.PageTitle"] = "Details - TrueCompare",
         ["Product.NotFound"] = "Product not found",

@@ -1,6 +1,7 @@
 @page "/checkout"
 @using System.Globalization
 @inject ComparisonDataService Data
+@inject IProductDiscoveryService DiscoveryService
 @inject AppText T
 
 <PageTitle>@T["Checkout.PageTitle"]</PageTitle>
@@ -15,6 +16,12 @@
     <div class="form-message">@Message</div>
 }
 
+@if (SelectedOffer is null)
+{
+    <div class="form-message">@T["Results.Preparing"]</div>
+}
+else
+{
 <div class="checkout-grid">
     <section class="seller-table-wrap">
         <table class="seller-table">
@@ -108,6 +115,7 @@
         </section>
     </aside>
 </div>
+}
 
 @code {
     [SupplyParameterFromQuery]
@@ -123,21 +131,22 @@
 
     private string CatalogKey => ProductSlug ?? Query ?? ResolvedProductSlug;
 
-    private IReadOnlyList<SellerOffer> Offers => Data.GetSellerOffers(CatalogKey);
+    private IReadOnlyList<SellerOffer> Offers { get; set; } = Array.Empty<SellerOffer>();
 
     private string ReturnUrl => $"/checkout?product={Uri.EscapeDataString(ResolvedProductSlug)}";
 
-    private string DefaultTargetPrice => Data.GetBestOffer(CatalogKey).PriceCents <= 90000 ? "699.00" : "1199.00";
+    private string DefaultTargetPrice => (SelectedOffer?.PriceCents ?? 0) <= 90000 ? "49.00" : "1199.00";
 
-    private SellerOffer SelectedOffer { get; set; } = default!;
+    private SellerOffer? SelectedOffer { get; set; }
 
-    private string FormattedTotal => FormatCurrency(SelectedOffer.PriceCents);
+    private string FormattedTotal => FormatCurrency(SelectedOffer?.PriceCents ?? 0);
 
-    private string VatValue => FormatCurrency((long)Math.Round(SelectedOffer.PriceCents * 23m / 123m, MidpointRounding.AwayFromZero));
+    private string VatValue => FormatCurrency((long)Math.Round((SelectedOffer?.PriceCents ?? 0) * 23m / 123m, MidpointRounding.AwayFromZero));
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
-        SelectedOffer = Data.GetBestOffer(CatalogKey);
+        Offers = await DiscoveryService.GetSellerOffersAsync(CatalogKey, Query);
+        SelectedOffer = Offers.OrderBy(offer => offer.PriceCents).FirstOrDefault() ?? Data.GetBestOffer(null);
     }
 
     private static string FormatCurrency(long cents)

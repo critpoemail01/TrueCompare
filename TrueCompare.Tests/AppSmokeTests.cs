@@ -38,6 +38,18 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
     }
 
     [Fact]
+    public async Task ResultsPage_RendersMouseCatalog_WhenQueryAsksForMouseUnder50()
+    {
+        var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/results?query=quero%20um%20rato%20ate%2050%20euros");
+
+        Assert.Contains("Logitech M650 Signature", html);
+        Assert.Contains("Microsoft Bluetooth Mouse", html);
+        Assert.DoesNotContain("MacBook Air M3", html);
+    }
+
+    [Fact]
     public async Task HomePage_ExposesImageUploadAndPasteSurface()
     {
         var client = factory.CreateClient();

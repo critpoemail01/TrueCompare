@@ -15,7 +15,8 @@ public sealed class LlmSuggestionService(
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        PropertyNameCaseInsensitive = true
+        PropertyNameCaseInsensitive = true,
+        NumberHandling = JsonNumberHandling.AllowReadingFromString
     };
 
     public async Task<LlmSuggestionResult> GetSuggestionsAsync(
@@ -155,7 +156,9 @@ public sealed class LlmSuggestionService(
             text.Pick($"LLM ativo · {providerName}", $"LLM active · {providerName}"),
             CleanText(payload.Intent, fallback.Intent),
             CleanText(payload.Summary, fallback.Summary),
-            payload.Confidence <= 0 ? fallback.Confidence : Math.Clamp(payload.Confidence, 0, 100),
+            payload.Confidence <= 0
+                ? fallback.Confidence
+                : (int)Math.Round(Math.Clamp(payload.Confidence, 0, 100), MidpointRounding.AwayFromZero),
             Clean(payload.BuyingSignals).Select(signal => CleanText(signal)).Where(signal => signal.Length > 0).Take(5).ToList(),
             Clean(payload.SuggestedQueries).Select(item => CleanText(item)).Where(item => item.Length > 0).Take(4).ToList(),
             Clean(payload.Warnings).Select(item => CleanText(item)).Where(item => item.Length > 0).Take(4).ToList(),
@@ -271,7 +274,7 @@ public sealed class LlmSuggestionService(
 
         public string? Summary { get; set; }
 
-        public int Confidence { get; set; }
+        public double Confidence { get; set; }
 
         public IReadOnlyList<string>? BuyingSignals { get; set; }
 

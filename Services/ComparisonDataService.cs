@@ -9,6 +9,7 @@ public sealed class ComparisonDataService(AppText text)
     private const string LaptopCatalog = "laptops";
     private const string SmartphoneCatalog = "smartphones";
     private const string ApplianceCatalog = "appliances";
+    private const string MouseCatalog = "mice";
 
     private static readonly string[] SmartphoneCatalogTerms =
     [
@@ -67,12 +68,30 @@ public sealed class ComparisonDataService(AppText text)
         "pc profissional"
     ];
 
+    private static readonly string[] MouseCatalogTerms =
+    [
+        "rato",
+        "ratos",
+        "mouse",
+        "mice",
+        "periferico",
+        "perifericos",
+        "peripheral",
+        "wireless mouse",
+        "sem fios",
+        "bluetooth mouse",
+        "gaming mouse",
+        "rato gaming",
+        "dpi"
+    ];
+
     public IReadOnlyList<string> Categories => text.IsEnglish
         ? new List<string>
         {
             "Premium smartphones",
             "Professional laptops",
             "A+++ efficient appliances",
+            "Mice and peripherals under €50",
             "Industrial tools",
             "Sports equipment",
             "Car accessories",
@@ -84,6 +103,7 @@ public sealed class ComparisonDataService(AppText text)
             "Smartphones premium",
             "Portáteis profissionais",
             "Eletrodomésticos eficiência A+++",
+            "Ratos e periféricos até 50€",
             "Ferramentas industriais",
             "Equipamento desportivo",
             "Acessórios automóvel",
@@ -364,9 +384,74 @@ public sealed class ComparisonDataService(AppText text)
         )
     };
 
+    private static IReadOnlyList<ProductResult> MouseProducts { get; } = new List<ProductResult>
+    {
+        new(
+            "logitech-m650-signature",
+            1,
+            92,
+            "Logitech M650 Signature",
+            "Logitech",
+            "34,99 €",
+            "#5EE9A8",
+            "Melhor geral",
+            new[] { "Rato sem fios", "Bluetooth + USB", "24 meses bateria", "125 g", "Garantia 2 anos", "Até 50 €" },
+            new[] { "Confortável para uso diário", "Cliques silenciosos", "Boa autonomia" },
+            new[] { "Vendedor autorizado", "Garantia validada", "Stock real confirmado", "Preço dentro do mercado", "Sem alertas críticos" },
+            Array.Empty<FraudAlert>(),
+            "Melhor escolha abaixo de 50€ para trabalho diário, conforto e autonomia sem fios."
+        ),
+        new(
+            "logitech-g305-lightspeed",
+            2,
+            90,
+            "Logitech G305 Lightspeed",
+            "Logitech",
+            "44,99 €",
+            "#7BE8E0",
+            "Melhor gaming",
+            new[] { "Rato gaming", "Sem fios", "12000 DPI", "99 g", "Garantia 2 anos", "Até 50 €" },
+            new[] { "Baixa latência", "Sensor preciso", "Bom para jogos e trabalho" },
+            new[] { "Vendedor autorizado", "Garantia validada", "Preço dentro do mercado" },
+            Array.Empty<FraudAlert>(),
+            "A melhor opção para quem quer um rato gaming sem fios até 50€."
+        ),
+        new(
+            "microsoft-bluetooth-mouse",
+            3,
+            84,
+            "Microsoft Bluetooth Mouse",
+            "Microsoft",
+            "24,99 €",
+            "#B49CFF",
+            "Mais barato",
+            new[] { "Rato bluetooth", "Sem dongle", "12 meses bateria", "78 g", "Garantia 2 anos", "Até 50 €" },
+            new[] { "Preço baixo", "Simples de transportar", "Bom para portátil" },
+            new[] { "Vendedor autorizado", "Garantia validada", "Preço dentro do mercado" },
+            Array.Empty<FraudAlert>(),
+            "Opção económica e simples para quem quer um rato bluetooth leve."
+        ),
+        new(
+            "razer-deathadder-essential",
+            4,
+            82,
+            "Razer DeathAdder Essential",
+            "Razer",
+            "29,99 €",
+            "#E9D67B",
+            "Melhor ergonómico",
+            new[] { "Rato com fio", "6400 DPI", "Ergonómico", "96 g", "Garantia 2 anos", "Até 50 €" },
+            new[] { "Formato confortável", "Sensor fiável", "Bom preço" },
+            new[] { "Vendedor autorizado", "Garantia validada", "Sem alertas críticos" },
+            Array.Empty<FraudAlert>(),
+            "Boa escolha se preferes rato com fio, formato ergonómico e preço baixo."
+        )
+    };
+
     private static IReadOnlyList<ProductResult> AllProducts { get; } = LaptopProducts
         .Concat(SmartphoneProducts)
         .Concat(ApplianceProducts)
+        .Concat(MouseProducts)
         .ToList();
 
     private static IReadOnlyList<SellerOffer> LaptopOffers { get; } = new List<SellerOffer>
@@ -396,6 +481,15 @@ public sealed class ComparisonDataService(AppText text)
         new("KuantoKusta", "889 €", 88900, "Confirmar loja", "Validar vendedor", "A comparar", "https://www.kuantokusta.pt/search?q=bosch%20serie%206%20frigorifico", false)
     };
 
+    private static IReadOnlyList<SellerOffer> MouseOffers { get; } = new List<SellerOffer>
+    {
+        new("Amazon.es", "32,99 €", 3299, "2-4 dias", "3 anos UE", "Autorizado", "https://www.amazon.es/s?k=rato+sem+fios+ate+50+euros", true),
+        new("Worten", "34,99 €", 3499, "2 dias", "3 anos PT", "Verificado", "https://www.worten.pt/search?query=rato%20sem%20fios%20ate%2050%20euros", false),
+        new("FNAC", "36,99 €", 3699, "3 dias", "3 anos PT", "Verificado", "https://www.fnac.pt/SearchResult/ResultList.aspx?Search=rato+sem+fios+ate+50+euros", false),
+        new("MediaMarkt", "39,99 €", 3999, "2-3 dias", "3 anos PT", "Verificado", "https://www.mediamarkt.pt/pt/search.html?query=rato%20sem%20fios%20ate%2050%20euros", false),
+        new("PCDIGA", "44,99 €", 4499, "1-2 dias", "3 anos PT", "Verificado", "https://www.pcdiga.com/pesquisa/rato%20sem%20fios%20ate%2050%20euros", false)
+    };
+
     public IReadOnlyList<ProductResult> GetProducts(string? query)
     {
         return LocalizeProducts(ResolveProducts(query));
@@ -407,6 +501,7 @@ public sealed class ComparisonDataService(AppText text)
         {
             SmartphoneCatalog => SmartphoneOffers,
             ApplianceCatalog => ApplianceOffers,
+            MouseCatalog => MouseOffers,
             _ => LaptopOffers
         };
 
@@ -430,7 +525,7 @@ public sealed class ComparisonDataService(AppText text)
             return ranked;
         }
 
-        return hasCatalog ? candidates : LaptopProducts;
+        return hasCatalog ? candidates : Array.Empty<ProductResult>();
     }
 
     private static IReadOnlyList<ProductResult> GetCatalogProducts(string catalog)
@@ -439,6 +534,7 @@ public sealed class ComparisonDataService(AppText text)
         {
             SmartphoneCatalog => SmartphoneProducts,
             ApplianceCatalog => ApplianceProducts,
+            MouseCatalog => MouseProducts,
             _ => LaptopProducts
         };
     }
@@ -520,7 +616,22 @@ public sealed class ComparisonDataService(AppText text)
             "seller",
             "authorized",
             "loja",
-            "store"
+            "store",
+            "ate",
+            "até",
+            "euro",
+            "euros",
+            "eur",
+            "orçamento",
+            "orcamento",
+            "máximo",
+            "maximo",
+            "max",
+            "ergonomico",
+            "ergonomica",
+            "confortavel",
+            "confortavel",
+            "gaming"
         };
 
         return rawTerms
@@ -545,6 +656,8 @@ public sealed class ComparisonDataService(AppText text)
             "roupa" or "lavar" or "lavagem" or "lavadora" => new[] { "lavadora", "lavagem", "maquina", "twindos" },
             "loica" or "loicas" or "louca" or "dishwasher" => new[] { "loica", "lava", "dishwasher" },
             "silencioso" or "silenciosa" or "ruido" => new[] { "silencioso", "ruido", "db" },
+            "rato" or "ratos" or "mouse" or "mice" => new[] { "rato", "mouse", "sem fios", "bluetooth", "dpi" },
+            "ergonomico" or "ergonomica" => new[] { "ergonomico", "confortavel", "formato" },
             _ => Array.Empty<string>()
         })
         {
@@ -646,6 +759,12 @@ public sealed class ComparisonDataService(AppText text)
             return true;
         }
 
+        if (MatchesKnownProduct(value, rawValue, MouseProducts))
+        {
+            catalog = MouseCatalog;
+            return true;
+        }
+
         if (MatchesKnownProduct(value, rawValue, LaptopProducts))
         {
             catalog = LaptopCatalog;
@@ -656,6 +775,7 @@ public sealed class ComparisonDataService(AppText text)
         {
             new { Catalog = SmartphoneCatalog, Score = ScoreCatalog(value, SmartphoneCatalogTerms) },
             new { Catalog = ApplianceCatalog, Score = ScoreCatalog(value, ApplianceCatalogTerms) },
+            new { Catalog = MouseCatalog, Score = ScoreCatalog(value, MouseCatalogTerms) },
             new { Catalog = LaptopCatalog, Score = ScoreCatalog(value, LaptopCatalogTerms) }
         }
         .OrderByDescending(item => item.Score)

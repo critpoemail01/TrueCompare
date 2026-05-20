@@ -1,5 +1,5 @@
 @page "/results"
-@inject ComparisonDataService Data
+@inject IProductDiscoveryService DiscoveryService
 @inject IProductSuggestionService SuggestionService
 @inject AppText T
 
@@ -13,37 +13,48 @@
     <a class="secondary-button" href="@CriteriaUrl">@T["Results.AddProduct"]</a>
 </section>
 
-<section class="results-grid">
-    @foreach (var product in Products)
-    {
-        <article class="product-card @(product.Rank == 1 ? "featured" : null)" style="--accent:@product.Accent">
-            <div class="rank-line">
-                <span>#@product.Rank</span>
-                <strong>@product.Score</strong>
-            </div>
+@if (Products.Count == 0)
+{
+    <section class="empty-state results-empty-state">
+        <h2>@T["Results.EmptyTitle"]</h2>
+        <p>@T["Results.EmptyLead"]</p>
+        <a class="primary-button" href="@CriteriaUrl">@T["Results.AddProduct"]</a>
+    </section>
+}
+else
+{
+    <section class="results-grid">
+        @foreach (var product in Products)
+        {
+            <article class="product-card @(product.Rank == 1 ? "featured" : null)" style="--accent:@product.Accent">
+                <div class="rank-line">
+                    <span>#@product.Rank</span>
+                    <strong>@product.Score</strong>
+                </div>
 
-            <h2>@product.Name</h2>
-            <div class="price">@product.Price</div>
+                <h2>@product.Name</h2>
+                <div class="price">@product.Price</div>
 
-            <dl class="spec-list result-spec-list">
-                @foreach (var spec in CardSpecs(product))
-                {
-                    <div>
-                        <dt>@T["Results.Spec"]</dt>
-                        <dd>@spec</dd>
-                    </div>
-                }
-            </dl>
+                <dl class="spec-list result-spec-list">
+                    @foreach (var spec in CardSpecs(product))
+                    {
+                        <div>
+                            <dt>@T["Results.Spec"]</dt>
+                            <dd>@spec</dd>
+                        </div>
+                    }
+                </dl>
 
-            <p class="verified-line">@T["Results.Verified"]</p>
-            <span class="badge">@product.Badge</span>
+                <p class="verified-line">@T["Results.Verified"]</p>
+                <span class="badge">@product.Badge</span>
 
-            <a class="card-action" href="@ProductUrl(product)">@T["Results.Details"]</a>
-        </article>
-    }
-</section>
+                <a class="card-action" href="@ProductUrl(product)">@T["Results.Details"]</a>
+            </article>
+        }
+    </section>
 
-<p class="disclaimer">@T["Results.Disclaimer"]</p>
+    <p class="disclaimer">@T["Results.Disclaimer"]</p>
+}
 
 <section class="ai-suggestion-panel results-ai-panel" aria-live="polite">
     <div class="ai-suggestion-head">
@@ -109,6 +120,8 @@
 
     private IReadOnlyList<ProductResult> Products { get; set; } = Array.Empty<ProductResult>();
 
+    private IReadOnlyList<SellerOffer> Offers { get; set; } = Array.Empty<SellerOffer>();
+
     private LlmSuggestionResult? AiSuggestions { get; set; }
 
     private bool IsLoadingSuggestions { get; set; }
@@ -159,9 +172,11 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        Products = Data.GetProducts(Query);
         IsLoadingSuggestions = true;
-        AiSuggestions = await SuggestionService.GetSuggestionsAsync(ActiveQuery, Products, Data.GetSellerOffers(Query));
+        var discovery = await DiscoveryService.DiscoverAsync(ActiveQuery);
+        Products = discovery.Products;
+        Offers = discovery.Offers;
+        AiSuggestions = await SuggestionService.GetSuggestionsAsync(ActiveQuery, Products, Offers);
         IsLoadingSuggestions = false;
     }
 
