@@ -122,21 +122,21 @@ public sealed class ComparisonDataService(AppText text)
     public IReadOnlyList<FeatureItem> Features => text.IsEnglish
         ? new List<FeatureItem>
         {
-            new("01", "Smart prompt", "Natural language. No filters.", "#7BE8E0"),
-            new("02", "Custom weights", "Price, battery, warranty.", "#5EE9A8"),
-            new("03", "Independent comparison", "Zero sponsorships.", "#B49CFF"),
-            new("04", "Anti-fraud", "Listings, sellers, serials.", "#E97B7B"),
-            new("05", "Secure checkout", "Card, warranty, returns.", "#E9D67B"),
-            new("06", "Video tutorials", "Flows in 2 minutes.", "#F0A36A")
+            new("01", "Smart prompt", "Describe what you need in natural language, without complex filters.", "#7BE8E0"),
+            new("02", "Custom weights", "Choose what matters: price, battery, warranty and support.", "#5EE9A8"),
+            new("03", "Independent comparison", "Zero sponsorships, zero affiliates. Products are ranked by merit.", "#B49CFF"),
+            new("04", "Anti-fraud verification", "Detect suspicious listings, validate sellers and serial numbers.", "#E97B7B"),
+            new("05", "Secure checkout", "Order through the app with authenticity and return guarantees.", "#E9D67B"),
+            new("06", "Video tutorials", "Learn each feature in less than 2 minutes in the tutorial center.", "#F0A36A")
         }
         : new List<FeatureItem>
         {
-            new("01", "Prompt inteligente", "Linguagem natural. Zero filtros.", "#7BE8E0"),
-            new("02", "Pesos personalizados", "Preço, autonomia, garantia.", "#5EE9A8"),
-            new("03", "Comparação isenta", "Zero patrocínios.", "#B49CFF"),
-            new("04", "Anti-fraude", "Listagens, vendedores, série.", "#E97B7B"),
-            new("05", "Checkout seguro", "Cartão, garantia, devolução.", "#E9D67B"),
-            new("06", "Tutoriais em vídeo", "Fluxos em 2 minutos.", "#F0A36A")
+            new("01", "Prompt inteligente", "Descreve em linguagem natural o que procuras — sem filtros complicados.", "#7BE8E0"),
+            new("02", "Pesos personalizados", "Define o que valorizas (preço, autonomia, garantia) e a IA ranqueia por ti.", "#5EE9A8"),
+            new("03", "Comparação isenta", "Zero patrocínios, zero afiliados. Os produtos são ranqueados pelo mérito.", "#B49CFF"),
+            new("04", "Verificação anti-fraude", "Deteção de listagens suspeitas, validação de vendedores e número de série.", "#E97B7B"),
+            new("05", "Checkout seguro", "Encomenda directa pela app com garantia de autenticidade e devolução.", "#E9D67B"),
+            new("06", "Tutoriais em vídeo", "Aprende cada funcionalidade em menos de 2 minutos no centro de tutoriais.", "#F0A36A")
         };
 
     public IReadOnlyList<TutorialItem> Tutorials => text.IsEnglish

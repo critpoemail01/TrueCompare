@@ -1,4 +1,5 @@
 @page "/checkout"
+@using System.Globalization
 @inject ComparisonDataService Data
 @inject AppText T
 
@@ -30,56 +31,65 @@
                 @foreach (var offer in Offers)
                 {
                     <tr class="@(SelectedOffer == offer ? "selected" : null)" @onclick="() => SelectedOffer = offer">
-                        <td>
+                        <td data-label="@T["Checkout.Seller"]">
                             @offer.Seller
                             @if (offer.Preferred)
                             {
                                 <span class="recommended-label">@T["Checkout.BestPrice"]</span>
                             }
                         </td>
-                        <td>@offer.Price</td>
-                        <td>@offer.Delivery</td>
-                        <td>@offer.Warranty</td>
-                        <td><span class="status-pill">✓ @offer.Status</span></td>
+                        <td data-label="@T["Checkout.Price"]">@offer.Price</td>
+                        <td data-label="@T["Checkout.Delivery"]">@offer.Delivery</td>
+                        <td data-label="@T["Checkout.Warranty"]">@offer.Warranty</td>
+                        <td data-label="@T["Checkout.Status"]"><span class="status-pill">✓ @offer.Status</span></td>
                     </tr>
                 }
             </tbody>
         </table>
     </section>
 
-    <aside class="order-panel">
-        <h2>@T["Checkout.RecommendedSeller"]</h2>
+    <aside class="checkout-side">
+        <section class="order-panel">
+            <h2>@T["Checkout.RecommendedSeller"]</h2>
+            <p>@T["Checkout.ProtectedLead"]</p>
 
-        <div class="selected-offer">
-            <strong>@SelectedOffer.Seller</strong>
-            <span>@T.Format("Checkout.SelectedOfferLine", SelectedOffer.Price, SelectedOffer.Delivery)</span>
-            <small>@T["Checkout.BestPriceVerified"]</small>
-        </div>
+            <div class="selected-offer">
+                <strong>@SelectedOffer.Seller</strong>
+                <span>@T.Format("Checkout.SelectedOfferLine", SelectedOffer.Price, SelectedOffer.Delivery)</span>
+                <small>@T["Checkout.BestPriceVerified"]</small>
+            </div>
 
-        <dl class="totals-list">
-            <div>
-                <dt>@T["Checkout.Subtotal"]</dt>
-                <dd>@SelectedOffer.Price</dd>
-            </div>
-            <div>
-                <dt>@T["Checkout.Shipping"]</dt>
-                <dd>@T["Checkout.ConfirmWithSeller"]</dd>
-            </div>
-            <div>
-                <dt>@T["Checkout.Warranty"]</dt>
-                <dd>@SelectedOffer.Warranty</dd>
-            </div>
-            <div class="total">
-                <dt>@T["Checkout.RecommendedPrice"]</dt>
-                <dd>@SelectedOffer.Price</dd>
-            </div>
-        </dl>
+            <dl class="totals-list">
+                <div>
+                    <dt>@T["Checkout.Subtotal"]</dt>
+                    <dd>@FormattedTotal</dd>
+                </div>
+                <div>
+                    <dt>@T["Checkout.Shipping"]</dt>
+                    <dd>@T["Checkout.FreeShipping"]</dd>
+                </div>
+                <div>
+                    <dt>@T["Checkout.TrueCompareInsurance"]</dt>
+                    <dd>@T["Checkout.Included"]</dd>
+                </div>
+                <div>
+                    <dt>@T["Checkout.Vat"]</dt>
+                    <dd>@VatValue</dd>
+                </div>
+                <div class="total">
+                    <dt>@T["Checkout.Total"]</dt>
+                    <dd>@FormattedTotal</dd>
+                </div>
+            </dl>
 
-        <a class="primary-button wide" href="@SelectedOffer.Url" target="_blank" rel="noopener noreferrer">
-            @T["Checkout.OrderNow"]
-        </a>
+            <a class="primary-button wide" href="@SelectedOffer.Url" target="_blank" rel="noopener noreferrer">
+                @T["Checkout.OrderNow"]
+            </a>
 
-        <section class="target-alert-panel">
+            <p class="secure-payment-note">@T["Checkout.SecurePayment"]</p>
+        </section>
+
+        <section class="target-alert-panel target-alert-card">
             <h2>@T["Checkout.PriceAlert"]</h2>
 
             <form method="post" action="/price-alerts/create" class="target-alert-form">
@@ -121,8 +131,17 @@
 
     private SellerOffer SelectedOffer { get; set; } = default!;
 
+    private string FormattedTotal => FormatCurrency(SelectedOffer.PriceCents);
+
+    private string VatValue => FormatCurrency((long)Math.Round(SelectedOffer.PriceCents * 23m / 123m, MidpointRounding.AwayFromZero));
+
     protected override void OnParametersSet()
     {
         SelectedOffer = Data.GetBestOffer(CatalogKey);
+    }
+
+    private static string FormatCurrency(long cents)
+    {
+        return $"{(cents / 100m).ToString("N2", CultureInfo.CurrentCulture)} €";
     }
 }

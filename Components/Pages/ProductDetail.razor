@@ -17,12 +17,11 @@ else
         <div>
             <h1>@T["Product.Title"]</h1>
         </div>
-        <a class="secondary-button" href="@CheckoutUrl">@T["Product.Conditions"]</a>
     </section>
 
     <div class="detail-grid">
         <section class="product-summary">
-            <h2>@Product.Name</h2>
+            <h2>@Product.Name · @Product.Specs.FirstOrDefault()</h2>
             <p class="brand">@Product.Brand</p>
 
             <div class="summary-line">
@@ -37,50 +36,42 @@ else
                 <strong>@Product.Score</strong>
                 <em>@Product.Badge</em>
             </div>
-
-            <div class="checklist">
-                <h2>@T["Product.Verified"]</h2>
-                <p class="muted-label">@T["Product.VerifiedLead"]</p>
-                @foreach (var check in Product.VerificationChecks)
-                {
-                    <p><span>✓</span>@check</p>
-                }
-            </div>
         </section>
 
-        <aside class="verification-stack">
-            <section class="analysis-panel flat">
-                <h2>@T["Product.AiAnalysis"]</h2>
-                <p>@Product.AiSummary</p>
-                <div class="summary-specs compact-tags">
-                    @foreach (var highlight in Product.Highlights)
+        <section class="analysis-panel flat">
+            <h2>@T["Product.AiAnalysis"]</h2>
+            <p>@Product.AiSummary</p>
+        </section>
+
+        <section class="checklist verified-panel">
+            <h2>@T["Product.Verified"]</h2>
+            <p class="muted-label">@T["Product.VerifiedLead"]</p>
+            @foreach (var check in Product.VerificationChecks)
+            {
+                <p><span>✓</span>@check</p>
+            }
+        </section>
+
+        <section class="alert-panel">
+            <h2>@T["Product.FraudAlerts"]</h2>
+
+            @if (Product.FraudAlerts.Count == 0)
+            {
+                <div class="safe-alert">@T["Product.Clean"]</div>
+            }
+            else
+            {
+                <div class="fraud-list">
+                    @foreach (var alert in Product.FraudAlerts)
                     {
-                        <span>@highlight</span>
+                        <div>
+                            <span>✕ @alert.Source</span>
+                            <strong>@alert.Reason</strong>
+                        </div>
                     }
                 </div>
-            </section>
-
-            <section class="alert-panel">
-                <h2>@T["Product.FraudAlerts"]</h2>
-
-                @if (Product.FraudAlerts.Count == 0)
-                {
-                    <div class="safe-alert">@T["Product.Clean"]</div>
-                }
-                else
-                {
-                    <div class="fraud-list">
-                        @foreach (var alert in Product.FraudAlerts)
-                        {
-                            <div>
-                                <span>✕ @alert.Source</span>
-                                <strong>@alert.Reason</strong>
-                            </div>
-                        }
-                    </div>
-                }
-            </section>
-        </aside>
+            }
+        </section>
     </div>
 }
 

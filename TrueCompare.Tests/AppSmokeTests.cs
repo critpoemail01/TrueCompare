@@ -10,7 +10,7 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
     [InlineData("/", "O que queres comparar hoje?")]
     [InlineData("/criteria?query=comprar%20smartphones", "Define o que valorizas")]
     [InlineData("/results?query=comprar%20smartphones", "iPhone 15 Pro")]
-    [InlineData("/product/iphone-15-pro?query=comprar%20smartphones", "Produto verificado")]
+    [InlineData("/product/iphone-15-pro?query=comprar%20smartphones", "Score IA")]
     [InlineData("/checkout?product=iphone-15-pro", "Encomendar agora")]
     [InlineData("/login", "Entrar com Gmail")]
     [InlineData("/register", "Criar com Gmail")]
