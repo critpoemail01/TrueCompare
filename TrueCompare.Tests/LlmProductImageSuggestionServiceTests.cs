@@ -82,7 +82,7 @@ public sealed class LlmProductImageSuggestionServiceTests
             [10, 20, 30]);
 
         Assert.True(result.FromLlm);
-        Assert.Equal("LLM online", result.SourceLabel);
+        Assert.StartsWith("LLM online", result.SourceLabel);
         Assert.Equal("Frigorifico Bosch Serie 6", result.DetectedProductType);
         Assert.Equal("bosch serie 6 frigorifico melhor preco vendedor autorizado", result.SuggestedQuery);
         Assert.Equal(88, result.Confidence);
@@ -94,9 +94,14 @@ public sealed class LlmProductImageSuggestionServiceTests
 
     private static LlmProductImageSuggestionService CreateService(HttpMessageHandler handler, LlmOptions options)
     {
-        return new LlmProductImageSuggestionService(
+        var router = new LlmProviderRouter(
             new HttpClient(handler),
             Microsoft.Extensions.Options.Options.Create(options),
+            new LlmProviderQuotaService(),
+            NullLogger<LlmProviderRouter>.Instance);
+
+        return new LlmProductImageSuggestionService(
+            router,
             new MemoryCache(new MemoryCacheOptions()),
             NullLogger<LlmProductImageSuggestionService>.Instance,
             new AppText());

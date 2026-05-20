@@ -87,7 +87,7 @@ public sealed class LlmSuggestionServiceTests
             data.GetSellerOffers("comprar smartphones"));
 
         Assert.True(result.FromLlm);
-        Assert.Equal("LLM ativo", result.SourceLabel);
+        Assert.StartsWith("LLM ativo", result.SourceLabel);
         Assert.Equal("Smartphone premium", result.Intent);
         Assert.Equal(91, result.Confidence);
         Assert.Contains(result.ProductLeads, lead => lead.Name == "iPhone 15 Pro" && lead.TargetPrice == "até 900 €");
@@ -118,14 +118,150 @@ public sealed class LlmSuggestionServiceTests
         Assert.Equal("Modo local", result.SourceLabel);
     }
 
+    [Fact]
+    public async Task GetSuggestionsAsync_UsesNextProvider_WhenFirstResponseIsInvalid()
+    {
+        using var culture = UseCulture("pt-PT");
+        var data = new ComparisonDataService(new AppText());
+        var validAssistantJson = """
+            {
+              "intent": "Smartphone premium",
+              "summary": "Resposta validada no segundo provider.",
+              "confidence": 90,
+              "buyingSignals": ["suporte longo"],
+              "suggestedQueries": ["smartphone premium vendedor autorizado"],
+              "warnings": [],
+              "productLeads": [
+                {
+                  "name": "iPhone 15 Pro",
+                  "reason": "Boa câmara e suporte longo.",
+                  "targetPrice": "confirmar",
+                  "searchHint": "iPhone 15 Pro vendedor autorizado",
+                  "source": "Provider B"
+                }
+              ]
+            }
+            """;
+        var invalidResponse = JsonSerializer.Serialize(new
+        {
+            choices = new[] { new { message = new { content = "{\"summary\":\"sem campos obrigatorios\"}" } } }
+        });
+        var validResponse = JsonSerializer.Serialize(new
+        {
+            choices = new[] { new { message = new { content = validAssistantJson } } }
+        });
+        var callCount = 0;
+        var handler = new FakeHttpMessageHandler(_ =>
+        {
+            callCount++;
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(callCount == 1 ? invalidResponse : validResponse)
+            });
+        });
+        var service = CreateService(handler, OptionsWithProviders());
+
+        var result = await service.GetSuggestionsAsync(
+            "comprar smartphones",
+            data.GetProducts("comprar smartphones"),
+            data.GetSellerOffers("comprar smartphones"));
+
+        Assert.True(result.FromLlm);
+        Assert.Contains("Provider B", result.SourceLabel);
+        Assert.Equal(2, callCount);
+    }
+
+    [Fact]
+    public async Task GetSuggestionsAsync_UsesNextProvider_WhenFirstProviderIsRateLimited()
+    {
+        using var culture = UseCulture("pt-PT");
+        var data = new ComparisonDataService(new AppText());
+        var validAssistantJson = """
+            {
+              "intent": "Smartphone premium",
+              "summary": "Resposta validada após rate limit.",
+              "confidence": 90,
+              "buyingSignals": ["suporte longo"],
+              "suggestedQueries": ["smartphone premium vendedor autorizado"],
+              "warnings": [],
+              "productLeads": [
+                {
+                  "name": "iPhone 15 Pro",
+                  "reason": "Boa câmara e suporte longo.",
+                  "targetPrice": "confirmar",
+                  "searchHint": "iPhone 15 Pro vendedor autorizado",
+                  "source": "Provider B"
+                }
+              ]
+            }
+            """;
+        var validResponse = JsonSerializer.Serialize(new
+        {
+            choices = new[] { new { message = new { content = validAssistantJson } } }
+        });
+        var callCount = 0;
+        var handler = new FakeHttpMessageHandler(_ =>
+        {
+            callCount++;
+            return Task.FromResult(callCount == 1
+                ? new HttpResponseMessage(HttpStatusCode.TooManyRequests)
+                : new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(validResponse)
+                });
+        });
+        var service = CreateService(handler, OptionsWithProviders());
+
+        var result = await service.GetSuggestionsAsync(
+            "comprar smartphones",
+            data.GetProducts("comprar smartphones"),
+            data.GetSellerOffers("comprar smartphones"));
+
+        Assert.True(result.FromLlm);
+        Assert.Contains("Provider B", result.SourceLabel);
+        Assert.Equal(2, callCount);
+    }
+
     private static LlmSuggestionService CreateService(HttpMessageHandler handler, LlmOptions options)
     {
-        return new LlmSuggestionService(
+        var router = new LlmProviderRouter(
             new HttpClient(handler),
             Microsoft.Extensions.Options.Options.Create(options),
+            new LlmProviderQuotaService(),
+            NullLogger<LlmProviderRouter>.Instance);
+
+        return new LlmSuggestionService(
+            router,
             new MemoryCache(new MemoryCacheOptions()),
             NullLogger<LlmSuggestionService>.Instance,
             new AppText());
+    }
+
+    private static LlmOptions OptionsWithProviders()
+    {
+        return new LlmOptions
+        {
+            Enabled = true,
+            Providers =
+            [
+                new LlmProviderOptions
+                {
+                    Name = "Provider A",
+                    Endpoint = "https://provider-a.example.test/v1/chat/completions",
+                    Model = "provider-a-model",
+                    RequiresApiKey = false,
+                    Priority = 1
+                },
+                new LlmProviderOptions
+                {
+                    Name = "Provider B",
+                    Endpoint = "https://provider-b.example.test/v1/chat/completions",
+                    Model = "provider-b-model",
+                    RequiresApiKey = false,
+                    Priority = 2
+                }
+            ]
+        };
     }
 
     private static CultureScope UseCulture(string cultureName)

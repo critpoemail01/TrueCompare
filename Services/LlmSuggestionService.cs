@@ -1,17 +1,13 @@
-using System.Net.Http.Headers;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Options;
 using TrueCompare.Models;
 using TrueCompare.Options;
 
 namespace TrueCompare.Services;
 
 public sealed class LlmSuggestionService(
-    HttpClient httpClient,
-    IOptions<LlmOptions> optionsAccessor,
+    LlmProviderRouter providerRouter,
     IMemoryCache cache,
     ILogger<LlmSuggestionService> logger,
     AppText text) : IProductSuggestionService
@@ -21,8 +17,6 @@ public sealed class LlmSuggestionService(
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         PropertyNameCaseInsensitive = true
     };
-
-    private readonly LlmOptions options = optionsAccessor.Value;
 
     public async Task<LlmSuggestionResult> GetSuggestionsAsync(
         string? query,
@@ -41,31 +35,23 @@ public sealed class LlmSuggestionService(
         }
 
         var fallback = BuildFallback(normalizedQuery, products, offers);
-        if (!IsConfigured())
-        {
-            return fallback;
-        }
 
         try
         {
-            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeout.CancelAfter(TimeSpan.FromSeconds(Math.Clamp(options.TimeoutSeconds, 5, 60)));
+            var providerResponse = await providerRouter.TryGetValidJsonAsync(
+                "product-suggestions",
+                requiresVision: false,
+                provider => BuildRequestJson(provider, normalizedQuery, products, offers),
+                content => IsValidPayload(ReadPayload(content)),
+                cancellationToken);
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, options.Endpoint);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ResolveApiKey());
-            request.Content = new StringContent(BuildRequestJson(normalizedQuery, products, offers), Encoding.UTF8, "application/json");
-
-            using var response = await httpClient.SendAsync(request, timeout.Token);
-            if (!response.IsSuccessStatusCode)
+            if (providerResponse is null)
             {
-                logger.LogWarning("LLM request failed with status {StatusCode}", response.StatusCode);
                 return fallback;
             }
 
-            var responseJson = await response.Content.ReadAsStringAsync(timeout.Token);
-            var content = ExtractAssistantContent(responseJson);
-            var parsed = JsonSerializer.Deserialize<LlmPayload>(content, JsonOptions);
-            var result = NormalizePayload(parsed, fallback);
+            var parsed = ReadPayload(providerResponse.JsonContent);
+            var result = NormalizePayload(parsed, fallback, providerResponse.ProviderName);
 
             cache.Set(cacheKey, result, TimeSpan.FromMinutes(20));
             return result;
@@ -82,27 +68,7 @@ public sealed class LlmSuggestionService(
         }
     }
 
-    private bool IsConfigured()
-    {
-        return options.Enabled
-            && Uri.TryCreate(options.Endpoint, UriKind.Absolute, out _)
-            && !string.IsNullOrWhiteSpace(options.Model)
-            && !string.IsNullOrWhiteSpace(ResolveApiKey());
-    }
-
-    private string ResolveApiKey()
-    {
-        if (!string.IsNullOrWhiteSpace(options.ApiKey))
-        {
-            return options.ApiKey;
-        }
-
-        return Environment.GetEnvironmentVariable("TRUECOMPARE_LLM_API_KEY")
-            ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY")
-            ?? string.Empty;
-    }
-
-    private string BuildRequestJson(string query, IReadOnlyList<ProductResult> products, IReadOnlyList<SellerOffer> offers)
+    private string BuildRequestJson(LlmProviderOptions provider, string query, IReadOnlyList<ProductResult> products, IReadOnlyList<SellerOffer> offers)
     {
         var knownProducts = products.Select(product => new
         {
@@ -127,10 +93,10 @@ public sealed class LlmSuggestionService(
 
         var request = new
         {
-            model = options.Model,
-            temperature = options.Temperature,
-            max_tokens = Math.Clamp(options.MaxTokens, 300, 1800),
-            response_format = new { type = "json_object" },
+            model = provider.Model,
+            temperature = provider.Temperature,
+            max_tokens = Math.Clamp(provider.MaxTokens, 300, 1800),
+            response_format = provider.SupportsJsonObjectResponseFormat ? new { type = "json_object" } : null,
             messages = new object[]
             {
                 new
@@ -161,25 +127,12 @@ public sealed class LlmSuggestionService(
         return JsonSerializer.Serialize(request, JsonOptions);
     }
 
-    private static string ExtractAssistantContent(string responseJson)
+    private static LlmPayload? ReadPayload(string content)
     {
-        using var document = JsonDocument.Parse(responseJson);
-        var root = document.RootElement;
-        var content = root
-            .GetProperty("choices")[0]
-            .GetProperty("message")
-            .GetProperty("content")
-            .GetString();
-
-        if (string.IsNullOrWhiteSpace(content))
-        {
-            throw new InvalidOperationException("LLM response did not include assistant content.");
-        }
-
-        return ExtractJsonObject(content);
+        return JsonSerializer.Deserialize<LlmPayload>(content, JsonOptions);
     }
 
-    private LlmSuggestionResult NormalizePayload(LlmPayload? payload, LlmSuggestionResult fallback)
+    private LlmSuggestionResult NormalizePayload(LlmPayload? payload, LlmSuggestionResult fallback, string providerName)
     {
         if (payload is null)
         {
@@ -199,7 +152,7 @@ public sealed class LlmSuggestionService(
 
         return new LlmSuggestionResult(
             true,
-            text.Pick("LLM ativo", "LLM active"),
+            text.Pick($"LLM ativo · {providerName}", $"LLM active · {providerName}"),
             CleanText(payload.Intent, fallback.Intent),
             CleanText(payload.Summary, fallback.Summary),
             payload.Confidence <= 0 ? fallback.Confidence : Math.Clamp(payload.Confidence, 0, 100),
@@ -209,15 +162,18 @@ public sealed class LlmSuggestionService(
             leads.Count > 0 ? leads : fallback.ProductLeads);
     }
 
-    private static string ExtractJsonObject(string content)
+    private static bool IsValidPayload(LlmPayload? payload)
     {
-        var trimmed = content.Trim();
-        var firstBrace = trimmed.IndexOf('{');
-        var lastBrace = trimmed.LastIndexOf('}');
+        if (payload is null
+            || string.IsNullOrWhiteSpace(payload.Summary)
+            || payload.Confidence <= 0)
+        {
+            return false;
+        }
 
-        return firstBrace >= 0 && lastBrace > firstBrace
-            ? trimmed[firstBrace..(lastBrace + 1)]
-            : trimmed;
+        return Clean(payload.ProductLeads).Any(lead => !string.IsNullOrWhiteSpace(lead.Name) && !string.IsNullOrWhiteSpace(lead.Reason))
+            || Clean(payload.SuggestedQueries).Any(query => !string.IsNullOrWhiteSpace(query))
+            || Clean(payload.BuyingSignals).Any(signal => !string.IsNullOrWhiteSpace(signal));
     }
 
     private LlmSuggestionResult BuildFallback(string query, IReadOnlyList<ProductResult> products, IReadOnlyList<SellerOffer> offers)

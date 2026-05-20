@@ -115,8 +115,10 @@ builder.Services.AddSingleton<AppText>();
 builder.Services.AddSingleton<ComparisonDataService>();
 builder.Services.AddScoped<SearchQuotaService>();
 builder.Services.AddScoped<TargetPriceAlertService>();
-builder.Services.AddHttpClient<IProductSuggestionService, LlmSuggestionService>();
-builder.Services.AddHttpClient<IProductImageSuggestionService, LlmProductImageSuggestionService>();
+builder.Services.AddSingleton<LlmProviderQuotaService>();
+builder.Services.AddHttpClient<LlmProviderRouter>();
+builder.Services.AddScoped<IProductSuggestionService, LlmSuggestionService>();
+builder.Services.AddScoped<IProductImageSuggestionService, LlmProductImageSuggestionService>();
 builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
 builder.Services.AddHostedService<TargetPriceMonitorService>();
 

@@ -1,18 +1,14 @@
-using System.Net.Http.Headers;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Options;
 using TrueCompare.Models;
 using TrueCompare.Options;
 
 namespace TrueCompare.Services;
 
 public sealed class LlmProductImageSuggestionService(
-    HttpClient httpClient,
-    IOptions<LlmOptions> optionsAccessor,
+    LlmProviderRouter providerRouter,
     IMemoryCache cache,
     ILogger<LlmProductImageSuggestionService> logger,
     AppText text) : IProductImageSuggestionService
@@ -22,8 +18,6 @@ public sealed class LlmProductImageSuggestionService(
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         PropertyNameCaseInsensitive = true
     };
-
-    private readonly LlmOptions options = optionsAccessor.Value;
 
     public async Task<ImageProductSuggestionResult> AnalyzeImageAsync(
         string fileName,
@@ -41,7 +35,7 @@ public sealed class LlmProductImageSuggestionService(
             : contentType.Trim();
 
         var fallback = BuildFallback(normalizedFileName);
-        if (imageBytes.Length == 0 || !IsConfigured())
+        if (imageBytes.Length == 0)
         {
             return fallback;
         }
@@ -54,27 +48,20 @@ public sealed class LlmProductImageSuggestionService(
 
         try
         {
-            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeout.CancelAfter(TimeSpan.FromSeconds(Math.Clamp(options.TimeoutSeconds, 5, 60)));
+            var providerResponse = await providerRouter.TryGetValidJsonAsync(
+                "image-product-suggestions",
+                requiresVision: true,
+                provider => BuildRequestJson(provider, normalizedFileName, normalizedContentType, imageBytes),
+                content => IsValidPayload(ReadPayload(content)),
+                cancellationToken);
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, options.Endpoint);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ResolveApiKey());
-            request.Content = new StringContent(
-                BuildRequestJson(normalizedFileName, normalizedContentType, imageBytes),
-                Encoding.UTF8,
-                "application/json");
-
-            using var response = await httpClient.SendAsync(request, timeout.Token);
-            if (!response.IsSuccessStatusCode)
+            if (providerResponse is null)
             {
-                logger.LogWarning("Image LLM request failed with status {StatusCode}", response.StatusCode);
                 return fallback;
             }
 
-            var responseJson = await response.Content.ReadAsStringAsync(timeout.Token);
-            var content = ExtractAssistantContent(responseJson);
-            var parsed = JsonSerializer.Deserialize<ImagePayload>(content, JsonOptions);
-            var result = NormalizePayload(parsed, fallback);
+            var parsed = ReadPayload(providerResponse.JsonContent);
+            var result = NormalizePayload(parsed, fallback, providerResponse.ProviderName);
 
             cache.Set(cacheKey, result, TimeSpan.FromMinutes(20));
             return result;
@@ -91,35 +78,15 @@ public sealed class LlmProductImageSuggestionService(
         }
     }
 
-    private bool IsConfigured()
-    {
-        return options.Enabled
-            && Uri.TryCreate(options.Endpoint, UriKind.Absolute, out _)
-            && !string.IsNullOrWhiteSpace(options.Model)
-            && !string.IsNullOrWhiteSpace(ResolveApiKey());
-    }
-
-    private string ResolveApiKey()
-    {
-        if (!string.IsNullOrWhiteSpace(options.ApiKey))
-        {
-            return options.ApiKey;
-        }
-
-        return Environment.GetEnvironmentVariable("TRUECOMPARE_LLM_API_KEY")
-            ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY")
-            ?? string.Empty;
-    }
-
-    private string BuildRequestJson(string fileName, string contentType, byte[] imageBytes)
+    private string BuildRequestJson(LlmProviderOptions provider, string fileName, string contentType, byte[] imageBytes)
     {
         var dataUrl = $"data:{contentType};base64,{Convert.ToBase64String(imageBytes)}";
         var request = new
         {
-            model = options.Model,
-            temperature = options.Temperature,
-            max_tokens = Math.Clamp(options.MaxTokens, 300, 1400),
-            response_format = new { type = "json_object" },
+            model = provider.Model,
+            temperature = provider.Temperature,
+            max_tokens = Math.Clamp(provider.MaxTokens, 300, 1400),
+            response_format = provider.SupportsJsonObjectResponseFormat ? new { type = "json_object" } : null,
             messages = new object[]
             {
                 new
@@ -166,24 +133,12 @@ public sealed class LlmProductImageSuggestionService(
         return JsonSerializer.Serialize(request, JsonOptions);
     }
 
-    private static string ExtractAssistantContent(string responseJson)
+    private static ImagePayload? ReadPayload(string content)
     {
-        using var document = JsonDocument.Parse(responseJson);
-        var content = document.RootElement
-            .GetProperty("choices")[0]
-            .GetProperty("message")
-            .GetProperty("content")
-            .GetString();
-
-        if (string.IsNullOrWhiteSpace(content))
-        {
-            throw new InvalidOperationException("LLM response did not include assistant content.");
-        }
-
-        return ExtractJsonObject(content);
+        return JsonSerializer.Deserialize<ImagePayload>(content, JsonOptions);
     }
 
-    private ImageProductSuggestionResult NormalizePayload(ImagePayload? payload, ImageProductSuggestionResult fallback)
+    private ImageProductSuggestionResult NormalizePayload(ImagePayload? payload, ImageProductSuggestionResult fallback, string providerName)
     {
         if (payload is null)
         {
@@ -203,13 +158,22 @@ public sealed class LlmProductImageSuggestionService(
         var suggestedQuery = CleanText(payload.SuggestedQuery, fallback.SuggestedQuery);
         return new ImageProductSuggestionResult(
             true,
-            text.Pick("LLM online", "Online LLM"),
+            text.Pick($"LLM online · {providerName}", $"Online LLM · {providerName}"),
             CleanText(payload.DetectedProductType, fallback.DetectedProductType),
             suggestedQuery,
             CleanText(payload.Summary, fallback.Summary),
             payload.Confidence <= 0 ? fallback.Confidence : Math.Clamp(payload.Confidence, 0, 100),
             leads.Count > 0 ? leads : fallback.ProductLeads,
             Clean(payload.Warnings).Select(item => CleanText(item)).Where(item => item.Length > 0).Take(4).ToList());
+    }
+
+    private static bool IsValidPayload(ImagePayload? payload)
+    {
+        return payload is not null
+            && payload.Confidence > 0
+            && !string.IsNullOrWhiteSpace(payload.DetectedProductType)
+            && !string.IsNullOrWhiteSpace(payload.SuggestedQuery)
+            && !string.IsNullOrWhiteSpace(payload.Summary);
     }
 
     private ImageProductSuggestionResult BuildFallback(string fileName)
@@ -280,17 +244,6 @@ public sealed class LlmProductImageSuggestionService(
             {
                 text.Pick("Configura uma chave LLM para reconhecimento visual online.", "Configure an LLM key for online visual recognition.")
             });
-    }
-
-    private static string ExtractJsonObject(string content)
-    {
-        var trimmed = content.Trim();
-        var firstBrace = trimmed.IndexOf('{');
-        var lastBrace = trimmed.LastIndexOf('}');
-
-        return firstBrace >= 0 && lastBrace > firstBrace
-            ? trimmed[firstBrace..(lastBrace + 1)]
-            : trimmed;
     }
 
     private static bool ContainsAny(string value, params string[] terms)
