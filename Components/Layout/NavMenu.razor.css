@@ -1,5 +1,5 @@
 .brand-block {
-    padding: 1.1rem 1rem 3.35rem 1.55rem;
+    padding: 1.55rem 1rem 4rem 1.75rem;
 }
 
 .brand-mark {
@@ -63,7 +63,7 @@
 .nav-scrollable {
     display: block;
     min-height: calc(100vh - 5.5rem);
-    padding: 0 1rem 1.1rem;
+    padding: 0 1.05rem 1.1rem;
 }
 
 .nav-list {

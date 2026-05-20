@@ -4,60 +4,58 @@
 
 <PageTitle>@T["Criteria.PageTitle"]</PageTitle>
 
-<section class="page-header">
-    <h1>@T["Criteria.Title"]</h1>
-    <p>@T["Criteria.Lead"]</p>
-</section>
-
-<div class="tab-strip" role="tablist" aria-label='@T["Criteria.ModeAria"]'>
-    <button class="active" type="button">@T["Criteria.TabAi"]</button>
-    <button type="button">@T["Criteria.TabPrice"]</button>
-    <button type="button">@T["Criteria.TabWarranty"]</button>
-    <button type="button">@T["Criteria.TabDelivery"]</button>
-    <button type="button">@T["Criteria.TabRisk"]</button>
-</div>
-
-<div class="comparison-command">
-    <div class="query-card">
-        <span>@T["Criteria.LookingFor"]</span>
-        <strong>@ActiveQuery</strong>
-    </div>
-    <a class="primary-button command-button" href="@ResultsUrl">@T["Criteria.CompareProducts"]</a>
-</div>
-
-<div class="workspace-grid">
-    <section class="criteria-workbench">
-        <div class="criteria-grid">
-            @foreach (var weight in Weights)
-            {
-                <article class="weight-row" style="--accent:@weight.Accent;--value:@weight.Value">
-                    <div class="weight-header">
-                        <label for="@weight.Id">@weight.Name</label>
-                        <output>@weight.Value%</output>
-                    </div>
-                    <input id="@weight.Id" type="range" min="0" max="100" @bind="weight.Value" @bind:event="oninput" />
-                </article>
-            }
-        </div>
+<div class="criteria-page">
+    <section class="page-header">
+        <h1>@T["Criteria.Title"]</h1>
+        <p>@T["Criteria.Lead"]</p>
     </section>
 
-    <aside class="analysis-panel">
-        <div class="analysis-copy">
-            <h2>@T["Criteria.RankingTitle"]</h2>
-            <p>@T["Criteria.RankingLead"]</p>
+    <div class="tab-strip" role="tablist" aria-label='@T["Criteria.ModeAria"]'>
+        <button class="active" type="button">@T["Criteria.TabAi"]</button>
+        <button type="button">@T["Criteria.TabPrice"]</button>
+        <button type="button">@T["Criteria.TabWarranty"]</button>
+        <button type="button">@T["Criteria.TabDelivery"]</button>
+        <button type="button">@T["Criteria.TabRisk"]</button>
+    </div>
+
+    <div class="comparison-command">
+        <div class="query-card">
+            <span>@T["Criteria.LookingFor"]</span>
+            <strong>@ActiveQuery</strong>
         </div>
-        <h2>@T["Criteria.Signals"]</h2>
-        <ol class="process-list">
-            <li>@T["Criteria.OfficialSpecs"]</li>
-            <li>@T["Criteria.VerifiedSellers"]</li>
-            <li>@T["Criteria.TotalPrice"]</li>
-            <li>@T["Criteria.FraudRisk"]</li>
-        </ol>
-        <div class="confidence-meter">
-            <span>@T["Criteria.Confidence"]</span>
-            <strong>@Confidence%</strong>
-        </div>
-    </aside>
+        <a class="primary-button command-button" href="@ResultsUrl">@T["Criteria.CompareProducts"]</a>
+    </div>
+
+    <div class="workspace-grid">
+        <section class="criteria-workbench">
+            <div class="criteria-grid">
+                @foreach (var weight in Weights)
+                {
+                    <article class="weight-row" style="--accent:@weight.Accent;--value:@weight.Value">
+                        <div class="weight-header">
+                            <label for="@weight.Id">@weight.Name</label>
+                            <output>@weight.Value%</output>
+                        </div>
+                        <input id="@weight.Id" type="range" min="0" max="100" @bind="weight.Value" @bind:event="oninput" />
+                    </article>
+                }
+            </div>
+        </section>
+
+        <aside class="analysis-panel">
+            <div class="analysis-copy">
+                <h2>@T["Criteria.RankingTitle"]</h2>
+                <p>@T["Criteria.RankingLead"]</p>
+            </div>
+            <h2>@T["Criteria.Signals"]</h2>
+            <ol class="process-list">
+                <li>@T["Criteria.OfficialSpecs"]</li>
+                <li>@T["Criteria.VerifiedSellers"]</li>
+                <li>@T["Criteria.TotalPrice"]</li>
+                <li>@T["Criteria.FraudRisk"]</li>
+            </ol>
+        </aside>
+    </div>
 </div>
 
 @code {
@@ -71,8 +69,6 @@
         : Query;
 
     private string ResultsUrl => $"/results?query={Uri.EscapeDataString(ActiveQuery)}";
-
-    private int Confidence => Math.Clamp((int)Math.Round(Weights.Average(weight => weight.Value) + 18), 0, 98);
 
     protected override void OnInitialized()
     {
