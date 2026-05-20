@@ -1,0 +1,74 @@
+@page "/history"
+@attribute [Authorize]
+@using Microsoft.EntityFrameworkCore
+@using TrueCompare.Data
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ApplicationDbContext DbContext
+@inject AppText T
+
+<PageTitle>@T["History.PageTitle"]</PageTitle>
+
+<section class="page-header compact-header">
+    <div>
+        <p class="eyebrow">@T["History.Eyebrow"]</p>
+        <h1>@T["History.Title"]</h1>
+        <p>@T["History.Lead"]</p>
+    </div>
+    <a class="secondary-button" href="/">@T["Credits.NewSearch"]</a>
+</section>
+
+@if (Searches is null)
+{
+    <p class="muted-label">@T["History.Loading"]</p>
+}
+else if (Searches.Count == 0)
+{
+    <section class="empty-state">
+        <h2>@T["History.EmptyTitle"]</h2>
+        <p>@T["History.EmptyLead"]</p>
+    </section>
+}
+else
+{
+    <section class="activity-list" aria-label='@T["History.Title"]'>
+        @foreach (var search in Searches)
+        {
+            <article class="activity-card">
+                <div>
+                    <span>@(search.UsedPaidCredit ? T["History.PaidCredit"] : T["History.FreeSearch"])</span>
+                    <h2>@search.Query</h2>
+                    <p>@FormatDate(search.CreatedUtc)</p>
+                </div>
+                <a class="secondary-button" href="@ResultsUrl(search.Query)">@T["History.Reopen"]</a>
+            </article>
+        }
+    </section>
+}
+
+@code {
+    private IReadOnlyList<SearchRequest>? Searches { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        Searches = string.IsNullOrWhiteSpace(userId)
+            ? []
+            : await DbContext.SearchRequests
+                .AsNoTracking()
+                .Where(search => search.UserId == userId)
+                .OrderByDescending(search => search.CreatedUtc)
+                .Take(30)
+                .ToListAsync();
+    }
+
+    private static string ResultsUrl(string query)
+    {
+        return $"/results?query={Uri.EscapeDataString(query)}";
+    }
+
+    private static string FormatDate(DateTime value)
+    {
+        return value.ToLocalTime().ToString("dd/MM/yyyy HH:mm", System.Globalization.CultureInfo.CurrentCulture);
+    }
+}

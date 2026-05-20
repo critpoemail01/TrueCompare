@@ -1,0 +1,82 @@
+@page "/alerts"
+@attribute [Authorize]
+@using TrueCompare.Data
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject TargetPriceAlertService AlertService
+@inject AppText T
+
+<PageTitle>@T["Alerts.PageTitle"]</PageTitle>
+
+<section class="page-header compact-header">
+    <div>
+        <p class="eyebrow">@T["Alerts.Eyebrow"]</p>
+        <h1>@T["Alerts.Title"]</h1>
+        <p>@T["Alerts.Lead"]</p>
+    </div>
+    <a class="secondary-button" href="/">@T["Credits.NewSearch"]</a>
+</section>
+
+@if (ActiveAlerts is null)
+{
+    <p class="muted-label">@T["Alerts.Loading"]</p>
+}
+else if (ActiveAlerts.Count == 0)
+{
+    <section class="empty-state">
+        <h2>@T["Alerts.EmptyTitle"]</h2>
+        <p>@T["Alerts.EmptyLead"]</p>
+    </section>
+}
+else
+{
+    <section class="activity-list" aria-label='@T["Alerts.Title"]'>
+        @foreach (var alert in ActiveAlerts)
+        {
+            <article class="activity-card">
+                <div>
+                    <span>@T["Alerts.TargetPrice"]</span>
+                    <h2>@alert.ProductName</h2>
+                    <p>@T.Format("Alerts.CurrentSeller", alert.LastSeenSeller ?? T["Alerts.NoSeller"])</p>
+                </div>
+                <dl>
+                    <div>
+                        <dt>@T["Alerts.Target"]</dt>
+                        <dd>@TargetPriceAlertService.FormatCents(alert.TargetPriceCents)</dd>
+                    </div>
+                    <div>
+                        <dt>@T["Alerts.LastSeen"]</dt>
+                        <dd>@TargetPriceAlertService.FormatCents(alert.LastSeenPriceCents)</dd>
+                    </div>
+                    <div>
+                        <dt>@T["Alerts.Created"]</dt>
+                        <dd>@FormatDate(alert.CreatedUtc)</dd>
+                    </div>
+                </dl>
+                <a class="secondary-button" href="@CheckoutUrl(alert.ProductSlug)">@T["Alerts.OpenProduct"]</a>
+            </article>
+        }
+    </section>
+}
+
+@code {
+    private IReadOnlyList<TargetPriceAlert>? ActiveAlerts { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        ActiveAlerts = string.IsNullOrWhiteSpace(userId)
+            ? []
+            : await AlertService.GetActiveForUserAsync(userId);
+    }
+
+    private static string CheckoutUrl(string productSlug)
+    {
+        return $"/checkout?product={Uri.EscapeDataString(productSlug)}";
+    }
+
+    private static string FormatDate(DateTime value)
+    {
+        return value.ToLocalTime().ToString("dd/MM/yyyy HH:mm", System.Globalization.CultureInfo.CurrentCulture);
+    }
+}

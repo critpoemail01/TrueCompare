@@ -51,6 +51,41 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
     }
 
     [Fact]
+    public async Task MainMenu_RendersOnlyRequestedItems()
+    {
+        var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/");
+        var decoded = WebUtility.HtmlDecode(html);
+
+        Assert.Contains("Novo Chat", decoded);
+        Assert.True(decoded.Contains("Alertas ativos") || decoded.Contains("Active alerts"));
+        Assert.True(decoded.Contains("Histórico de produtos pesquisados") || decoded.Contains("Searched product history"));
+        Assert.DoesNotContain(">Categorias<", decoded);
+        Assert.DoesNotContain(">Categories<", decoded);
+        Assert.DoesNotContain(">Atividade<", decoded);
+        Assert.DoesNotContain(">Activity<", decoded);
+        Assert.DoesNotContain(">Definições<", decoded);
+        Assert.DoesNotContain(">Settings<", decoded);
+    }
+
+    [Theory]
+    [InlineData("/alerts")]
+    [InlineData("/history")]
+    public async Task UserActivityPages_RedirectToLogin_WhenAnonymous(string url)
+    {
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+
+        var response = await client.GetAsync(url);
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.StartsWith("http://localhost/login", response.Headers.Location?.ToString());
+    }
+
+    [Fact]
     public async Task HomePage_UsesBrowserLanguage_WhenAcceptLanguageIsEnglish()
     {
         var client = factory.CreateClient();
