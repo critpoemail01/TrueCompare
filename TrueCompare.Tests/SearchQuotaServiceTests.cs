@@ -109,6 +109,67 @@ public sealed class SearchQuotaServiceTests
     }
 
     [Fact]
+    public async Task TryConsumeAsync_DoesNotConsumeCredits_WhenUserHasActiveUnlimitedSubscription()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var user = new ApplicationUser
+        {
+            Id = "user-subscription",
+            UserName = "subscription@example.com",
+            Email = "subscription@example.com",
+            FreeSearchesUsed = ApplicationUser.FreeSearchLimit,
+            Credits = 0,
+            HasUnlimitedSubscription = true,
+            SubscriptionPlanId = "monthly",
+            SubscriptionActiveUntilUtc = DateTime.UtcNow.AddDays(20)
+        };
+        dbContext.Users.Add(user);
+        await dbContext.SaveChangesAsync();
+
+        var service = new SearchQuotaService(dbContext);
+
+        var result = await service.TryConsumeAsync(user.Id, "comprar smartphones");
+        var status = await service.GetStatusAsync(user.Id);
+        var persistedUser = await dbContext.Users.SingleAsync(candidate => candidate.Id == user.Id);
+
+        Assert.True(result.Allowed);
+        Assert.True(result.Status.HasUnlimitedCredits);
+        Assert.Equal(SearchQuotaUnlimitedSource.Subscription, result.Status.UnlimitedSource);
+        Assert.True(status.HasUnlimitedCredits);
+        Assert.Equal(SearchQuotaUnlimitedSource.Subscription, status.UnlimitedSource);
+        Assert.Equal(ApplicationUser.FreeSearchLimit, persistedUser.FreeSearchesUsed);
+        Assert.Equal(0, persistedUser.Credits);
+        Assert.Single(await dbContext.SearchRequests.ToListAsync());
+    }
+
+    [Fact]
+    public async Task TryConsumeAsync_UsesNormalQuota_WhenUnlimitedSubscriptionIsExpired()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var user = new ApplicationUser
+        {
+            Id = "user-expired-subscription",
+            UserName = "expired@example.com",
+            Email = "expired@example.com",
+            FreeSearchesUsed = ApplicationUser.FreeSearchLimit,
+            Credits = 0,
+            HasUnlimitedSubscription = true,
+            SubscriptionPlanId = "monthly",
+            SubscriptionActiveUntilUtc = DateTime.UtcNow.AddDays(-1)
+        };
+        dbContext.Users.Add(user);
+        await dbContext.SaveChangesAsync();
+
+        var service = new SearchQuotaService(dbContext);
+
+        var result = await service.TryConsumeAsync(user.Id, "comprar smartphones");
+
+        Assert.False(result.Allowed);
+        Assert.False(result.Status.HasUnlimitedCredits);
+        Assert.Empty(await dbContext.SearchRequests.ToListAsync());
+    }
+
+    [Fact]
     public async Task GetStatusAndTryConsume_ReturnSafeStatus_WhenUserDoesNotExist()
     {
         await using var dbContext = TestDbContextFactory.Create();

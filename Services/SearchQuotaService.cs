@@ -34,7 +34,9 @@ public sealed class SearchQuotaService
             .Select(candidate => new
             {
                 candidate.FreeSearchesUsed,
-                candidate.Credits
+                candidate.Credits,
+                candidate.HasUnlimitedSubscription,
+                candidate.SubscriptionActiveUntilUtc
             })
             .SingleOrDefaultAsync(cancellationToken);
 
@@ -45,6 +47,11 @@ public sealed class SearchQuotaService
                 0,
                 ApplicationUser.FreeSearchLimit,
                 0);
+        }
+
+        if (HasActiveUnlimitedSubscription(user.HasUnlimitedSubscription, user.SubscriptionActiveUntilUtc))
+        {
+            return CreateUnlimitedStatus(SearchQuotaUnlimitedSource.Subscription);
         }
 
         return new SearchQuotaStatus(
@@ -83,6 +90,21 @@ public sealed class SearchQuotaService
                 0,
                 ApplicationUser.FreeSearchLimit,
                 0));
+        }
+
+        if (HasActiveUnlimitedSubscription(user.HasUnlimitedSubscription, user.SubscriptionActiveUntilUtc))
+        {
+            dbContext.SearchRequests.Add(new SearchRequest
+            {
+                UserId = userId,
+                Query = query.Trim(),
+                UsedPaidCredit = false
+            });
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            return new SearchConsumptionResult(true, CreateUnlimitedStatus(SearchQuotaUnlimitedSource.Subscription));
         }
 
         var usedPaidCredit = false;
@@ -128,13 +150,31 @@ public sealed class SearchQuotaService
 
     private static SearchQuotaStatus CreateLocalUnlimitedStatus()
     {
+        return CreateUnlimitedStatus(SearchQuotaUnlimitedSource.Localhost);
+    }
+
+    private static SearchQuotaStatus CreateUnlimitedStatus(string source)
+    {
         return new SearchQuotaStatus(
             ApplicationUser.FreeSearchLimit,
             0,
             ApplicationUser.FreeSearchLimit,
             int.MaxValue,
-            true);
+            true,
+            source);
     }
+
+    private static bool HasActiveUnlimitedSubscription(bool hasUnlimitedSubscription, DateTime? activeUntilUtc)
+    {
+        return hasUnlimitedSubscription
+            && (!activeUntilUtc.HasValue || activeUntilUtc.Value > DateTime.UtcNow);
+    }
+}
+
+public static class SearchQuotaUnlimitedSource
+{
+    public const string Localhost = "localhost";
+    public const string Subscription = "subscription";
 }
 
 public sealed record SearchQuotaStatus(
@@ -142,7 +182,8 @@ public sealed record SearchQuotaStatus(
     int FreeSearchesUsed,
     int FreeSearchesRemaining,
     int Credits,
-    bool HasUnlimitedCredits = false);
+    bool HasUnlimitedCredits = false,
+    string? UnlimitedSource = null);
 
 public sealed record SearchConsumptionResult(
     bool Allowed,

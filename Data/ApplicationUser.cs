@@ -10,5 +10,13 @@ public sealed class ApplicationUser : IdentityUser
 
     public int Credits { get; set; }
 
+    public bool HasUnlimitedSubscription { get; set; }
+
+    public string? SubscriptionPlanId { get; set; }
+
+    public string? StripeSubscriptionId { get; set; }
+
+    public DateTime? SubscriptionActiveUntilUtc { get; set; }
+
     public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
 }

@@ -1756,6 +1756,11 @@ input[type="range"]::-moz-range-thumb {
     width: fit-content;
 }
 
+.subscription-plan .plan-credit-line {
+    color: var(--accent-green);
+    font-weight: 900;
+}
+
 .credit-status-grid article strong {
     color: var(--accent-green);
     display: block;
@@ -1778,6 +1783,12 @@ input[type="range"]::-moz-range-thumb {
     color: var(--text-muted);
     line-height: 1.45;
     margin: 0 0 1rem;
+}
+
+.subscription-plan .plan-value-note {
+    color: var(--accent-cyan);
+    font-size: 0.88rem;
+    font-weight: 800;
 }
 
 .credit-package > strong,
@@ -1936,6 +1947,12 @@ input[type="range"]::-moz-range-thumb {
 
     .seller-table {
         min-width: 38rem;
+    }
+}
+
+@media (max-height: 760px) {
+    .workspace-footer {
+        display: none;
     }
 }
 

@@ -23,15 +23,24 @@ public sealed class SubscriptionBillingTests
             .GetProperty("SubscriptionPlans")
             .EnumerateArray()
             .ToList();
+        var packages = document.RootElement
+            .GetProperty("Stripe")
+            .GetProperty("CreditPackages")
+            .EnumerateArray()
+            .ToList();
+        var proPackage = packages.Single(package => package.GetProperty("Id").GetString() == "pro");
+        var monthly = plans.Single(plan => plan.GetProperty("Id").GetString() == "monthly");
+        var annual = plans.Single(plan => plan.GetProperty("Id").GetString() == "annual");
 
-        Assert.Contains(plans, plan =>
-            plan.GetProperty("Id").GetString() == "monthly"
-            && plan.GetProperty("BillingPeriod").GetString() == "month"
-            && plan.GetProperty("CreditsPerPeriod").GetInt32() > 0);
-        Assert.Contains(plans, plan =>
-            plan.GetProperty("Id").GetString() == "annual"
-            && plan.GetProperty("BillingPeriod").GetString() == "year"
-            && plan.GetProperty("AmountCents").GetInt64() > 0);
+        Assert.Equal("month", monthly.GetProperty("BillingPeriod").GetString());
+        Assert.Equal(0, monthly.GetProperty("CreditsPerPeriod").GetInt32());
+        Assert.Contains("ilimitado", monthly.GetProperty("Name").GetString(), StringComparison.OrdinalIgnoreCase);
+        Assert.True(monthly.GetProperty("AmountCents").GetInt64() < proPackage.GetProperty("AmountCents").GetInt64());
+
+        Assert.Equal("year", annual.GetProperty("BillingPeriod").GetString());
+        Assert.Equal(0, annual.GetProperty("CreditsPerPeriod").GetInt32());
+        Assert.Contains("ilimitado", annual.GetProperty("Name").GetString(), StringComparison.OrdinalIgnoreCase);
+        Assert.True(annual.GetProperty("AmountCents").GetInt64() < monthly.GetProperty("AmountCents").GetInt64() * 12);
     }
 
     [Fact]

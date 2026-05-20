@@ -29,7 +29,7 @@ else
 {
     @if (Status.HasUnlimitedCredits)
     {
-        <div class="form-message">@T["Credits.LocalUnlimited"]</div>
+        <div class="form-message">@UnlimitedStatusMessage</div>
     }
 
     <section class="credit-status-grid">
@@ -66,9 +66,10 @@ else
                     <span class="recommended-label">@T["Credits.BestValue"]</span>
                 }
 
-                <span>@T.Format("Credits.PlanCredits", plan.CreditsPerPeriod)</span>
+                <span class="plan-credit-line">@(IsUnlimitedPlan(plan) ? T["Credits.UnlimitedSearches"] : T.Format("Credits.PlanCredits", plan.CreditsPerPeriod))</span>
                 <h2>@DisplayPlanName(plan)</h2>
                 <p>@DisplayPlanDescription(plan)</p>
+                <p class="plan-value-note">@DisplayPlanValueNote(plan)</p>
                 <strong>@FormatPrice(plan.AmountCents, plan.Currency) <small>@BillingSuffix(plan)</small></strong>
 
                 <form method="post" action="/billing/create-subscription-session">
@@ -118,6 +119,10 @@ else
 
     private IReadOnlyList<SubscriptionPlan> SubscriptionPlans => StripeOptionsAccessor.Value.SubscriptionPlans;
 
+    private string UnlimitedStatusMessage => Status?.UnlimitedSource == SearchQuotaUnlimitedSource.Subscription
+        ? T["Credits.SubscriptionUnlimitedActive"]
+        : T["Credits.LocalUnlimited"];
+
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -148,8 +153,8 @@ else
     {
         return plan.Id switch
         {
-            "monthly" => T.Pick("Mensal", "Monthly"),
-            "annual" => T.Pick("Anual", "Annual"),
+            "monthly" => T.Pick("Mensal ilimitado", "Unlimited monthly"),
+            "annual" => T.Pick("Anual ilimitado", "Unlimited annual"),
             _ => plan.Name
         };
     }
@@ -158,9 +163,19 @@ else
     {
         return plan.Id switch
         {
-            "monthly" => T.Pick("100 créditos por mês para comparar sem paragens.", "100 credits per month to keep comparing without pauses."),
-            "annual" => T.Pick("1500 créditos por ano com dois meses de desconto.", "1500 credits per year with two months discounted."),
+            "monthly" => T.Pick("Pesquisas ilimitadas todos os meses. Melhor que comprar 30 créditos avulsos.", "Unlimited searches every month. Better than buying 30 one-off credits."),
+            "annual" => T.Pick("Pesquisas ilimitadas por ano com preço mensal reduzido.", "Unlimited searches for a year with a lower monthly equivalent."),
             _ => plan.Description
+        };
+    }
+
+    private string DisplayPlanValueNote(SubscriptionPlan plan)
+    {
+        return plan.Id switch
+        {
+            "monthly" => T.Pick("Compensa a partir de 31 pesquisas.", "Pays off from 31 searches."),
+            "annual" => T.Pick("Equivale a 6,66 € / mês e poupa face ao mensal.", "Equivalent to €6.66 / month and cheaper than monthly."),
+            _ => IsUnlimitedPlan(plan) ? T["Credits.UnlimitedSearches"] : T.Format("Credits.PlanCredits", plan.CreditsPerPeriod)
         };
     }
 
@@ -175,5 +190,10 @@ else
     {
         return string.Equals(plan.BillingPeriod, "year", StringComparison.OrdinalIgnoreCase)
             || string.Equals(plan.Id, "annual", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsUnlimitedPlan(SubscriptionPlan plan)
+    {
+        return plan.CreditsPerPeriod <= 0;
     }
 }

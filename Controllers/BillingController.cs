@@ -189,6 +189,10 @@ public sealed class BillingController(
         {
             await CompleteSubscriptionRenewalAsync(invoice);
         }
+        else if (stripeEvent.Type == "customer.subscription.deleted" && stripeEvent.Data.Object is Subscription subscription)
+        {
+            await DeactivateSubscriptionAsync(subscription);
+        }
 
         return Ok();
     }
@@ -213,7 +217,16 @@ public sealed class BillingController(
             return;
         }
 
-        user.Credits += purchase.Credits;
+        if (string.Equals(purchase.BillingKind, CreditBillingKind.Subscription, StringComparison.OrdinalIgnoreCase))
+        {
+            ActivateUnlimitedSubscription(user, purchase.PlanId, purchase.BillingPeriod, session.SubscriptionId ?? purchase.StripeSubscriptionId);
+            purchase.Credits = 0;
+        }
+        else
+        {
+            user.Credits += purchase.Credits;
+        }
+
         purchase.Status = PurchaseStatus.Paid;
         purchase.StripePaymentIntentId = session.PaymentIntentId;
         purchase.StripeSubscriptionId ??= session.SubscriptionId;
@@ -238,8 +251,7 @@ public sealed class BillingController(
         }
 
         var plan = stripeOptions.SubscriptionPlans.FirstOrDefault(candidate => candidate.Id == planId);
-        var credits = plan?.CreditsPerPeriod ?? ParsePositiveInt(metadata, "credits");
-        if (credits <= 0)
+        if (plan is null)
         {
             return;
         }
@@ -260,7 +272,11 @@ public sealed class BillingController(
             return;
         }
 
-        user.Credits += credits;
+        ActivateUnlimitedSubscription(
+            user,
+            plan.Id,
+            plan.BillingPeriod,
+            invoice.Parent?.SubscriptionDetails?.SubscriptionId);
         dbContext.CreditPurchases.Add(new CreditPurchase
         {
             UserId = userId,
@@ -269,7 +285,7 @@ public sealed class BillingController(
             BillingKind = CreditBillingKind.Subscription,
             PlanId = planId,
             BillingPeriod = plan?.BillingPeriod ?? GetMetadata(metadata, "billingPeriod"),
-            Credits = credits,
+            Credits = 0,
             AmountCents = invoice.AmountPaid,
             Currency = invoice.Currency,
             Status = PurchaseStatus.Paid,
@@ -287,6 +303,7 @@ public sealed class BillingController(
             ["userId"] = userId,
             ["planId"] = plan.Id,
             ["credits"] = plan.CreditsPerPeriod.ToString(),
+            ["unlimitedCredits"] = (plan.CreditsPerPeriod <= 0).ToString(),
             ["billingKind"] = CreditBillingKind.Subscription,
             ["billingPeriod"] = NormalizeStripeInterval(plan.BillingPeriod)
         };
@@ -326,6 +343,46 @@ public sealed class BillingController(
     private static string NormalizeStripeInterval(string? billingPeriod)
     {
         return string.Equals(billingPeriod, "year", StringComparison.OrdinalIgnoreCase) ? "year" : "month";
+    }
+
+    private static void ActivateUnlimitedSubscription(
+        ApplicationUser user,
+        string? planId,
+        string? billingPeriod,
+        string? stripeSubscriptionId)
+    {
+        user.HasUnlimitedSubscription = true;
+        user.SubscriptionPlanId = planId;
+        user.StripeSubscriptionId = stripeSubscriptionId;
+        user.SubscriptionActiveUntilUtc = CalculateSubscriptionActiveUntilUtc(billingPeriod, DateTime.UtcNow);
+    }
+
+    private static DateTime CalculateSubscriptionActiveUntilUtc(string? billingPeriod, DateTime utcNow)
+    {
+        return string.Equals(NormalizeStripeInterval(billingPeriod), "year", StringComparison.OrdinalIgnoreCase)
+            ? utcNow.AddYears(1)
+            : utcNow.AddMonths(1);
+    }
+
+    private async Task DeactivateSubscriptionAsync(Subscription subscription)
+    {
+        var user = await dbContext.Users
+            .SingleOrDefaultAsync(candidate => candidate.StripeSubscriptionId == subscription.Id);
+
+        if (user is null
+            && TryGetMetadata(subscription.Metadata, "userId", out var userId))
+        {
+            user = await dbContext.Users.SingleOrDefaultAsync(candidate => candidate.Id == userId);
+        }
+
+        if (user is null)
+        {
+            return;
+        }
+
+        user.HasUnlimitedSubscription = false;
+        user.SubscriptionActiveUntilUtc = DateTime.UtcNow;
+        await dbContext.SaveChangesAsync();
     }
 
     private static bool TryGetMetadata(IReadOnlyDictionary<string, string>? metadata, string key, out string value)

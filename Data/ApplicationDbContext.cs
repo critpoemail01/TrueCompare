@@ -20,6 +20,10 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
         {
             entity.Property(user => user.FreeSearchesUsed).HasDefaultValue(0);
             entity.Property(user => user.Credits).HasDefaultValue(0);
+            entity.Property(user => user.HasUnlimitedSubscription).HasDefaultValue(false);
+            entity.Property(user => user.SubscriptionPlanId).HasMaxLength(80);
+            entity.Property(user => user.StripeSubscriptionId).HasMaxLength(200);
+            entity.HasIndex(user => user.StripeSubscriptionId);
             entity.Property(user => user.CreatedUtc).HasDefaultValueSql("GETUTCDATE()");
         });
 
