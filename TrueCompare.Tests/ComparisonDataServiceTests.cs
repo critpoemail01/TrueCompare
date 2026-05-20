@@ -29,6 +29,34 @@ public sealed class ComparisonDataServiceTests
         Assert.True(offer.Preferred);
     }
 
+    [Theory]
+    [InlineData("eletrodomesticos eficiencia A+++")]
+    [InlineData("Eletrodomésticos eficiência A+++")]
+    [InlineData("comprar frigorifico classe A+++")]
+    public void GetProducts_ReturnsApplianceCatalog_WhenQueryMentionsAppliances(string query)
+    {
+        var service = new ComparisonDataService(new AppText());
+
+        var products = service.GetProducts(query);
+
+        Assert.Contains(products, product => product.Name == "Bosch Serie 6 Frigorífico");
+        Assert.Contains(products, product => product.Name == "Miele W1 Lavadora");
+        Assert.DoesNotContain(products, product => product.Name == "iPhone 15 Pro");
+        Assert.DoesNotContain(products, product => product.Name == "MacBook Air M3");
+    }
+
+    [Fact]
+    public void GetBestOffer_ReturnsLowestKnownApplianceOffer()
+    {
+        var service = new ComparisonDataService(new AppText());
+
+        var offer = service.GetBestOffer("bosch-serie-6-frigorifico");
+
+        Assert.Equal("Worten", offer.Seller);
+        Assert.Equal(87900, offer.PriceCents);
+        Assert.True(offer.Preferred);
+    }
+
     [Fact]
     public void GetProducts_ReturnsEnglishCopy_WhenCultureIsEnglish()
     {

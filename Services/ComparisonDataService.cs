@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using TrueCompare.Models;
 
 namespace TrueCompare.Services;
@@ -6,6 +8,7 @@ public sealed class ComparisonDataService(AppText text)
 {
     private const string LaptopCatalog = "laptops";
     private const string SmartphoneCatalog = "smartphones";
+    private const string ApplianceCatalog = "appliances";
 
     public IReadOnlyList<string> Categories => text.IsEnglish
         ? new List<string>
@@ -236,6 +239,74 @@ public sealed class ComparisonDataService(AppText text)
         )
     };
 
+    private static IReadOnlyList<ProductResult> ApplianceProducts { get; } = new List<ProductResult>
+    {
+        new(
+            "bosch-serie-6-frigorifico",
+            1,
+            91,
+            "Bosch Serie 6 Frigorífico",
+            "Bosch",
+            "899 €",
+            "#5EE9A8",
+            "Mais eficiente",
+            new[] { "Classe A+++", "366 L", "No Frost", "35 dB", "203 cm", "Garantia 3 anos" },
+            new[] { "Consumo muito baixo", "Silencioso", "Boa capacidade familiar" },
+            new[] { "Número de série validado", "Revendedor autorizado", "Etiqueta energética confirmada", "Stock real confirmado", "Garantia UE confirmada" },
+            new[]
+            {
+                new FraudAlert("home-clearance.shop", "Preço 50% abaixo do mercado"),
+                new FraudAlert("outlet-domestico.net", "Sem registo fiscal verificável")
+            },
+            "Melhor escolha para frigorífico eficiente, silencioso e com garantia forte."
+        ),
+        new(
+            "lg-instaview-combinado",
+            2,
+            88,
+            "LG InstaView Combinado",
+            "LG",
+            "1.049 €",
+            "#7BE8E0",
+            "Melhor tecnologia",
+            new[] { "Classe A++", "635 L", "DoorCooling+", "36 dB", "Wi-Fi", "Garantia 3 anos" },
+            new[] { "Capacidade superior", "Arrefecimento rápido", "Funcionalidades smart" },
+            new[] { "Revendedor autorizado", "Garantia validada", "Etiqueta energética confirmada" },
+            Array.Empty<FraudAlert>(),
+            "Excelente para famílias que precisam de grande capacidade e controlo inteligente."
+        ),
+        new(
+            "miele-w1-lavadora",
+            3,
+            85,
+            "Miele W1 Lavadora",
+            "Miele",
+            "949 €",
+            "#B49CFF",
+            "Melhor durabilidade",
+            new[] { "Classe A+++", "9 kg", "1400 rpm", "47 dB", "TwinDos", "Garantia 3 anos" },
+            new[] { "Construção robusta", "Dosagem automática", "Lavagem silenciosa" },
+            new[] { "Revendedor autorizado", "Garantia validada", "Sem alertas críticos" },
+            Array.Empty<FraudAlert>(),
+            "Boa escolha quando durabilidade e qualidade de lavagem pesam mais que preço inicial."
+        ),
+        new(
+            "samsung-bespoke-lava-loica",
+            4,
+            81,
+            "Samsung Bespoke Lava-loiça",
+            "Samsung",
+            "579 €",
+            "#E9D67B",
+            "Melhor preço",
+            new[] { "Classe A++", "14 serviços", "44 dB", "Auto Door", "Wi-Fi", "Garantia 3 anos" },
+            new[] { "Preço competitivo", "Baixo ruído", "Programas inteligentes" },
+            new[] { "Vendedor autorizado", "Garantia UE confirmada", "Preço dentro do mercado" },
+            Array.Empty<FraudAlert>(),
+            "Opção equilibrada para cozinha moderna com bom preço e baixo ruído."
+        )
+    };
+
     private static IReadOnlyList<SellerOffer> LaptopOffers { get; } = new List<SellerOffer>
     {
         new("Apple Store PT", "1.299 €", 129900, "2 dias", "2 anos oficial", "Verificado", "https://www.apple.com/pt/shop/buy-mac/macbook-air", false),
@@ -254,21 +325,42 @@ public sealed class ComparisonDataService(AppText text)
         new("Samsung Store PT", "809 €", 80900, "2 dias", "3 anos oficial", "Verificado", "https://www.samsung.com/pt/smartphones/", false)
     };
 
+    private static IReadOnlyList<SellerOffer> ApplianceOffers { get; } = new List<SellerOffer>
+    {
+        new("Worten", "879 €", 87900, "2 dias", "3 anos PT", "Verificado", "https://www.worten.pt/search?query=frigorifico%20bosch%20serie%206", true),
+        new("Radio Popular", "899 €", 89900, "3 dias", "3 anos PT", "Verificado", "https://www.radiopopular.pt/pesquisa/frigorifico%20bosch%20serie%206", false),
+        new("MediaMarkt", "919 €", 91900, "2-3 dias", "3 anos PT", "Verificado", "https://www.mediamarkt.pt/pt/search.html?query=frigorifico%20bosch%20serie%206", false),
+        new("Amazon.es", "929 €", 92900, "4-7 dias", "3 anos UE", "Autorizado", "https://www.amazon.es/s?k=bosch+serie+6+frigorifico", false),
+        new("KuantoKusta", "889 €", 88900, "Confirmar loja", "Validar vendedor", "A comparar", "https://www.kuantokusta.pt/search?q=bosch%20serie%206%20frigorifico", false)
+    };
+
     public IReadOnlyList<ProductResult> GetProducts(string? query)
     {
-        var products = ResolveCatalog(query) == SmartphoneCatalog ? SmartphoneProducts : LaptopProducts;
+        var products = ResolveCatalog(query) switch
+        {
+            SmartphoneCatalog => SmartphoneProducts,
+            ApplianceCatalog => ApplianceProducts,
+            _ => LaptopProducts
+        };
+
         return LocalizeProducts(products);
     }
 
     public IReadOnlyList<SellerOffer> GetSellerOffers(string? queryOrSlug)
     {
-        var offers = ResolveCatalog(queryOrSlug) == SmartphoneCatalog ? SmartphoneOffers : LaptopOffers;
+        var offers = ResolveCatalog(queryOrSlug) switch
+        {
+            SmartphoneCatalog => SmartphoneOffers,
+            ApplianceCatalog => ApplianceOffers,
+            _ => LaptopOffers
+        };
+
         return LocalizeOffers(offers);
     }
 
     public ProductResult? FindProduct(string slug)
     {
-        var product = LaptopProducts.Concat(SmartphoneProducts)
+        var product = LaptopProducts.Concat(SmartphoneProducts).Concat(ApplianceProducts)
             .FirstOrDefault(product => product.Slug.Equals(slug, StringComparison.OrdinalIgnoreCase));
 
         return product is null ? null : LocalizeProduct(product);
@@ -286,8 +378,9 @@ public sealed class ComparisonDataService(AppText text)
             return LaptopCatalog;
         }
 
-        var value = queryOrSlug.Trim().ToLowerInvariant();
-        if (SmartphoneProducts.Any(product => product.Slug.Equals(value, StringComparison.OrdinalIgnoreCase))
+        var rawValue = queryOrSlug.Trim();
+        var value = NormalizeCatalogText(rawValue);
+        if (SmartphoneProducts.Any(product => product.Slug.Equals(rawValue, StringComparison.OrdinalIgnoreCase))
             || value.Contains("smartphone")
             || value.Contains("telemóvel")
             || value.Contains("telemovel")
@@ -303,7 +396,42 @@ public sealed class ComparisonDataService(AppText text)
             return SmartphoneCatalog;
         }
 
+        if (ApplianceProducts.Any(product => product.Slug.Equals(rawValue, StringComparison.OrdinalIgnoreCase))
+            || value.Contains("eletrodomestico")
+            || value.Contains("electrodomestico")
+            || value.Contains("appliance")
+            || value.Contains("frigorifico")
+            || value.Contains("geladeira")
+            || value.Contains("combinado")
+            || value.Contains("maquina de lavar")
+            || value.Contains("lavadora")
+            || value.Contains("lava loica")
+            || value.Contains("lava-loica")
+            || value.Contains("dishwasher")
+            || value.Contains("washer")
+            || value.Contains("eficiencia a")
+            || value.Contains("a+++"))
+        {
+            return ApplianceCatalog;
+        }
+
         return LaptopCatalog;
+    }
+
+    private static string NormalizeCatalogText(string value)
+    {
+        var normalized = value.Trim().ToLowerInvariant().Normalize(NormalizationForm.FormD);
+        var builder = new StringBuilder(normalized.Length);
+
+        foreach (var character in normalized)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(character) != UnicodeCategory.NonSpacingMark)
+            {
+                builder.Append(character);
+            }
+        }
+
+        return builder.ToString().Normalize(NormalizationForm.FormC);
     }
 
     private IReadOnlyList<ProductResult> LocalizeProducts(IReadOnlyList<ProductResult> products)
@@ -352,6 +480,10 @@ public sealed class ComparisonDataService(AppText text)
             "Melhor Android" => "Best Android",
             "Melhor câmara IA" => "Best AI camera",
             "Melhor preço/performance" => "Best price/performance",
+            "Mais eficiente" => "Most efficient",
+            "Melhor tecnologia" => "Best technology",
+            "Melhor durabilidade" => "Best durability",
+            "Melhor preco" => "Best price",
             "18h autonomia" => "18h battery",
             "15h autonomia" => "15h battery",
             "12h autonomia" => "12h battery",
@@ -384,34 +516,61 @@ public sealed class ComparisonDataService(AppText text)
             "Carregamento rápido" => "Fast charging",
             "Preço agressivo" => "Aggressive price",
             "Número de série validado" => "Serial number validated",
+            "Consumo muito baixo" => "Very low consumption",
+            "Silencioso" => "Quiet",
+            "Boa capacidade familiar" => "Good family capacity",
+            "Capacidade superior" => "Higher capacity",
+            "Arrefecimento rápido" => "Fast cooling",
+            "Arrefecimento rapido" => "Fast cooling",
+            "Funcionalidades smart" => "Smart features",
+            "Construção robusta" => "Robust build",
+            "Construcao robusta" => "Robust build",
+            "Dosagem automática" => "Automatic dosing",
+            "Dosagem automatica" => "Automatic dosing",
+            "Lavagem silenciosa" => "Quiet washing",
+            "Baixo ruído" => "Low noise",
+            "Baixo ruido" => "Low noise",
+            "Programas inteligentes" => "Smart programs",
+            "Numero de serie validado" => "Serial number validated",
             "Revendedor autorizado" => "Authorized reseller",
             "Stock real confirmado" => "Real stock confirmed",
             "Garantia oficial registável em PT" => "Official warranty registerable in Portugal",
             "Sem histórico de contrafação" => "No counterfeit history",
             "Garantia validada" => "Warranty validated",
+            "Etiqueta energética confirmada" => "Energy label confirmed",
+            "Etiqueta energetica confirmada" => "Energy label confirmed",
             "Stock cruzado em 3 fontes" => "Stock cross-checked across 3 sources",
             "Sem alertas críticos" => "No critical alerts",
+            "Sem alertas criticos" => "No critical alerts",
             "Vendedor autorizado" => "Authorized seller",
             "Preço dentro do mercado" => "Market-aligned price",
             "IMEI validável" => "IMEI can be validated",
+            "Preco dentro do mercado" => "Market-aligned price",
             "Garantia UE confirmada" => "EU warranty confirmed",
             "Preço 60% abaixo do mercado" => "Price 60% below market",
             "Domínio criado há 14 dias" => "Domain created 14 days ago",
             "Sem registo fiscal verificável" => "No verifiable tax registration",
             "Preço 45% abaixo do mercado" => "Price 45% below market",
             "Sem informação fiscal verificável" => "No verifiable tax information",
+            "Preço 50% abaixo do mercado" => "Price 50% below market",
+            "Preco 50% abaixo do mercado" => "Price 50% below market",
+            "Sem registo fiscal verificavel" => "No verifiable tax registration",
             "2 dias" => "2 days",
             "3 dias" => "3 days",
             "4 dias" => "4 days",
             "5-7 dias" => "5-7 days",
+            "4-7 dias" => "4-7 days",
             "2-4 dias" => "2-4 days",
             "2-3 dias" => "2-3 days",
+            "Confirmar loja" => "Confirm store",
             "2 anos oficial" => "2-year official",
             "3 anos UE" => "3-year EU",
             "3 anos PT" => "3-year PT",
             "3 anos oficial" => "3-year official",
+            "Validar vendedor" => "Validate seller",
             "Verificado" => "Verified",
             "Autorizado" => "Authorized",
+            "A comparar" => "Comparing",
             "Este produto cumpre 94% dos critérios definidos. Pontos fortes: autonomia, peso reduzido e garantia oficial." => "This product meets 94% of the selected criteria. Strengths: battery life, low weight and official warranty.",
             "Excelente opção para suporte e mobilidade. Fica atrás do primeiro lugar pelo preço mais alto." => "Excellent option for support and mobility. It sits behind first place because of the higher price.",
             "Boa escolha se o ecrã for prioritário. Penalizado pelo peso e autonomia abaixo dos líderes." => "Good choice if display quality is the priority. Penalized by weight and battery life below the leaders.",
@@ -420,6 +579,14 @@ public sealed class ComparisonDataService(AppText text)
             "A opção Android mais equilibrada para desempenho, ecrã e longevidade." => "The most balanced Android option for performance, display and longevity.",
             "Ideal para fotografia computacional e experiência Android limpa." => "Ideal for computational photography and a clean Android experience.",
             "Muito forte em performance e carregamento, com preço competitivo." => "Very strong on performance and charging, with a competitive price.",
+            "Melhor escolha para frigorífico eficiente, silencioso e com garantia forte." => "Best choice for an efficient, quiet fridge with a strong warranty.",
+            "Melhor escolha para frigorifico eficiente, silencioso e com garantia forte." => "Best choice for an efficient, quiet fridge with a strong warranty.",
+            "Excelente para famílias que precisam de grande capacidade e controlo inteligente." => "Excellent for families that need high capacity and smart control.",
+            "Excelente para familias que precisam de grande capacidade e controlo inteligente." => "Excellent for families that need high capacity and smart control.",
+            "Boa escolha quando durabilidade e qualidade de lavagem pesam mais que preço inicial." => "Good choice when durability and wash quality matter more than initial price.",
+            "Boa escolha quando durabilidade e qualidade de lavagem pesam mais que preco inicial." => "Good choice when durability and wash quality matter more than initial price.",
+            "Opção equilibrada para cozinha moderna com bom preço e baixo ruído." => "Balanced option for a modern kitchen with good price and low noise.",
+            "Opcao equilibrada para cozinha moderna com bom preco e baixo ruido." => "Balanced option for a modern kitchen with good price and low noise.",
             _ => value
         };
     }
