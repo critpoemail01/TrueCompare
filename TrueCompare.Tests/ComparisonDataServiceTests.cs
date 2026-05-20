@@ -29,6 +29,18 @@ public sealed class ComparisonDataServiceTests
         Assert.True(offer.Preferred);
     }
 
+    [Fact]
+    public void GetProducts_RanksMatchingProducts_WhenQueryIsDescriptive()
+    {
+        var service = new ComparisonDataService(new AppText());
+
+        var products = service.GetProducts("quero um android samsung com boa bateria e garantia");
+
+        Assert.Equal("Samsung Galaxy S24", products[0].Name);
+        Assert.Contains(products, product => product.Name == "Google Pixel 8");
+        Assert.DoesNotContain(products, product => product.Name == "MacBook Air M3");
+    }
+
     [Theory]
     [InlineData("eletrodomesticos eficiencia A+++")]
     [InlineData("Eletrodomésticos eficiência A+++")]
@@ -43,6 +55,32 @@ public sealed class ComparisonDataServiceTests
         Assert.Contains(products, product => product.Name == "Miele W1 Lavadora");
         Assert.DoesNotContain(products, product => product.Name == "iPhone 15 Pro");
         Assert.DoesNotContain(products, product => product.Name == "MacBook Air M3");
+    }
+
+    [Fact]
+    public void GetProducts_PrefersAppliances_WhenDescriptionMentionsSamsungDishwasher()
+    {
+        var service = new ComparisonDataService(new AppText());
+
+        var products = service.GetProducts("procuro lava loica samsung eficiente silenciosa e barata");
+        var offer = service.GetBestOffer("procuro lava loica samsung eficiente silenciosa e barata");
+
+        Assert.Equal("Samsung Bespoke Lava-loiça", products[0].Name);
+        Assert.Contains(products, product => product.Name == "Bosch Serie 6 Frigorífico");
+        Assert.DoesNotContain(products, product => product.Name == "Samsung Galaxy S24");
+        Assert.Equal("Worten", offer.Seller);
+    }
+
+    [Fact]
+    public void GetProducts_UsesProductTerms_WhenQueryDoesNotNameACategory()
+    {
+        var service = new ComparisonDataService(new AppText());
+
+        var products = service.GetProducts("boa camara suporte longo vendedor autorizado");
+
+        Assert.Contains(products.Take(2), product => product.Name == "iPhone 15 Pro");
+        Assert.DoesNotContain(products, product => product.Name == "MacBook Air M3");
+        Assert.DoesNotContain(products, product => product.Name == "Bosch Serie 6 Frigorífico");
     }
 
     [Fact]

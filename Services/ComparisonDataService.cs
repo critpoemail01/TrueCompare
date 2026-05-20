@@ -10,6 +10,63 @@ public sealed class ComparisonDataService(AppText text)
     private const string SmartphoneCatalog = "smartphones";
     private const string ApplianceCatalog = "appliances";
 
+    private static readonly string[] SmartphoneCatalogTerms =
+    [
+        "smartphone",
+        "smartphones",
+        "telemovel",
+        "phone",
+        "mobile",
+        "iphone",
+        "android",
+        "pixel",
+        "xiaomi",
+        "galaxy",
+        "celular"
+    ];
+
+    private static readonly string[] ApplianceCatalogTerms =
+    [
+        "eletrodomestico",
+        "eletrodomesticos",
+        "electrodomestico",
+        "electrodomesticos",
+        "appliance",
+        "appliances",
+        "frigorifico",
+        "fridge",
+        "geladeira",
+        "combinado",
+        "maquina de lavar",
+        "maquina lavar",
+        "lavadora",
+        "lavagem",
+        "lava loica",
+        "lava-loica",
+        "dishwasher",
+        "washer",
+        "eficiencia a",
+        "classe a",
+        "a+++",
+        "cozinha"
+    ];
+
+    private static readonly string[] LaptopCatalogTerms =
+    [
+        "laptop",
+        "laptops",
+        "portatil",
+        "portateis",
+        "notebook",
+        "computador",
+        "macbook",
+        "thinkpad",
+        "zenbook",
+        "xps",
+        "ultrabook",
+        "pc profissional"
+    ];
+
     public IReadOnlyList<string> Categories => text.IsEnglish
         ? new List<string>
         {
@@ -307,6 +364,11 @@ public sealed class ComparisonDataService(AppText text)
         )
     };
 
+    private static IReadOnlyList<ProductResult> AllProducts { get; } = LaptopProducts
+        .Concat(SmartphoneProducts)
+        .Concat(ApplianceProducts)
+        .ToList();
+
     private static IReadOnlyList<SellerOffer> LaptopOffers { get; } = new List<SellerOffer>
     {
         new("Apple Store PT", "1.299 €", 129900, "2 dias", "2 anos oficial", "Verificado", "https://www.apple.com/pt/shop/buy-mac/macbook-air", false),
@@ -336,14 +398,7 @@ public sealed class ComparisonDataService(AppText text)
 
     public IReadOnlyList<ProductResult> GetProducts(string? query)
     {
-        var products = ResolveCatalog(query) switch
-        {
-            SmartphoneCatalog => SmartphoneProducts,
-            ApplianceCatalog => ApplianceProducts,
-            _ => LaptopProducts
-        };
-
-        return LocalizeProducts(products);
+        return LocalizeProducts(ResolveProducts(query));
     }
 
     public IReadOnlyList<SellerOffer> GetSellerOffers(string? queryOrSlug)
@@ -358,9 +413,206 @@ public sealed class ComparisonDataService(AppText text)
         return LocalizeOffers(offers);
     }
 
+    private IReadOnlyList<ProductResult> ResolveProducts(string? query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return LaptopProducts;
+        }
+
+        var rawValue = query.Trim();
+        var hasCatalog = TryResolveCatalog(rawValue, out var catalog);
+        var candidates = hasCatalog ? GetCatalogProducts(catalog) : AllProducts;
+        var ranked = RankProducts(candidates, rawValue, hasCatalog);
+
+        if (ranked.Count > 0)
+        {
+            return ranked;
+        }
+
+        return hasCatalog ? candidates : LaptopProducts;
+    }
+
+    private static IReadOnlyList<ProductResult> GetCatalogProducts(string catalog)
+    {
+        return catalog switch
+        {
+            SmartphoneCatalog => SmartphoneProducts,
+            ApplianceCatalog => ApplianceProducts,
+            _ => LaptopProducts
+        };
+    }
+
+    private static IReadOnlyList<ProductResult> RankProducts(
+        IReadOnlyList<ProductResult> products,
+        string query,
+        bool includeUnmatchedProducts)
+    {
+        var normalizedQuery = NormalizeCatalogText(query);
+        var searchTerms = BuildSearchTerms(normalizedQuery);
+        var ranked = products
+            .Select(product => new
+            {
+                Product = product,
+                Relevance = ScoreProduct(product, normalizedQuery, searchTerms)
+            })
+            .OrderByDescending(item => item.Relevance)
+            .ThenByDescending(item => item.Product.Score)
+            .ToList();
+
+        if (ranked.Count == 0 || ranked[0].Relevance <= 0)
+        {
+            return Array.Empty<ProductResult>();
+        }
+
+        var matches = includeUnmatchedProducts
+            ? ranked
+            : ranked.Where(item => item.Relevance > 0);
+
+        return matches
+            .Take(4)
+            .Select((item, index) => item.Product with { Rank = index + 1 })
+            .ToList();
+    }
+
+    private static IReadOnlyList<string> BuildSearchTerms(string normalizedQuery)
+    {
+        var rawTerms = normalizedQuery
+            .Replace('-', ' ')
+            .Replace('/', ' ')
+            .Replace(',', ' ')
+            .Replace('.', ' ')
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        var stopWords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "comprar",
+            "compra",
+            "quero",
+            "queria",
+            "procuro",
+            "para",
+            "com",
+            "sem",
+            "uma",
+            "um",
+            "uns",
+            "umas",
+            "melhor",
+            "best",
+            "buy",
+            "the",
+            "and",
+            "for",
+            "with",
+            "mais",
+            "menos",
+            "bom",
+            "boa",
+            "bons",
+            "boas",
+            "produto",
+            "produtos",
+            "vendedor",
+            "revendedor",
+            "autorizado",
+            "autorizada",
+            "seller",
+            "authorized",
+            "loja",
+            "store"
+        };
+
+        return rawTerms
+            .Where(term => term.Length > 2 && !stopWords.Contains(term))
+            .SelectMany(ExpandSearchTerm)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static IEnumerable<string> ExpandSearchTerm(string term)
+    {
+        yield return term;
+
+        foreach (var expanded in term switch
+        {
+            "barato" or "barata" or "economico" or "economica" or "baixo" or "baixa" or "cheap" => new[] { "preco", "valor", "competitivo", "agressivo" },
+            "camera" or "camara" or "foto" or "fotografia" => new[] { "camera", "camara", "fotografia" },
+            "bateria" or "autonomia" => new[] { "autonomia", "bateria", "mah", "video" },
+            "leve" or "portatil" or "portabilidade" => new[] { "leve", "peso", "kg", "portabilidade" },
+            "rapido" or "rapida" or "performance" or "jogos" or "gaming" => new[] { "performance", "snapdragon", "i7", "m3", "rapido" },
+            "frio" or "frigorifico" or "fridge" or "geladeira" => new[] { "frigorifico", "combinado", "frost", "arrefecimento" },
+            "roupa" or "lavar" or "lavagem" or "lavadora" => new[] { "lavadora", "lavagem", "maquina", "twindos" },
+            "loica" or "loicas" or "louca" or "dishwasher" => new[] { "loica", "lava", "dishwasher" },
+            "silencioso" or "silenciosa" or "ruido" => new[] { "silencioso", "ruido", "db" },
+            _ => Array.Empty<string>()
+        })
+        {
+            yield return expanded;
+        }
+    }
+
+    private static int ScoreProduct(ProductResult product, string normalizedQuery, IReadOnlyList<string> searchTerms)
+    {
+        var slug = NormalizeCatalogText(product.Slug);
+        var name = NormalizeCatalogText(product.Name);
+        var brand = NormalizeCatalogText(product.Brand);
+        var specs = NormalizeCatalogText(string.Join(' ', product.Specs));
+        var highlights = NormalizeCatalogText(string.Join(' ', product.Highlights));
+        var badge = NormalizeCatalogText(product.Badge);
+        var summary = NormalizeCatalogText(product.AiSummary);
+
+        var score = 0;
+        if (normalizedQuery.Contains(name, StringComparison.OrdinalIgnoreCase)
+            || name.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase))
+        {
+            score += 100;
+        }
+
+        foreach (var term in searchTerms)
+        {
+            if (name.Contains(term, StringComparison.OrdinalIgnoreCase))
+            {
+                score += 18;
+            }
+
+            if (slug.Contains(term, StringComparison.OrdinalIgnoreCase))
+            {
+                score += 14;
+            }
+
+            if (brand.Contains(term, StringComparison.OrdinalIgnoreCase))
+            {
+                score += 12;
+            }
+
+            if (highlights.Contains(term, StringComparison.OrdinalIgnoreCase))
+            {
+                score += 8;
+            }
+
+            if (summary.Contains(term, StringComparison.OrdinalIgnoreCase))
+            {
+                score += 8;
+            }
+
+            if (specs.Contains(term, StringComparison.OrdinalIgnoreCase))
+            {
+                score += 6;
+            }
+
+            if (badge.Contains(term, StringComparison.OrdinalIgnoreCase))
+            {
+                score += 5;
+            }
+        }
+
+        return score;
+    }
+
     public ProductResult? FindProduct(string slug)
     {
-        var product = LaptopProducts.Concat(SmartphoneProducts).Concat(ApplianceProducts)
+        var product = AllProducts
             .FirstOrDefault(product => product.Slug.Equals(slug, StringComparison.OrdinalIgnoreCase));
 
         return product is null ? null : LocalizeProduct(product);
@@ -373,49 +625,66 @@ public sealed class ComparisonDataService(AppText text)
 
     private string ResolveCatalog(string? queryOrSlug)
     {
-        if (string.IsNullOrWhiteSpace(queryOrSlug))
-        {
-            return LaptopCatalog;
-        }
+        return !string.IsNullOrWhiteSpace(queryOrSlug) && TryResolveCatalog(queryOrSlug.Trim(), out var catalog)
+            ? catalog
+            : LaptopCatalog;
+    }
 
-        var rawValue = queryOrSlug.Trim();
+    private static bool TryResolveCatalog(string rawValue, out string catalog)
+    {
         var value = NormalizeCatalogText(rawValue);
-        if (SmartphoneProducts.Any(product => product.Slug.Equals(rawValue, StringComparison.OrdinalIgnoreCase))
-            || value.Contains("smartphone")
-            || value.Contains("telemóvel")
-            || value.Contains("telemovel")
-            || value.Contains("phone")
-            || value.Contains("mobile")
-            || value.Contains("iphone")
-            || value.Contains("samsung")
-            || value.Contains("android")
-            || value.Contains("pixel")
-            || value.Contains("xiaomi")
-            || value.Contains("celular"))
+
+        if (MatchesKnownProduct(value, rawValue, SmartphoneProducts))
         {
-            return SmartphoneCatalog;
+            catalog = SmartphoneCatalog;
+            return true;
         }
 
-        if (ApplianceProducts.Any(product => product.Slug.Equals(rawValue, StringComparison.OrdinalIgnoreCase))
-            || value.Contains("eletrodomestico")
-            || value.Contains("electrodomestico")
-            || value.Contains("appliance")
-            || value.Contains("frigorifico")
-            || value.Contains("geladeira")
-            || value.Contains("combinado")
-            || value.Contains("maquina de lavar")
-            || value.Contains("lavadora")
-            || value.Contains("lava loica")
-            || value.Contains("lava-loica")
-            || value.Contains("dishwasher")
-            || value.Contains("washer")
-            || value.Contains("eficiencia a")
-            || value.Contains("a+++"))
+        if (MatchesKnownProduct(value, rawValue, ApplianceProducts))
         {
-            return ApplianceCatalog;
+            catalog = ApplianceCatalog;
+            return true;
         }
 
-        return LaptopCatalog;
+        if (MatchesKnownProduct(value, rawValue, LaptopProducts))
+        {
+            catalog = LaptopCatalog;
+            return true;
+        }
+
+        var scores = new[]
+        {
+            new { Catalog = SmartphoneCatalog, Score = ScoreCatalog(value, SmartphoneCatalogTerms) },
+            new { Catalog = ApplianceCatalog, Score = ScoreCatalog(value, ApplianceCatalogTerms) },
+            new { Catalog = LaptopCatalog, Score = ScoreCatalog(value, LaptopCatalogTerms) }
+        }
+        .OrderByDescending(item => item.Score)
+        .ToList();
+
+        if (scores[0].Score <= 0)
+        {
+            catalog = LaptopCatalog;
+            return false;
+        }
+
+        catalog = scores[0].Catalog;
+        return true;
+    }
+
+    private static bool MatchesKnownProduct(string normalizedQuery, string rawValue, IReadOnlyList<ProductResult> products)
+    {
+        return products.Any(product =>
+        {
+            var normalizedName = NormalizeCatalogText(product.Name);
+            return product.Slug.Equals(rawValue, StringComparison.OrdinalIgnoreCase)
+                || normalizedQuery.Contains(normalizedName, StringComparison.OrdinalIgnoreCase)
+                || (normalizedQuery.Length > 4 && normalizedName.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase));
+        });
+    }
+
+    private static int ScoreCatalog(string normalizedQuery, IReadOnlyList<string> terms)
+    {
+        return terms.Count(term => normalizedQuery.Contains(term, StringComparison.OrdinalIgnoreCase));
     }
 
     private static string NormalizeCatalogText(string value)
