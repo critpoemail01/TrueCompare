@@ -189,6 +189,12 @@ tests/
   [NOME_DA_APP].E2ETests/
 ```
 
+Reference architecture:
+
+- Folder structure, project organization, layer separation, naming and architecture decisions must use the project located at `C:\Work\Blazor\SBI` as the base reference whenever applicable.
+- Before creating new folders, services, components, pages or data layers, compare the intended structure with that reference project and keep this solution aligned with the same organization.
+- Use the reference project as an architectural and structural guide. Do not copy code blindly; adapt only patterns that fit this application's business context and security requirements.
+
 ### [NOME_DA_APP].Web
 
 Responsibilities:
