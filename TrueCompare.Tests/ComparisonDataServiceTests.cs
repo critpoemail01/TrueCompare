@@ -286,6 +286,20 @@ public sealed class ComparisonDataServiceTests
     }
 
     [Fact]
+    public void GetSellerOffers_ReturnsConfirmedIphoneStorePriceAndProductPage()
+    {
+        var service = new ComparisonDataService(new AppText());
+
+        var offers = service.GetSellerOffers("iphone-17");
+        var radioPopular = offers.Single(offer => offer.Seller == "Radio Popular");
+
+        Assert.True(radioPopular.IsLivePrice);
+        Assert.Equal(142499, radioPopular.PriceCents);
+        Assert.Equal("https://www.radiopopular.pt/produto/apple-iphone-17-pro-max-256gb-lj", radioPopular.Url);
+        Assert.DoesNotContain("/pesquisa/", radioPopular.Url);
+    }
+
+    [Fact]
     public void GetProducts_ReturnsRuggedTabletCatalog_WithOfficialEvidence()
     {
         var service = new ComparisonDataService(new AppText());
