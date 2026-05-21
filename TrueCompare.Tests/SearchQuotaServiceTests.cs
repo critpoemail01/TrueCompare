@@ -69,7 +69,7 @@ public sealed class SearchQuotaServiceTests
     }
 
     [Fact]
-    public async Task TryConsumeAsync_DoesNotConsumeCredits_WhenRequestIsFromLocalhost()
+    public async Task TryConsumeAsync_RecordsSearchWithoutConsumingCredits_WhenRequestIsFromLocalhost()
     {
         await using var dbContext = TestDbContextFactory.Create();
         var user = new ApplicationUser
@@ -105,7 +105,9 @@ public sealed class SearchQuotaServiceTests
         Assert.Equal(int.MaxValue, result.Status.Credits);
         Assert.Equal(ApplicationUser.FreeSearchLimit, persistedUser.FreeSearchesUsed);
         Assert.Equal(0, persistedUser.Credits);
-        Assert.Empty(await dbContext.SearchRequests.ToListAsync());
+        var searchRequest = await dbContext.SearchRequests.SingleAsync();
+        Assert.Equal("comprar eletrodomesticos", searchRequest.Query);
+        Assert.False(searchRequest.UsedPaidCredit);
     }
 
     [Fact]
@@ -135,8 +137,10 @@ public sealed class SearchQuotaServiceTests
         Assert.True(result.Allowed);
         Assert.True(result.Status.HasUnlimitedCredits);
         Assert.Equal(SearchQuotaUnlimitedSource.Subscription, result.Status.UnlimitedSource);
+        Assert.Equal("monthly", result.Status.SubscriptionPlanId);
         Assert.True(status.HasUnlimitedCredits);
         Assert.Equal(SearchQuotaUnlimitedSource.Subscription, status.UnlimitedSource);
+        Assert.Equal("monthly", status.SubscriptionPlanId);
         Assert.Equal(ApplicationUser.FreeSearchLimit, persistedUser.FreeSearchesUsed);
         Assert.Equal(0, persistedUser.Credits);
         Assert.Single(await dbContext.SearchRequests.ToListAsync());

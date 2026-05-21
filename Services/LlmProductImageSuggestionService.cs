@@ -211,9 +211,9 @@ public sealed class LlmProductImageSuggestionService(
         }
 
         return BuildFallback(
-            text.Pick("Produto por imagem", "Product from image"),
+            text.Pick("Produto da imagem", "Product from image"),
             text.Pick("produto da imagem melhor preço vendedor autorizado garantia Portugal", "product from image best price authorized seller warranty Portugal"),
-            text.Pick("Não há chave LLM ativa ou a imagem ainda não foi identificada online. A pesquisa genérica mantém verificação de vendedor e garantia.", "No active LLM key or the image has not been identified online yet. The generic search keeps seller and warranty verification."),
+            text.Pick("Ainda não consegui identificar o modelo exato pela imagem. Vou comparar opções semelhantes com verificação de vendedor, garantia e autenticidade.", "The exact model could not be identified from the image yet. Similar options will still be compared with seller, warranty and authenticity checks."),
             42,
             text.Pick("Produto identificado por imagem", "Image-identified product"));
     }
@@ -227,7 +227,7 @@ public sealed class LlmProductImageSuggestionService(
     {
         return new ImageProductSuggestionResult(
             false,
-            text.Pick("Modo local", "Local mode"),
+            text.Pick("Análise local", "Local analysis"),
             detectedProductType,
             suggestedQuery,
             summary,
@@ -242,7 +242,7 @@ public sealed class LlmProductImageSuggestionService(
             },
             new[]
             {
-                text.Pick("Configura uma chave LLM para reconhecimento visual online.", "Configure an LLM key for online visual recognition.")
+                text.Pick("O reconhecimento visual não confirmou o modelo exato. Confirma o produto antes de comprar.", "Visual recognition did not confirm the exact model. Confirm the product before buying.")
             });
     }
 

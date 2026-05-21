@@ -6,6 +6,8 @@ public sealed class ApplicationUser : IdentityUser
 {
     public const int FreeSearchLimit = 3;
 
+    public string? DisplayName { get; set; }
+
     public int FreeSearchesUsed { get; set; }
 
     public int Credits { get; set; }

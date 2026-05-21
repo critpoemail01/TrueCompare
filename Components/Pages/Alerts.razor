@@ -7,13 +7,19 @@
 
 <PageTitle>@T["Alerts.PageTitle"]</PageTitle>
 
-<section class="page-header compact-header">
+<section class="page-header compact-header alerts-header">
     <div>
         <p class="eyebrow">@T["Alerts.Eyebrow"]</p>
         <h1>@T["Alerts.Title"]</h1>
         <p>@T["Alerts.Lead"]</p>
     </div>
-    <a class="secondary-button" href="/">@T["Credits.NewSearch"]</a>
+    <div class="alerts-header-actions">
+        @if (ActiveAlerts is not null && ActiveAlerts.Count > 0)
+        {
+            <span class="alert-count-pill">@AlertCountText</span>
+        }
+        <a class="secondary-button compact" href="/">@T["Credits.NewSearch"]</a>
+    </div>
 </section>
 
 @if (ActiveAlerts is null)
@@ -29,16 +35,25 @@ else if (ActiveAlerts.Count == 0)
 }
 else
 {
-    <section class="activity-list" aria-label='@T["Alerts.Title"]'>
+    <section class="alerts-list" aria-label='@T["Alerts.Title"]'>
         @foreach (var alert in ActiveAlerts)
         {
-            <article class="activity-card">
-                <div>
-                    <span>@T["Alerts.TargetPrice"]</span>
+            <article class="alert-card">
+                <div class="alert-card-copy">
+                    <div class="alert-card-kicker">
+                        <span>@T["Alerts.TargetPrice"]</span>
+                        <time datetime="@alert.CreatedUtc.ToString("O")">@FormatDate(alert.CreatedUtc)</time>
+                    </div>
                     <h2>@alert.ProductName</h2>
                     <p>@T.Format("Alerts.CurrentSeller", alert.LastSeenSeller ?? T["Alerts.NoSeller"])</p>
+
+                    <div class="alert-progress" aria-label='@T["Alerts.Progress"]'>
+                        <span style="@ProgressStyle(alert)"></span>
+                    </div>
+                    <small>@DifferenceText(alert)</small>
                 </div>
-                <dl>
+
+                <dl class="alert-metric-grid">
                     <div>
                         <dt>@T["Alerts.Target"]</dt>
                         <dd>@TargetPriceAlertService.FormatCents(alert.TargetPriceCents)</dd>
@@ -48,11 +63,18 @@ else
                         <dd>@TargetPriceAlertService.FormatCents(alert.LastSeenPriceCents)</dd>
                     </div>
                     <div>
-                        <dt>@T["Alerts.Created"]</dt>
-                        <dd>@FormatDate(alert.CreatedUtc)</dd>
+                        <dt>@T["Alerts.Distance"]</dt>
+                        <dd>@DifferenceAmount(alert)</dd>
                     </div>
                 </dl>
-                <a class="secondary-button" href="@CheckoutUrl(alert.ProductSlug)">@T["Alerts.OpenProduct"]</a>
+
+                <div class="alert-card-actions">
+                    <a class="primary-button compact" href="@CheckoutUrl(alert.ProductSlug)">@T["Alerts.OpenProduct"]</a>
+                    @if (!string.IsNullOrWhiteSpace(alert.ProductUrl))
+                    {
+                        <a class="secondary-button compact" href="@alert.ProductUrl" target="_blank" rel="noopener noreferrer">@T["Alerts.OpenStore"]</a>
+                    }
+                </div>
             </article>
         }
     </section>
@@ -60,6 +82,10 @@ else
 
 @code {
     private IReadOnlyList<TargetPriceAlert>? ActiveAlerts { get; set; }
+
+    private string AlertCountText => ActiveAlerts?.Count == 1
+        ? T["Alerts.ActiveCountSingle"]
+        : T.Format("Alerts.ActiveCount", ActiveAlerts?.Count ?? 0);
 
     protected override async Task OnInitializedAsync()
     {
@@ -78,5 +104,35 @@ else
     private static string FormatDate(DateTime value)
     {
         return value.ToLocalTime().ToString("dd/MM/yyyy HH:mm", System.Globalization.CultureInfo.CurrentCulture);
+    }
+
+    private string DifferenceText(TargetPriceAlert alert)
+    {
+        var difference = alert.LastSeenPriceCents - alert.TargetPriceCents;
+        return difference <= 0
+            ? T["Alerts.TargetReached"]
+            : T.Format("Alerts.Remaining", TargetPriceAlertService.FormatCents(difference));
+    }
+
+    private static string DifferenceAmount(TargetPriceAlert alert)
+    {
+        var difference = alert.LastSeenPriceCents - alert.TargetPriceCents;
+        return difference <= 0
+            ? TargetPriceAlertService.FormatCents(0)
+            : TargetPriceAlertService.FormatCents(difference);
+    }
+
+    private static string ProgressStyle(TargetPriceAlert alert)
+    {
+        if (alert.LastSeenPriceCents <= 0)
+        {
+            return "width: 0%";
+        }
+
+        var progress = alert.LastSeenPriceCents <= alert.TargetPriceCents
+            ? 100
+            : Math.Clamp((int)Math.Round(alert.TargetPriceCents * 100m / alert.LastSeenPriceCents), 8, 100);
+
+        return $"width: {progress}%";
     }
 }

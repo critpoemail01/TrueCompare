@@ -1,4 +1,8 @@
 using System.Net;
+using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.DependencyInjection;
+using TrueCompare.Data;
 using TrueCompare.Tests.Support;
 
 namespace TrueCompare.Tests;
@@ -33,8 +37,104 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
 
         Assert.Contains("Sugest", html);
         Assert.Contains("Modo local", html);
+        Assert.Contains("Continuar com recomendado", html);
         Assert.Contains("Samsung Galaxy S24", html);
         Assert.Contains("Xiaomi 14", html);
+    }
+
+    [Fact]
+    public async Task ResultsPage_ExposesNextStepLinks()
+    {
+        var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/results?query=comprar%20smartphones");
+        var decoded = WebUtility.HtmlDecode(html);
+
+        Assert.Contains("Continuar com recomendado", decoded);
+        Assert.Contains("Ver detalhes", decoded);
+        Assert.Contains("/product/", html);
+    }
+
+    [Fact]
+    public async Task ProductDetail_ExposesCheckoutNextStep()
+    {
+        var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/product/iphone-17?query=telemovel%20iphone%2017");
+        var decoded = WebUtility.HtmlDecode(html);
+
+        Assert.Contains("Ver condições", decoded);
+        Assert.Contains("/checkout?product=iphone-17", html);
+    }
+
+    [Fact]
+    public async Task CheckoutPage_RendersProductName()
+    {
+        var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/checkout?product=iphone-15-pro");
+        var decoded = WebUtility.HtmlDecode(html);
+
+        Assert.Contains("Produto", decoded);
+        Assert.Contains("iPhone 15 Pro", decoded);
+    }
+
+    [Fact]
+    public async Task CheckoutPage_OnlyShowsConfirmedProductStoreOffers()
+    {
+        var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/checkout?product=logitech-g305-lightspeed");
+
+        Assert.Contains("https://www.kuantokusta.pt/p/199266/logitech-g305-lightspeed-wireless-gaming-910-005283", html);
+        Assert.Contains("target=\"_blank\"", html);
+        Assert.Contains("rel=\"noopener noreferrer\"", html);
+        Assert.DoesNotContain("/pesquisa/", html);
+        Assert.DoesNotContain("/search?", html);
+    }
+
+    [Fact]
+    public async Task CheckoutPage_RendersConfirmedIphone17StorePriceAndProductPage()
+    {
+        var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/checkout?product=iphone-17");
+        var decoded = WebUtility.HtmlDecode(html);
+
+        Assert.Contains("Radio Popular", decoded);
+        Assert.Contains("424,99", decoded);
+        Assert.Contains("https://www.radiopopular.pt/produto/apple-iphone-17-pro-max-256gb-lj", html);
+        Assert.DoesNotContain("radiopopular.pt/pesquisa", html);
+        Assert.DoesNotContain("amazon.es/s?k=", html);
+        Assert.DoesNotContain("Confirmar na loja", decoded);
+    }
+
+    [Fact]
+    public async Task CheckoutPage_DoesNotRecommendSearchPage_WhenNoConfirmedStoreOfferExists()
+    {
+        var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/checkout?product=iphone-15-pro");
+        var decoded = WebUtility.HtmlDecode(html);
+
+        Assert.Contains("Sem loja validada", decoded);
+        Assert.Contains("preco confirmado com pagina direta", decoded);
+        Assert.DoesNotContain("amazon.es/s?k=", html);
+        Assert.DoesNotContain("/search?", html);
+    }
+
+    [Fact]
+    public async Task ResultsPage_RendersOnlyIphone17Family_WhenQueryMentionsIphone17Typo()
+    {
+        var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/results?query=telemovel%20ipohone%2017");
+
+        Assert.Contains("iPhone 17", html);
+        Assert.DoesNotContain("iPhone 15 Pro", html);
+        Assert.DoesNotContain("Samsung Galaxy S24", html);
+        Assert.DoesNotContain("Google Pixel 8", html);
+        Assert.DoesNotContain("Xiaomi 14", html);
     }
 
     [Fact]
@@ -44,7 +144,7 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
 
         var html = await client.GetStringAsync("/results?query=quero%20um%20rato%20ate%2050%20euros");
 
-        Assert.Contains("Logitech M650 Signature", html);
+        Assert.Contains("Logitech Signature M650", html);
         Assert.Contains("Microsoft Bluetooth Mouse", html);
         Assert.DoesNotContain("MacBook Air M3", html);
     }
@@ -56,9 +156,26 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
 
         var html = await client.GetStringAsync("/criteria?query=quero%20um%20rato%20ate%2050%20euros");
 
+        Assert.Contains("id=\"criteria-page\"", html);
         Assert.Contains("Sensor / DPI", html);
         Assert.Contains("Ergonomia", html);
         Assert.DoesNotContain("Performance (CPU)", html);
+    }
+
+    [Fact]
+    public async Task ProductDetail_UsesQueryProductAndRendersOfficialSpecsAndYouTubeReviews()
+    {
+        var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/product/bosch-serie-6-frigorifico?query=software%20chao%20de%20fabrica%20tablet%20touch%2010%20polegadas%20todoterreno");
+        var decoded = WebUtility.HtmlDecode(html);
+
+        Assert.Contains("Getac UX10 G3", decoded);
+        Assert.DoesNotContain("Bosch Serie 6 Frigor", decoded);
+        Assert.Contains("Especificações oficiais", decoded);
+        Assert.Contains("Abrir página oficial", decoded);
+        Assert.Contains("Reviews no YouTube", decoded);
+        Assert.Contains("youtube.com/results", html);
     }
 
     [Fact]
@@ -67,11 +184,34 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
         var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/");
+        var decoded = WebUtility.HtmlDecode(html);
 
         Assert.Contains("id=\"home-prompt-panel\"", html);
         Assert.Contains("id=\"product-image\"", html);
         Assert.Contains("accept=\"image/*\"", html);
+        Assert.Contains("type=\"button\"", html);
         Assert.Contains("Adicionar ou colar imagem do produto", html);
+        Assert.Contains("placeholder=", html);
+        Assert.Contains("Descreve o produto que procuras", decoded);
+        Assert.DoesNotContain("value=\"Descreve o produto", decoded);
+    }
+
+    [Fact]
+    public async Task HomePage_DoesNotPreselectCategory()
+    {
+        var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/");
+        var decoded = WebUtility.HtmlDecode(html);
+        var defaultCategoryIndex = decoded.IndexOf("Eletrodomésticos eficientes", StringComparison.Ordinal);
+
+        Assert.True(defaultCategoryIndex >= 0);
+        var beforeDefaultCategory = decoded[..defaultCategoryIndex];
+        var lastButtonStart = beforeDefaultCategory.LastIndexOf("<button", StringComparison.Ordinal);
+
+        Assert.True(lastButtonStart >= 0);
+        var defaultCategoryButton = decoded[lastButtonStart..defaultCategoryIndex];
+        Assert.DoesNotContain("active", defaultCategoryButton);
     }
 
     [Fact]
@@ -84,7 +224,7 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
 
         Assert.Contains("Novo Chat", decoded);
         Assert.True(decoded.Contains("Alertas ativos") || decoded.Contains("Active alerts"));
-        Assert.True(decoded.Contains("Histórico de produtos pesquisados") || decoded.Contains("Searched product history"));
+        Assert.True(decoded.Contains("Histórico") || decoded.Contains("History"));
         Assert.DoesNotContain(">Categorias<", decoded);
         Assert.DoesNotContain(">Categories<", decoded);
         Assert.DoesNotContain(">Atividade<", decoded);
@@ -96,17 +236,83 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
     [Theory]
     [InlineData("/alerts")]
     [InlineData("/history")]
+    [InlineData("/settings")]
     public async Task UserActivityPages_RedirectToLogin_WhenAnonymous(string url)
     {
         var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
         {
-            AllowAutoRedirect = false
+            AllowAutoRedirect = false,
+            HandleCookies = true
         });
 
         var response = await client.GetAsync(url);
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         Assert.StartsWith("http://localhost/login", response.Headers.Location?.ToString());
+    }
+
+    [Fact]
+    public async Task SettingsPage_RendersForAuthenticatedUserAndMenuShowsSettings()
+    {
+        var signedIn = await CreateSignedInClientAsync();
+
+        var settingsHtml = await GetStringAsync(signedIn, "/settings");
+        var decodedSettings = WebUtility.HtmlDecode(settingsHtml);
+
+        Assert.Contains("Definições", decodedSettings);
+        Assert.Contains("Dados do utilizador", decodedSettings);
+        Assert.Contains($"value=\"{signedIn.Email}\"", decodedSettings);
+        Assert.Contains("Alterar password", decodedSettings);
+
+        var homeHtml = await GetStringAsync(signedIn, "/");
+        var decodedHome = WebUtility.HtmlDecode(homeHtml);
+
+        Assert.Contains(">Definições<", decodedHome);
+        Assert.Contains("Plano", decodedHome);
+        Assert.Contains("Local", decodedHome);
+        Assert.Contains("Ilimitados", decodedHome);
+    }
+
+    [Fact]
+    public async Task SettingsProfile_PostUpdatesNameAndEmail()
+    {
+        var signedIn = await CreateSignedInClientAsync();
+        var settingsHtml = await GetStringAsync(signedIn, "/settings");
+        var newEmail = $"updated-{Guid.NewGuid():N}@example.com";
+
+        var response = await PostFormAsync(signedIn, "/auth/settings/profile", new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = ReadAntiforgeryToken(settingsHtml),
+            ["DisplayName"] = "Joel Santos",
+            ["Email"] = newEmail
+        });
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.StartsWith("/settings?message=", response.Headers.Location?.ToString());
+
+        var updatedHtml = await GetStringAsync(signedIn, "/settings");
+        var decoded = WebUtility.HtmlDecode(updatedHtml);
+
+        Assert.Contains("Joel Santos", decoded);
+        Assert.Contains(newEmail, decoded);
+    }
+
+    [Fact]
+    public async Task SettingsPassword_PostChangesPassword()
+    {
+        var signedIn = await CreateSignedInClientAsync();
+        var settingsHtml = await GetStringAsync(signedIn, "/settings");
+
+        var response = await PostFormAsync(signedIn, "/auth/settings/password", new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = ReadAntiforgeryToken(settingsHtml),
+            ["CurrentPassword"] = signedIn.Password,
+            ["NewPassword"] = "NewPassword1!",
+            ["ConfirmNewPassword"] = "NewPassword1!"
+        });
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.StartsWith("/settings?message=", response.Headers.Location?.ToString());
     }
 
     [Fact]
@@ -130,7 +336,8 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
     {
         var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
         {
-            AllowAutoRedirect = false
+            AllowAutoRedirect = false,
+            HandleCookies = true
         });
 
         var response = await client.GetAsync("/auth/google?returnUrl=/");
@@ -138,4 +345,126 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         Assert.StartsWith("/login?message=", response.Headers.Location?.ToString());
     }
+
+    private async Task<SignedInTestClient> CreateSignedInClientAsync()
+    {
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false,
+            HandleCookies = false
+        });
+
+        var email = $"settings-{Guid.NewGuid():N}@example.com";
+        const string password = "TestPassword1!";
+        var signedIn = new SignedInTestClient(client, new Dictionary<string, string>(StringComparer.Ordinal), email, password);
+        var registerHtml = await GetStringAsync(signedIn, "/register?returnUrl=/settings");
+        var response = await PostFormAsync(signedIn, "/auth/register", new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = ReadAntiforgeryToken(registerHtml),
+            ["Email"] = email,
+            ["Password"] = password,
+            ["ConfirmPassword"] = password,
+            ["ReturnUrl"] = "/settings"
+        });
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Equal("/settings", response.Headers.Location?.ToString());
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var persistedUser = await userManager.FindByEmailAsync(email);
+            Assert.NotNull(persistedUser);
+            Assert.True(await userManager.CheckPasswordAsync(persistedUser, password));
+        }
+
+        var loginHtml = await GetStringAsync(signedIn, "/login?returnUrl=/settings");
+        response = await PostFormAsync(signedIn, "/auth/login", new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = ReadAntiforgeryToken(loginHtml),
+            ["Email"] = email,
+            ["Password"] = password,
+            ["ReturnUrl"] = "/settings"
+        });
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Equal("/settings", response.Headers.Location?.ToString());
+        Assert.Contains(".AspNetCore.Identity.Application", signedIn.Cookies.Keys);
+
+        return signedIn;
+    }
+
+    private static async Task<string> GetStringAsync(SignedInTestClient signedIn, string url)
+    {
+        using var response = await SendAsync(signedIn, new HttpRequestMessage(HttpMethod.Get, url));
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsStringAsync();
+    }
+
+    private static Task<HttpResponseMessage> PostFormAsync(
+        SignedInTestClient signedIn,
+        string url,
+        Dictionary<string, string> form)
+    {
+        return SendAsync(signedIn, new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = new FormUrlEncodedContent(form)
+        });
+    }
+
+    private static async Task<HttpResponseMessage> SendAsync(SignedInTestClient signedIn, HttpRequestMessage request)
+    {
+        ApplyCookies(signedIn, request);
+        var response = await signedIn.Client.SendAsync(request);
+        CaptureCookies(signedIn, response);
+        return response;
+    }
+
+    private static void ApplyCookies(SignedInTestClient signedIn, HttpRequestMessage request)
+    {
+        request.Headers.Remove("Cookie");
+        if (signedIn.Cookies.Count > 0)
+        {
+            request.Headers.TryAddWithoutValidation(
+                "Cookie",
+                string.Join("; ", signedIn.Cookies.Select(cookie => $"{cookie.Key}={cookie.Value}")));
+        }
+    }
+
+    private static void CaptureCookies(SignedInTestClient signedIn, HttpResponseMessage response)
+    {
+        if (!response.Headers.TryGetValues("Set-Cookie", out var setCookies))
+        {
+            return;
+        }
+
+        foreach (var setCookie in setCookies)
+        {
+            var cookiePair = setCookie.Split(';', 2)[0];
+            var separator = cookiePair.IndexOf('=');
+            if (separator <= 0)
+            {
+                continue;
+            }
+
+            signedIn.Cookies[cookiePair[..separator]] = cookiePair[(separator + 1)..];
+        }
+    }
+
+    private static string ReadAntiforgeryToken(string html)
+    {
+        var match = Regex.Match(
+            html,
+            "name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        Assert.True(match.Success, "Expected an antiforgery token in the rendered form.");
+        return WebUtility.HtmlDecode(match.Groups[1].Value);
+    }
+
+    private sealed record SignedInTestClient(
+        HttpClient Client,
+        Dictionary<string, string> Cookies,
+        string Email,
+        string Password);
 }

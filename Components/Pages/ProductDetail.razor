@@ -17,6 +17,10 @@ else
         <div>
             <h1>@T["Product.Title"]</h1>
         </div>
+        <div class="product-header-actions">
+            <a class="secondary-button compact" href="@ResultsUrl">@T["Product.Results"]</a>
+            <a class="primary-button compact" href="@CheckoutUrl">@T["Product.Conditions"]</a>
+        </div>
     </section>
 
     <div class="detail-grid">
@@ -43,36 +47,53 @@ else
             <p>@Product.AiSummary</p>
         </section>
 
-        <section class="checklist verified-panel">
-            <h2>@T["Product.Verified"]</h2>
-            <p class="muted-label">@T["Product.VerifiedLead"]</p>
-            @foreach (var check in Product.VerificationChecks)
-            {
-                <p><span>✓</span>@check</p>
-            }
-        </section>
+        @if (Product.OfficialSource is not null && Product.OfficialSpecifications.Count > 0)
+        {
+            <section class="analysis-panel flat official-specs-panel">
+                <div>
+                    <h2>@T["Product.OfficialSpecs"]</h2>
+                    <p>@Product.OfficialSource.Description</p>
+                </div>
 
-        <section class="alert-panel">
-            <h2>@T["Product.FraudAlerts"]</h2>
-
-            @if (Product.FraudAlerts.Count == 0)
-            {
-                <div class="safe-alert">@T["Product.Clean"]</div>
-            }
-            else
-            {
-                <div class="fraud-list">
-                    @foreach (var alert in Product.FraudAlerts)
+                <dl class="official-spec-list">
+                    @foreach (var specification in Product.OfficialSpecifications)
                     {
                         <div>
-                            <span>✕ @alert.Source</span>
-                            <strong>@alert.Reason</strong>
+                            <dt>@specification.Label</dt>
+                            <dd>@specification.Value</dd>
                         </div>
                     }
+                </dl>
+
+                <a class="secondary-button compact evidence-link" href="@Product.OfficialSource.Url" target="_blank" rel="noopener noreferrer">
+                    @T["Product.OpenOfficialPage"]
+                </a>
+            </section>
+        }
+
+        @if (Product.ReviewLinks.Count > 0)
+        {
+            <section class="analysis-panel flat review-panel">
+                <div>
+                    <h2>@T["Product.YouTubeReviews"]</h2>
+                    <p>@T["Product.YouTubeReviewsLead"]</p>
                 </div>
-            }
-        </section>
+
+                <div class="review-list">
+                    @foreach (var review in Product.ReviewLinks.Take(2))
+                    {
+                        <a class="review-card" href="@review.Url" target="_blank" rel="noopener noreferrer">
+                            <span>@review.Channel</span>
+                            <strong>@review.Title</strong>
+                            <small>@review.ViewSignal</small>
+                        </a>
+                    }
+                </div>
+            </section>
+        }
+
     </div>
+
 }
 
 @code {
@@ -83,6 +104,16 @@ else
     public string? Query { get; set; }
 
     private ProductResult? Product { get; set; }
+
+    private string ResultsUrl => string.IsNullOrWhiteSpace(Query)
+        ? "/results"
+        : $"/results?query={Uri.EscapeDataString(Query)}";
+
+    private string CheckoutUrl => Product is null
+        ? "/checkout"
+        : string.IsNullOrWhiteSpace(Query)
+            ? $"/checkout?product={Uri.EscapeDataString(Product.Slug)}"
+            : $"/checkout?product={Uri.EscapeDataString(Product.Slug)}&query={Uri.EscapeDataString(Query)}";
 
     protected override async Task OnParametersSetAsync()
     {

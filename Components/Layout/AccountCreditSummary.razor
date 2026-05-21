@@ -1,0 +1,82 @@
+@using System.Globalization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SearchQuotaService QuotaService
+@inject Microsoft.Extensions.Options.IOptions<StripeOptions> StripeOptionsAccessor
+@inject AppText T
+
+@if (Summary is not null)
+{
+    <a class="topbar-credit-summary" href="credits" aria-label="@Summary.AriaLabel">
+        <span class="topbar-credit-dot" aria-hidden="true"></span>
+        <span class="topbar-credit-copy">
+            <strong>@Summary.PlanLabel</strong>
+            <small>@Summary.CreditLabel</small>
+        </span>
+    </a>
+}
+
+@code {
+    private AccountCreditSummaryView? Summary { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return;
+        }
+
+        var status = await QuotaService.GetStatusAsync(userId);
+        var planLabel = BuildPlanLabel(status);
+        var creditLabel = BuildCreditLabel(status);
+
+        Summary = new AccountCreditSummaryView(
+            planLabel,
+            creditLabel,
+            T.Format("Layout.AccountSummaryAria", planLabel, creditLabel));
+    }
+
+    private string BuildPlanLabel(SearchQuotaStatus status)
+    {
+        if (status.UnlimitedSource == SearchQuotaUnlimitedSource.Localhost)
+        {
+            return T["Layout.LocalPlan"];
+        }
+
+        if (status.UnlimitedSource == SearchQuotaUnlimitedSource.Subscription)
+        {
+            var plan = StripeOptionsAccessor.Value.SubscriptionPlans
+                .FirstOrDefault(candidate => string.Equals(candidate.Id, status.SubscriptionPlanId, StringComparison.OrdinalIgnoreCase));
+
+            return plan is null
+                ? T["Credits.UnlimitedSearches"]
+                : DisplayPlanName(plan);
+        }
+
+        return T["Layout.FreePlan"];
+    }
+
+    private string BuildCreditLabel(SearchQuotaStatus status)
+    {
+        if (status.HasUnlimitedCredits)
+        {
+            return T["Credits.Unlimited"];
+        }
+
+        var remainingSearches = Math.Max(0, status.FreeSearchesRemaining) + Math.Max(0, status.Credits);
+        return T.Format("Layout.CreditCount", remainingSearches.ToString(CultureInfo.CurrentCulture));
+    }
+
+    private string DisplayPlanName(SubscriptionPlan plan)
+    {
+        return plan.Id switch
+        {
+            "monthly" => T.Pick("Mensal ilimitado", "Unlimited monthly"),
+            "annual" => T.Pick("Anual ilimitado", "Unlimited annual"),
+            _ => plan.Name
+        };
+    }
+
+    private sealed record AccountCreditSummaryView(string PlanLabel, string CreditLabel, string AriaLabel);
+}

@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using TrueCompare.Data;
-using TrueCompare.Models;
 
 namespace TrueCompare.Services;
 
@@ -40,15 +39,17 @@ public sealed class TargetPriceMonitorService(
                 alert.LastSeenSeller = bestOffer.Seller;
                 alert.ProductUrl = bestOffer.Url;
 
-                if (bestOffer.PriceCents > alert.TargetPriceCents || string.IsNullOrWhiteSpace(alert.User.Email))
+                if (!bestOffer.IsLivePrice
+                    || bestOffer.PriceCents > alert.TargetPriceCents
+                    || string.IsNullOrWhiteSpace(alert.User.Email))
                 {
                     continue;
                 }
 
                 var sent = await emailSender.SendAsync(
                     alert.User.Email,
-                    $"Alerta de preço: {alert.ProductName}",
-                    BuildEmail(alert, bestOffer),
+                    PriceAlertEmailTemplate.BuildSubject(alert.ProductName),
+                    PriceAlertEmailTemplate.Build(alert, bestOffer),
                     cancellationToken);
 
                 if (sent)
@@ -70,15 +71,4 @@ public sealed class TargetPriceMonitorService(
         }
     }
 
-    private static string BuildEmail(TargetPriceAlert alert, SellerOffer offer)
-    {
-        var currentPrice = TargetPriceAlertService.FormatCents(offer.PriceCents);
-        var targetPrice = TargetPriceAlertService.FormatCents(alert.TargetPriceCents);
-        return $"""
-            <p>O produto <strong>{alert.ProductName}</strong> chegou ao preço definido.</p>
-            <p>Preço alvo: <strong>{targetPrice}</strong><br>
-            Melhor preço atual: <strong>{currentPrice}</strong> em <strong>{offer.Seller}</strong>.</p>
-            <p><a href="{offer.Url}">Abrir vendedor recomendado</a></p>
-            """;
-    }
 }

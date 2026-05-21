@@ -36,6 +36,29 @@ public sealed class LlmSuggestionServiceTests
     }
 
     [Fact]
+    public async Task GetSuggestionsAsync_DoesNotExposeNonLiveSellerPricesAsConfirmed()
+    {
+        using var culture = UseCulture("pt-PT");
+        var data = new ComparisonDataService(new AppText());
+        var service = CreateService(new FakeHttpMessageHandler(_ => throw new InvalidOperationException("HTTP should not be called.")), new LlmOptions
+        {
+            ApiKey = string.Empty,
+            Enabled = true
+        });
+
+        var result = await service.GetSuggestionsAsync(
+            "disco externo 1tb usb 3.2",
+            data.GetProducts("disco externo 1tb usb 3.2"),
+            data.GetSellerOffers("disco externo 1tb usb 3.2"));
+
+        Assert.False(result.FromLlm);
+        Assert.Contains("confirmar na loja", result.Summary, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("€", result.Summary);
+        Assert.Contains(result.BuyingSignals, signal => signal.Contains("confirmar na loja", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(result.BuyingSignals, signal => signal.Contains('€'));
+    }
+
+    [Fact]
     public async Task GetSuggestionsAsync_ParsesOpenAiCompatibleJsonResponse()
     {
         using var culture = UseCulture("pt-PT");
@@ -93,6 +116,62 @@ public sealed class LlmSuggestionServiceTests
         Assert.Contains(result.ProductLeads, lead => lead.Name == "iPhone 15 Pro" && lead.TargetPrice == "até 900 €");
         Assert.Equal(new AuthenticationHeaderValue("Bearer", "test-key"), handler.LastRequest?.Headers.Authorization);
         Assert.Contains("comprar smartphones", handler.LastBody);
+    }
+
+    [Fact]
+    public async Task GetSuggestionsAsync_AcceptsConfidenceAsPercentString()
+    {
+        using var culture = UseCulture("pt-PT");
+        var data = new ComparisonDataService(new AppText());
+        var assistantJson = """
+            {
+              "intent": "iPhone 17",
+              "summary": "Resposta local aproveitavel.",
+              "confidence": "91%",
+              "buyingSignals": ["modelo exato"],
+              "suggestedQueries": ["iPhone 17 vendedor autorizado"],
+              "warnings": [],
+              "productLeads": [
+                {
+                  "name": "iPhone 17",
+                  "reason": "Corresponde ao modelo pedido.",
+                  "targetPrice": "confirmar",
+                  "searchHint": "iPhone 17 Apple",
+                  "source": "Ollama local"
+                }
+              ]
+            }
+            """;
+        var openAiResponse = JsonSerializer.Serialize(new
+        {
+            choices = new[] { new { message = new { content = assistantJson } } }
+        });
+        var handler = FakeHttpMessageHandler.ReturningJson(openAiResponse);
+        var service = CreateService(handler, new LlmOptions
+        {
+            Enabled = true,
+            Providers =
+            [
+                new LlmProviderOptions
+                {
+                    Name = "Ollama local",
+                    IsLocal = true,
+                    Endpoint = "http://172.20.10.55:11434/v1/chat/completions",
+                    Model = "qwen3-vl:235b-cloud",
+                    RequiresApiKey = false,
+                    Priority = 10
+                }
+            ]
+        });
+
+        var result = await service.GetSuggestionsAsync(
+            "telemovel iphone 17",
+            data.GetProducts("telemovel iphone 17"),
+            data.GetSellerOffers("telemovel iphone 17"));
+
+        Assert.True(result.FromLlm);
+        Assert.Contains("Ollama local", result.SourceLabel);
+        Assert.Equal(91, result.Confidence);
     }
 
     [Fact]

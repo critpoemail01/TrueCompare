@@ -36,7 +36,8 @@ public sealed class SearchQuotaService
                 candidate.FreeSearchesUsed,
                 candidate.Credits,
                 candidate.HasUnlimitedSubscription,
-                candidate.SubscriptionActiveUntilUtc
+                candidate.SubscriptionActiveUntilUtc,
+                candidate.SubscriptionPlanId
             })
             .SingleOrDefaultAsync(cancellationToken);
 
@@ -51,7 +52,7 @@ public sealed class SearchQuotaService
 
         if (HasActiveUnlimitedSubscription(user.HasUnlimitedSubscription, user.SubscriptionActiveUntilUtc))
         {
-            return CreateUnlimitedStatus(SearchQuotaUnlimitedSource.Subscription);
+            return CreateUnlimitedStatus(SearchQuotaUnlimitedSource.Subscription, user.SubscriptionPlanId);
         }
 
         return new SearchQuotaStatus(
@@ -75,6 +76,15 @@ public sealed class SearchQuotaService
             {
                 return new SearchConsumptionResult(false, CreateLocalUnlimitedStatus());
             }
+
+            dbContext.SearchRequests.Add(new SearchRequest
+            {
+                UserId = userId,
+                Query = query.Trim(),
+                UsedPaidCredit = false
+            });
+
+            await dbContext.SaveChangesAsync(cancellationToken);
 
             return new SearchConsumptionResult(true, CreateLocalUnlimitedStatus());
         }
@@ -104,7 +114,7 @@ public sealed class SearchQuotaService
             await dbContext.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
 
-            return new SearchConsumptionResult(true, CreateUnlimitedStatus(SearchQuotaUnlimitedSource.Subscription));
+            return new SearchConsumptionResult(true, CreateUnlimitedStatus(SearchQuotaUnlimitedSource.Subscription, user.SubscriptionPlanId));
         }
 
         var usedPaidCredit = false;
@@ -153,7 +163,7 @@ public sealed class SearchQuotaService
         return CreateUnlimitedStatus(SearchQuotaUnlimitedSource.Localhost);
     }
 
-    private static SearchQuotaStatus CreateUnlimitedStatus(string source)
+    private static SearchQuotaStatus CreateUnlimitedStatus(string source, string? subscriptionPlanId = null)
     {
         return new SearchQuotaStatus(
             ApplicationUser.FreeSearchLimit,
@@ -161,7 +171,8 @@ public sealed class SearchQuotaService
             ApplicationUser.FreeSearchLimit,
             int.MaxValue,
             true,
-            source);
+            source,
+            subscriptionPlanId);
     }
 
     private static bool HasActiveUnlimitedSubscription(bool hasUnlimitedSubscription, DateTime? activeUntilUtc)
@@ -183,7 +194,8 @@ public sealed record SearchQuotaStatus(
     int FreeSearchesRemaining,
     int Credits,
     bool HasUnlimitedCredits = false,
-    string? UnlimitedSource = null);
+    string? UnlimitedSource = null,
+    string? SubscriptionPlanId = null);
 
 public sealed record SearchConsumptionResult(
     bool Allowed,

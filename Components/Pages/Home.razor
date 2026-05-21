@@ -1,6 +1,7 @@
 @page "/"
 @implements IAsyncDisposable
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
 @inject ComparisonDataService Data
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -21,9 +22,16 @@
                 <span class="prompt-plus" aria-hidden="true">+</span>
                 <InputFile id="product-image" class="image-file-input" accept="image/*" OnChange="HandleImageSelected" aria-label='@T["Home.ImageUploadAria"]' disabled="@IsAnalyzingImage" />
             </div>
-            <input id="prompt" aria-label='@T["Home.ProductAria"]' @bind="Prompt" @bind:event="oninput" />
+            <input id="prompt" aria-label='@T["Home.ProductAria"]' placeholder="@PromptPlaceholder" @bind="Prompt" @bind:event="oninput" @onclick="HidePromptPlaceholder" @onfocusin="HidePromptPlaceholder" @onfocusout="ShowPromptPlaceholder" @onkeydown="HandlePromptKeyDown" />
             <button class="search-send" type="button" @onclick="StartComparison" disabled="@IsSubmitting" aria-label='@T["Home.CompareAria"]'>
-                @(IsSubmitting ? "..." : "→")
+                @if (IsSubmitting)
+                {
+                    <span class="search-send-loader" aria-hidden="true"></span>
+                }
+                else
+                {
+                    <span class="search-send-icon" aria-hidden="true">&#8594;</span>
+                }
             </button>
         </div>
 
@@ -96,23 +104,37 @@
     private string ActiveCategory { get; set; } = string.Empty;
     private bool IsSubmitting { get; set; }
     private bool IsAnalyzingImage { get; set; }
+    private bool IsPromptFocused { get; set; }
     private string? QuotaMessage { get; set; }
     private string? SelectedImageName { get; set; }
     private string? SelectedImagePreviewDataUrl { get; set; }
     private ImageProductSuggestionResult? ImageSuggestion { get; set; }
     private IJSObjectReference? pasteImagesModule;
     private DotNetObjectReference<Home>? dotNetReference;
+    private string PromptPlaceholder => IsPromptFocused ? string.Empty : T["Home.DefaultPrompt"];
 
-    protected override void OnInitialized()
+    private void HidePromptPlaceholder()
     {
-        Prompt = T["Home.DefaultPrompt"];
-        ActiveCategory = T["Home.DefaultCategory"];
+        IsPromptFocused = true;
+    }
+
+    private void ShowPromptPlaceholder()
+    {
+        IsPromptFocused = false;
     }
 
     private void UseCategory(string category)
     {
         ActiveCategory = category;
         Prompt = T.Format("Home.CategoryPrompt", category);
+    }
+
+    private async Task HandlePromptKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key.Equals("Enter", StringComparison.OrdinalIgnoreCase))
+        {
+            await StartComparison();
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -235,6 +257,11 @@
 
     private async Task StartComparison()
     {
+        if (IsSubmitting)
+        {
+            return;
+        }
+
         if (IsAnalyzingImage)
         {
             QuotaMessage = T["Home.ImageAnalyzing"];

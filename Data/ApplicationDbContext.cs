@@ -18,6 +18,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
         builder.Entity<ApplicationUser>(entity =>
         {
+            entity.Property(user => user.DisplayName).HasMaxLength(120);
             entity.Property(user => user.FreeSearchesUsed).HasDefaultValue(0);
             entity.Property(user => user.Credits).HasDefaultValue(0);
             entity.Property(user => user.HasUnlimitedSubscription).HasDefaultValue(false);

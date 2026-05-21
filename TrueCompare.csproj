@@ -1,27 +1,41 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>e6535ff3-aeb9-4a1a-ad2d-613745fe4c2d</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="8.0.27" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.27" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.27">
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.8" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.8" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.8">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.27" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.8" />
     <PackageReference Include="Stripe.net" Version="51.1.0" />
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove=".codex-run\**\*" />
+    <Content Remove=".codex-run\**\*" />
+    <None Remove=".codex-run\**\*" />
+    <Compile Remove="_test-run\**\*" />
+    <Content Remove="_test-run\**\*" />
+    <None Remove="_test-run\**\*" />
     <Compile Remove="TrueCompare.Tests\**\*.cs" />
     <Content Remove="TrueCompare.Tests\**\*" />
     <None Remove="TrueCompare.Tests\**\*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="appsettings.Development.json" CopyToPublishDirectory="Never" />
+    <Content Update="kuantokusta-products*.json" CopyToPublishDirectory="Never" />
+    <Content Update="worten-products*.json" CopyToPublishDirectory="Never" />
+    <Content Update="truecompare-*.png" CopyToPublishDirectory="Never" />
+    <Content Update="dotnet-tools.json" CopyToPublishDirectory="Never" />
   </ItemGroup>
 
 </Project>

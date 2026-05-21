@@ -13,7 +13,29 @@ public sealed record ProductResult(
     IReadOnlyList<string> Highlights,
     IReadOnlyList<string> VerificationChecks,
     IReadOnlyList<FraudAlert> FraudAlerts,
-    string AiSummary);
+    string AiSummary)
+{
+    public ProductSourceLink? OfficialSource { get; init; }
+
+    public IReadOnlyList<ProductSpecification> OfficialSpecifications { get; init; } = Array.Empty<ProductSpecification>();
+
+    public IReadOnlyList<ProductReviewLink> ReviewLinks { get; init; } = Array.Empty<ProductReviewLink>();
+}
+
+public sealed record ProductSourceLink(
+    string Label,
+    string Url,
+    string Description);
+
+public sealed record ProductSpecification(
+    string Label,
+    string Value);
+
+public sealed record ProductReviewLink(
+    string Title,
+    string Channel,
+    string Url,
+    string ViewSignal);
 
 public sealed record CriteriaWeight(
     string Name,
@@ -34,7 +56,11 @@ public sealed record SellerOffer(
     string Warranty,
     string Status,
     string Url,
-    bool Preferred);
+    bool Preferred,
+    int ReliabilityScore = 0,
+    string LocationLabel = "",
+    string Evidence = "",
+    bool IsLivePrice = false);
 
 public sealed record TutorialItem(
     string Category,

@@ -28,9 +28,33 @@ public sealed class LlmProductImageSuggestionServiceTests
             [1, 2, 3]);
 
         Assert.False(result.FromLlm);
-        Assert.Equal("Modo local", result.SourceLabel);
+        Assert.Equal("Análise local", result.SourceLabel);
         Assert.Contains("frigor", result.DetectedProductType, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("bosch", result.SuggestedQuery, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task AnalyzeImageAsync_UsesClearGenericImageFallbackText()
+    {
+        using var culture = UseCulture("pt-PT");
+        var handler = new FakeHttpMessageHandler(_ => throw new InvalidOperationException("HTTP should not be called."));
+        var service = CreateService(handler, new LlmOptions
+        {
+            ApiKey = string.Empty,
+            Enabled = true
+        });
+
+        var result = await service.AnalyzeImageAsync(
+            "produto.jpg",
+            "image/jpeg",
+            [1, 2, 3]);
+
+        Assert.False(result.FromLlm);
+        Assert.Equal("Análise local", result.SourceLabel);
+        Assert.Equal("Produto da imagem", result.DetectedProductType);
+        Assert.Contains("Ainda não consegui identificar o modelo exato", result.Summary);
+        Assert.DoesNotContain("chave LLM", result.Summary, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(result.Warnings, warning => warning.Contains("não confirmou o modelo exato", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]

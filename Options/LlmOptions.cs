@@ -4,19 +4,25 @@ public sealed class LlmOptions
 {
     public bool Enabled { get; set; } = true;
 
-    public string Endpoint { get; set; } = "https://api.openai.com/v1/chat/completions";
+    public string Endpoint { get; set; } = "http://172.20.10.55:11434/v1/chat/completions";
 
     public string ApiKey { get; set; } = string.Empty;
 
-    public string Model { get; set; } = "gpt-4o-mini";
+    public string Model { get; set; } = "qwen3-vl:235b-cloud";
 
-    public int TimeoutSeconds { get; set; } = 20;
+    public int TimeoutSeconds { get; set; } = 90;
 
     public int MaxTokens { get; set; } = 900;
 
     public decimal Temperature { get; set; } = 0.2m;
 
     public int ProviderCooldownSeconds { get; set; } = 60;
+
+    public bool UseAvailableLocalModels { get; set; }
+
+    public int MaxParallelLocalModels { get; set; } = 3;
+
+    public int LocalModelDiscoveryTimeoutSeconds { get; set; } = 5;
 
     public List<LlmProviderOptions> Providers { get; set; } = [];
 }
@@ -28,6 +34,8 @@ public sealed class LlmProviderOptions
     public bool Enabled { get; set; } = true;
 
     public int Priority { get; set; } = 100;
+
+    public bool IsLocal { get; set; }
 
     public string Endpoint { get; set; } = string.Empty;
 

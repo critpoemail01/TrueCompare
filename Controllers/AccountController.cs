@@ -9,13 +9,13 @@ using TrueCompare.Services;
 
 namespace TrueCompare.Controllers;
 
-[AllowAnonymous]
 public sealed class AccountController(
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signInManager,
     IConfiguration configuration,
     AppText text) : Controller
 {
+    [AllowAnonymous]
     [HttpPost("/auth/login")]
     [EnableRateLimiting("auth")]
     public async Task<IActionResult> Login([FromForm] LoginForm input)
@@ -25,7 +25,13 @@ public sealed class AccountController(
             return RedirectWithMessage("/login", input.ReturnUrl, text.Pick("Preenche email e password.", "Enter email and password."));
         }
 
-        var result = await signInManager.PasswordSignInAsync(input.Email, input.Password, input.RememberMe, lockoutOnFailure: true);
+        var user = await userManager.FindByEmailAsync(input.Email.Trim());
+        if (user is null)
+        {
+            return RedirectWithMessage("/login", input.ReturnUrl, text.Pick("Credenciais inválidas.", "Invalid credentials."));
+        }
+
+        var result = await signInManager.PasswordSignInAsync(user, input.Password, input.RememberMe, lockoutOnFailure: true);
         if (!result.Succeeded)
         {
             return RedirectWithMessage("/login", input.ReturnUrl, text.Pick("Credenciais inválidas.", "Invalid credentials."));
@@ -34,6 +40,7 @@ public sealed class AccountController(
         return RedirectToLocal(input.ReturnUrl);
     }
 
+    [AllowAnonymous]
     [HttpPost("/auth/register")]
     [EnableRateLimiting("auth")]
     public async Task<IActionResult> Register([FromForm] RegisterForm input)
@@ -52,7 +59,8 @@ public sealed class AccountController(
         {
             UserName = input.Email.Trim(),
             Email = input.Email.Trim(),
-            EmailConfirmed = true
+            EmailConfirmed = true,
+            DisplayName = BuildDefaultDisplayName(input.Email)
         };
 
         var result = await userManager.CreateAsync(user, input.Password);
@@ -66,6 +74,89 @@ public sealed class AccountController(
         return RedirectToLocal(input.ReturnUrl);
     }
 
+    [HttpPost("/auth/settings/profile")]
+    [Authorize]
+    public async Task<IActionResult> UpdateProfile([FromForm] ProfileForm input)
+    {
+        var user = await userManager.GetUserAsync(User);
+        if (user is null)
+        {
+            return Challenge();
+        }
+
+        var email = input.Email?.Trim();
+        var displayName = string.IsNullOrWhiteSpace(input.DisplayName)
+            ? null
+            : input.DisplayName.Trim();
+
+        if (string.IsNullOrWhiteSpace(email) || !LooksLikeEmail(email))
+        {
+            return RedirectToSettings(text.Pick("Indica um email válido.", "Enter a valid email."));
+        }
+
+        if (displayName?.Length > 120)
+        {
+            return RedirectToSettings(text.Pick("O nome deve ter no máximo 120 caracteres.", "Name must be 120 characters or fewer."));
+        }
+
+        var existingUser = await userManager.FindByEmailAsync(email);
+        if (existingUser is not null && !string.Equals(existingUser.Id, user.Id, StringComparison.Ordinal))
+        {
+            return RedirectToSettings(text.Pick("Esse email já está associado a outra conta.", "That email is already associated with another account."));
+        }
+
+        user.DisplayName = displayName;
+        user.Email = email;
+        user.UserName = email;
+        user.NormalizedEmail = userManager.NormalizeEmail(email);
+        user.NormalizedUserName = userManager.NormalizeName(email);
+        user.EmailConfirmed = true;
+
+        var result = await userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+        {
+            return RedirectToSettings(string.Join(" ", result.Errors.Select(error => error.Description)));
+        }
+
+        await signInManager.RefreshSignInAsync(user);
+        return RedirectToSettings(text.Pick("Definições atualizadas.", "Settings updated."));
+    }
+
+    [HttpPost("/auth/settings/password")]
+    [Authorize]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> ChangePassword([FromForm] ChangePasswordForm input)
+    {
+        var user = await userManager.GetUserAsync(User);
+        if (user is null)
+        {
+            return Challenge();
+        }
+
+        if (string.IsNullOrWhiteSpace(input.NewPassword))
+        {
+            return RedirectToSettings(text.Pick("Indica a nova password.", "Enter the new password."));
+        }
+
+        if (!string.Equals(input.NewPassword, input.ConfirmNewPassword, StringComparison.Ordinal))
+        {
+            return RedirectToSettings(text.Pick("As passwords não coincidem.", "Passwords do not match."));
+        }
+
+        var hasPassword = await userManager.HasPasswordAsync(user);
+        var result = hasPassword
+            ? await userManager.ChangePasswordAsync(user, input.CurrentPassword ?? string.Empty, input.NewPassword)
+            : await userManager.AddPasswordAsync(user, input.NewPassword);
+
+        if (!result.Succeeded)
+        {
+            return RedirectToSettings(string.Join(" ", result.Errors.Select(error => error.Description)));
+        }
+
+        await signInManager.RefreshSignInAsync(user);
+        return RedirectToSettings(text.Pick("Password alterada.", "Password changed."));
+    }
+
     [HttpPost("/auth/logout")]
     [Authorize]
     public async Task<IActionResult> Logout()
@@ -74,6 +165,7 @@ public sealed class AccountController(
         return Redirect("/");
     }
 
+    [AllowAnonymous]
     [HttpGet("/auth/google")]
     public IActionResult Google([FromQuery] string? returnUrl = null)
     {
@@ -87,6 +179,7 @@ public sealed class AccountController(
         return Challenge(properties, "Google");
     }
 
+    [AllowAnonymous]
     [HttpGet("/auth/google-callback")]
     public async Task<IActionResult> GoogleCallback([FromQuery] string? returnUrl = null)
     {
@@ -120,7 +213,8 @@ public sealed class AccountController(
             {
                 UserName = email,
                 Email = email,
-                EmailConfirmed = true
+                EmailConfirmed = true,
+                DisplayName = info.Principal.FindFirstValue(ClaimTypes.Name) ?? BuildDefaultDisplayName(email)
             };
 
             var createResult = await userManager.CreateAsync(user);
@@ -163,6 +257,30 @@ public sealed class AccountController(
     {
         return Redirect(Url.IsLocalUrl(returnUrl) ? returnUrl! : "/");
     }
+
+    private IActionResult RedirectToSettings(string message)
+    {
+        return Redirect($"/settings?message={Uri.EscapeDataString(message)}");
+    }
+
+    private static string? BuildDefaultDisplayName(string? email)
+    {
+        var localPart = email?.Split('@', 2)[0].Trim();
+        return string.IsNullOrWhiteSpace(localPart) ? null : localPart;
+    }
+
+    private static bool LooksLikeEmail(string value)
+    {
+        try
+        {
+            var address = new System.Net.Mail.MailAddress(value);
+            return string.Equals(address.Address, value, StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
+    }
 }
 
 public sealed class LoginForm
@@ -185,4 +303,20 @@ public sealed class RegisterForm
     public string? ConfirmPassword { get; set; }
 
     public string? ReturnUrl { get; set; }
+}
+
+public sealed class ProfileForm
+{
+    public string? DisplayName { get; set; }
+
+    public string? Email { get; set; }
+}
+
+public sealed class ChangePasswordForm
+{
+    public string? CurrentPassword { get; set; }
+
+    public string? NewPassword { get; set; }
+
+    public string? ConfirmNewPassword { get; set; }
 }

@@ -6,11 +6,17 @@
 <PageTitle>@T["Results.PageTitle"]</PageTitle>
 
 <section class="page-header compact-header results-header">
-    <div>
+    <div class="results-header-copy">
         <h1>@T["Results.Title"]</h1>
         <p>@T.Format("Results.Subtitle", Products.Count)</p>
     </div>
-    <a class="secondary-button" href="@CriteriaUrl">@T["Results.AddProduct"]</a>
+    <div class="results-header-actions">
+        @if (Products.Count > 0)
+        {
+            <a class="primary-button compact" href="@ProductUrl(Products[0])">@T["Results.NextStep"]</a>
+        }
+        <a class="secondary-button compact" href="@CriteriaUrl">@T["Results.AddProduct"]</a>
+    </div>
 </section>
 
 @if (Products.Count == 0)
@@ -23,86 +29,67 @@
 }
 else
 {
-    <section class="results-grid">
-        @foreach (var product in Products)
+    <section class="ai-suggestion-panel results-ai-panel results-suggestion-panel" aria-live="polite">
+        <div class="ai-suggestion-head">
+            <div>
+                <p class="eyebrow">@T["Results.AiSuggestion"]</p>
+                <h2>@(AiSuggestions?.Intent ?? ActiveQuery)</h2>
+            </div>
+            <span class="ai-source-pill">@(IsLoadingSuggestions ? T["Results.Analyzing"] : AiSuggestions?.SourceLabel)</span>
+        </div>
+
+        @if (IsLoadingSuggestions)
         {
-            <article class="product-card @(product.Rank == 1 ? "featured" : null)" style="--accent:@product.Accent">
-                <div class="rank-line">
-                    <span>#@product.Rank</span>
-                    <strong>@product.Score</strong>
-                </div>
-
-                <h2>@product.Name</h2>
-                <div class="price">@product.Price</div>
-
-                <dl class="spec-list result-spec-list">
-                    @foreach (var spec in CardSpecs(product))
-                    {
-                        <div>
-                            <dt>@T["Results.Spec"]</dt>
-                            <dd>@spec</dd>
-                        </div>
-                    }
-                </dl>
-
-                <p class="verified-line">@T["Results.Verified"]</p>
-                <span class="badge">@product.Badge</span>
-
-                <a class="card-action" href="@ProductUrl(product)">@T["Results.Details"]</a>
-            </article>
+            <div class="ai-loading">
+                <span></span>
+                <strong>@T["Results.Preparing"]</strong>
+            </div>
         }
-    </section>
+        else if (AiSuggestions is not null)
+        {
+            <p class="ai-summary">@AiSuggestions.Summary</p>
 
-    <p class="disclaimer">@T["Results.Disclaimer"]</p>
-}
+            <div class="signal-row">
+                @foreach (var signal in AiSuggestions.BuyingSignals)
+                {
+                    <span>@signal</span>
+                }
+            </div>
+        }
 
-<section class="ai-suggestion-panel results-ai-panel" aria-live="polite">
-    <div class="ai-suggestion-head">
-        <div>
-            <p class="eyebrow">@T["Results.AiSuggestion"]</p>
-            <h2>@(AiSuggestions?.Intent ?? ActiveQuery)</h2>
-        </div>
-        <span class="ai-source-pill">@(IsLoadingSuggestions ? T["Results.Analyzing"] : AiSuggestions?.SourceLabel)</span>
-    </div>
-
-    @if (IsLoadingSuggestions)
-    {
-        <div class="ai-loading">
-            <span></span>
-            <strong>@T["Results.Preparing"]</strong>
-        </div>
-    }
-    else if (AiSuggestions is not null)
-    {
-        <p class="ai-summary">@AiSuggestions.Summary</p>
-
-        <div class="signal-row">
-            @foreach (var signal in AiSuggestions.BuyingSignals)
+        <section class="results-grid suggestion-products-grid">
+            @foreach (var product in Products)
             {
-                <span>@signal</span>
-            }
-        </div>
+                <article class="product-card @(product.Rank == 1 ? "featured" : null)" style="--accent:@product.Accent">
+                    <div class="rank-line">
+                        <span>#@product.Rank</span>
+                        <strong>@product.Score</strong>
+                    </div>
 
-        <div class="ai-leads">
-            @foreach (var lead in AiSuggestions.ProductLeads)
-            {
-                <article class="ai-lead-card">
-                    <span>@lead.Source</span>
-                    <h3>@lead.Name</h3>
-                    <p>@lead.Reason</p>
-                    <small>@lead.TargetPrice</small>
+                    <h2>@product.Name</h2>
+                    <div class="price">@product.Price</div>
+
+                    <dl class="spec-list result-spec-list">
+                        @foreach (var spec in CardSpecs(product))
+                        {
+                            <div>
+                                <dt>@T["Results.Spec"]</dt>
+                                <dd>@spec</dd>
+                            </div>
+                        }
+                    </dl>
+
+                    <p class="verified-line">@T["Results.Verified"]</p>
+                    <span class="badge">@product.Badge</span>
+
+                    <a class="card-action" href="@ProductUrl(product)">@T["Results.Details"]</a>
                 </article>
             }
-        </div>
+        </section>
 
-        <div class="ai-query-row">
-            @foreach (var suggestedQuery in AiSuggestions.SuggestedQueries)
-            {
-                <a href="/criteria?query=@Uri.EscapeDataString(suggestedQuery)">@suggestedQuery</a>
-            }
-        </div>
+        <p class="disclaimer">@T["Results.Disclaimer"]</p>
 
-        @if (AiSuggestions.Warnings.Count > 0)
+        @if (AiSuggestions?.Warnings.Count > 0)
         {
             <div class="ai-warning-row">
                 @foreach (var warning in AiSuggestions.Warnings)
@@ -111,8 +98,8 @@ else
                 }
             </div>
         }
-    }
-</section>
+    </section>
+}
 
 @code {
     [SupplyParameterFromQuery]
@@ -186,4 +173,5 @@ else
             ? $"/product/{product.Slug}"
             : $"/product/{product.Slug}?query={Uri.EscapeDataString(Query)}";
     }
+
 }

@@ -25,4 +25,15 @@
             <span>@T["Nav.ProductHistory"]</span>
         </NavLink>
     </nav>
+
+    <AuthorizeView>
+        <Authorized>
+            <nav class="nav-list nav-footer" aria-label='@T["Nav.UserMenu"]'>
+                <NavLink class="nav-link settings-nav" href="settings">
+                    <span class="settings-nav-icon" aria-hidden="true">&#9881;</span>
+                    <span>@T["Nav.Settings"]</span>
+                </NavLink>
+            </nav>
+        </Authorized>
+    </AuthorizeView>
 </div>

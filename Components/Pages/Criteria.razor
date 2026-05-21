@@ -1,21 +1,29 @@
 @page "/criteria"
+@implements IAsyncDisposable
 @inject ComparisonDataService Data
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
 @inject AppText T
 
 <PageTitle>@T["Criteria.PageTitle"]</PageTitle>
 
-<div class="criteria-page">
+<div id="@CriteriaPageId" class="criteria-page">
     <section class="page-header">
         <h1>@T["Criteria.Title"]</h1>
         <p>@T["Criteria.Lead"]</p>
     </section>
 
     <div class="tab-strip" role="tablist" aria-label='@T["Criteria.ModeAria"]'>
-        <button class="active" type="button">@T["Criteria.TabAi"]</button>
-        <button type="button">@T["Criteria.TabPrice"]</button>
-        <button type="button">@T["Criteria.TabWarranty"]</button>
-        <button type="button">@T["Criteria.TabDelivery"]</button>
-        <button type="button">@T["Criteria.TabRisk"]</button>
+        @foreach (var tab in Tabs)
+        {
+            <button class="@(ActiveTab == tab.Id ? "active" : null)"
+                    type="button"
+                    role="tab"
+                    aria-selected="@(ActiveTab == tab.Id)"
+                    @onclick="() => ActiveTab = tab.Id">
+                @tab.Label
+            </button>
+        }
     </div>
 
     <div class="comparison-command">
@@ -59,10 +67,24 @@
 </div>
 
 @code {
+    private const string CriteriaPageId = "criteria-page";
+
     [SupplyParameterFromQuery]
     public string? Query { get; set; }
 
     private List<WeightState> Weights { get; set; } = new();
+    private IJSObjectReference? keyboardModule;
+    private DotNetObjectReference<Criteria>? dotNetReference;
+    private string ActiveTab { get; set; } = "ai";
+
+    private IReadOnlyList<CriteriaTab> Tabs =>
+    [
+        new("ai", T["Criteria.TabAi"]),
+        new("price", T["Criteria.TabPrice"]),
+        new("warranty", T["Criteria.TabWarranty"]),
+        new("delivery", T["Criteria.TabDelivery"]),
+        new("risk", T["Criteria.TabRisk"])
+    ];
 
     private string ActiveQuery => string.IsNullOrWhiteSpace(Query)
         ? T["Criteria.DefaultQuery"]
@@ -77,6 +99,42 @@
             .ToList();
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        dotNetReference = DotNetObjectReference.Create(this);
+        keyboardModule = await JS.InvokeAsync<IJSObjectReference>("import", "./truecompare-criteria-keys.js?v=2");
+        await keyboardModule.InvokeVoidAsync("connect", CriteriaPageId, dotNetReference);
+    }
+
+    [JSInvokable]
+    public void SubmitCriteriaFromEnter()
+    {
+        Navigation.NavigateTo(ResultsUrl);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (keyboardModule is not null)
+        {
+            try
+            {
+                await keyboardModule.InvokeVoidAsync("disconnect", CriteriaPageId);
+                await keyboardModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // The circuit may already be gone during navigation.
+            }
+        }
+
+        dotNetReference?.Dispose();
+    }
+
     private sealed class WeightState(string id, string name, int value, string accent)
     {
         public string Id { get; } = id;
@@ -84,4 +142,6 @@
         public int Value { get; set; } = value;
         public string Accent { get; } = accent;
     }
+
+    private sealed record CriteriaTab(string Id, string Label);
 }

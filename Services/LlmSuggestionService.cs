@@ -1,5 +1,7 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Caching.Memory;
 using TrueCompare.Models;
 using TrueCompare.Options;
@@ -19,6 +21,11 @@ public sealed class LlmSuggestionService(
         NumberHandling = JsonNumberHandling.AllowReadingFromString
     };
 
+    static LlmSuggestionService()
+    {
+        JsonOptions.Converters.Add(new FlexibleDoubleConverter());
+    }
+
     public async Task<LlmSuggestionResult> GetSuggestionsAsync(
         string? query,
         IReadOnlyList<ProductResult> products,
@@ -28,23 +35,33 @@ public sealed class LlmSuggestionService(
         var normalizedQuery = string.IsNullOrWhiteSpace(query)
             ? text.Pick("produto com melhor relação preço, garantia e baixo risco", "product with best price, warranty and low risk")
             : query.Trim();
+        var maxBudgetCents = TryExtractMaxBudgetCents(normalizedQuery);
+        var scopedProducts = FilterProductsByBudget(products, maxBudgetCents);
+        var scopedOffers = FilterOffersByBudget(offers, maxBudgetCents);
 
-        var cacheKey = $"llm-suggestions:{normalizedQuery.ToLowerInvariant()}:{string.Join('|', products.Select(product => product.Slug))}";
+        var cacheKey = $"llm-suggestions:{normalizedQuery.ToLowerInvariant()}:{string.Join('|', scopedProducts.Select(product => product.Slug))}";
         if (cache.TryGetValue(cacheKey, out LlmSuggestionResult? cached) && cached is not null)
         {
             return cached;
         }
 
-        var fallback = BuildFallback(normalizedQuery, products, offers);
+        var fallback = BuildFallback(normalizedQuery, scopedProducts, scopedOffers, maxBudgetCents);
+        if (maxBudgetCents.HasValue && scopedProducts.Count == 0 && scopedOffers.Count == 0)
+        {
+            return fallback;
+        }
+
+        using var suggestionTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        suggestionTimeout.CancelAfter(TimeSpan.FromSeconds(2));
 
         try
         {
             var providerResponse = await providerRouter.TryGetValidJsonAsync(
                 "product-suggestions",
                 requiresVision: false,
-                provider => BuildRequestJson(provider, normalizedQuery, products, offers),
+                provider => BuildRequestJson(provider, normalizedQuery, scopedProducts, scopedOffers, maxBudgetCents),
                 content => IsValidPayload(ReadPayload(content)),
-                cancellationToken);
+                suggestionTimeout.Token);
 
             if (providerResponse is null)
             {
@@ -52,12 +69,12 @@ public sealed class LlmSuggestionService(
             }
 
             var parsed = ReadPayload(providerResponse.JsonContent);
-            var result = NormalizePayload(parsed, fallback, providerResponse.ProviderName);
+            var result = NormalizePayload(parsed, fallback, providerResponse.ProviderName, maxBudgetCents);
 
             cache.Set(cacheKey, result, TimeSpan.FromMinutes(20));
             return result;
         }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (suggestionTimeout.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
         {
             logger.LogWarning("LLM request timed out");
             return fallback;
@@ -69,7 +86,12 @@ public sealed class LlmSuggestionService(
         }
     }
 
-    private string BuildRequestJson(LlmProviderOptions provider, string query, IReadOnlyList<ProductResult> products, IReadOnlyList<SellerOffer> offers)
+    private string BuildRequestJson(
+        LlmProviderOptions provider,
+        string query,
+        IReadOnlyList<ProductResult> products,
+        IReadOnlyList<SellerOffer> offers,
+        long? maxBudgetCents)
     {
         var knownProducts = products.Select(product => new
         {
@@ -85,11 +107,12 @@ public sealed class LlmSuggestionService(
         var knownOffers = offers.Select(offer => new
         {
             offer.Seller,
-            offer.Price,
+            Price = offer.IsLivePrice ? offer.Price : text.Pick("confirmar na loja", "confirm in store"),
             offer.Delivery,
             offer.Warranty,
             offer.Status,
-            offer.Preferred
+            offer.Preferred,
+            offer.IsLivePrice
         });
 
         var request = new
@@ -107,6 +130,7 @@ public sealed class LlmSuggestionService(
                     És o motor de sugestões da TrueCompare. Responde na mesma língua do pedido do utilizador e devolve apenas JSON válido.
                     Não inventes preços em tempo real, stock, links ou vendedores. Usa preços só quando vierem em "ofertasConhecidas".
                     Se sugerires produtos fora do catálogo, marca source como "Sugestão IA" e usa targetPrice como "confirmar".
+                    Se o pedido tiver um orcamento maximo, nao sugiras produtos acima desse valor. Se nao houver opcoes dentro do orcamento, explica isso sem recomendar produtos fora do limite.
                     O JSON deve ter: intent, summary, confidence, buyingSignals, suggestedQueries, warnings, productLeads.
                     productLeads deve ter no máximo 4 itens com name, reason, targetPrice, searchHint e source.
                     """
@@ -118,6 +142,7 @@ public sealed class LlmSuggestionService(
                     {
                         idioma = text.IsEnglish ? "en-US" : "pt-PT",
                         pedido = query,
+                        orcamentoMaximoCentimos = maxBudgetCents,
                         produtosConhecidos = knownProducts,
                         ofertasConhecidas = knownOffers
                     }, JsonOptions)
@@ -133,7 +158,7 @@ public sealed class LlmSuggestionService(
         return JsonSerializer.Deserialize<LlmPayload>(content, JsonOptions);
     }
 
-    private LlmSuggestionResult NormalizePayload(LlmPayload? payload, LlmSuggestionResult fallback, string providerName)
+    private LlmSuggestionResult NormalizePayload(LlmPayload? payload, LlmSuggestionResult fallback, string providerName, long? maxBudgetCents)
     {
         if (payload is null)
         {
@@ -148,6 +173,7 @@ public sealed class LlmSuggestionService(
                 CleanText(lead.SearchHint),
                 CleanText(lead.Source, text.Pick("Sugestão IA", "AI suggestion"))))
             .Where(lead => !string.IsNullOrWhiteSpace(lead.Name) && !string.IsNullOrWhiteSpace(lead.Reason))
+            .Where(lead => IsLeadWithinBudget(lead, maxBudgetCents))
             .Take(4)
             .ToList();
 
@@ -179,16 +205,43 @@ public sealed class LlmSuggestionService(
             || Clean(payload.BuyingSignals).Any(signal => !string.IsNullOrWhiteSpace(signal));
     }
 
-    private LlmSuggestionResult BuildFallback(string query, IReadOnlyList<ProductResult> products, IReadOnlyList<SellerOffer> offers)
+    private LlmSuggestionResult BuildFallback(
+        string query,
+        IReadOnlyList<ProductResult> products,
+        IReadOnlyList<SellerOffer> offers,
+        long? maxBudgetCents = null)
     {
         var bestProduct = products.OrderByDescending(product => product.Score).FirstOrDefault();
-        var bestOffer = offers.OrderBy(offer => offer.PriceCents).FirstOrDefault();
+        var bestKnownOffer = offers.OrderBy(offer => offer.PriceCents).FirstOrDefault();
+        var bestOffer = offers
+            .Where(offer => offer.IsLivePrice)
+            .OrderBy(offer => offer.PriceCents)
+            .FirstOrDefault();
+        if (bestProduct is null && maxBudgetCents.HasValue)
+        {
+            return new LlmSuggestionResult(
+                false,
+                text.Pick("Modo local", "Local mode"),
+                query,
+                text.Pick(
+                    "Nao encontrei produtos conhecidos dentro do orcamento indicado. Aumenta o limite ou confirma se aceitas opcoes usadas/recondicionadas.",
+                    "No known products were found inside the requested budget. Increase the limit or confirm whether used/refurbished options are acceptable."),
+                72,
+                BuildFallbackSignals(null, null),
+                BuildFallbackQueries(query),
+                new[] { text.Pick("Nao foram encontrados precos validados dentro do limite indicado.", "No validated prices were found inside the requested limit.") },
+                Array.Empty<LlmProductLead>());
+        }
 
         var summary = bestProduct is null
             ? text.Pick("Define orçamento, garantia e risco para gerar uma comparação mais forte.", "Define budget, warranty and risk to generate a stronger comparison.")
-            : text.Pick(
-                $"Melhor ponto de partida: {bestProduct.Name}. Melhor vendedor conhecido: {bestOffer?.Seller ?? "confirmar"} {bestOffer?.Price ?? string.Empty}.",
-                $"Best starting point: {bestProduct.Name}. Best known seller: {bestOffer?.Seller ?? "confirm"} {bestOffer?.Price ?? string.Empty}.");
+            : bestOffer is not null
+                ? text.Pick(
+                    $"Melhor ponto de partida: {bestProduct.Name}. Melhor vendedor confirmado: {bestOffer.Seller} {bestOffer.Price}.",
+                    $"Best starting point: {bestProduct.Name}. Best confirmed seller: {bestOffer.Seller} {bestOffer.Price}.")
+                : text.Pick(
+                    $"Melhor ponto de partida: {bestProduct.Name}. Lojas conhecidas encontradas; preço final a confirmar na loja.",
+                    $"Best starting point: {bestProduct.Name}. Known stores found; final price must be confirmed in store.");
 
         var leads = products
             .OrderByDescending(product => product.Score)
@@ -214,10 +267,49 @@ public sealed class LlmSuggestionService(
             query,
             summary.Trim(),
             bestProduct?.Score ?? 72,
-            BuildFallbackSignals(bestProduct, bestOffer),
+            BuildFallbackSignals(bestProduct, bestOffer ?? bestKnownOffer),
             BuildFallbackQueries(query),
             warnings,
             leads);
+    }
+
+    private static IReadOnlyList<ProductResult> FilterProductsByBudget(IReadOnlyList<ProductResult> products, long? maxBudgetCents)
+    {
+        if (!maxBudgetCents.HasValue)
+        {
+            return products;
+        }
+
+        return products
+            .Where(product =>
+            {
+                var priceCents = ParsePriceCents(product.Price);
+                return priceCents > 0 && priceCents <= maxBudgetCents.Value;
+            })
+            .ToList();
+    }
+
+    private static IReadOnlyList<SellerOffer> FilterOffersByBudget(IReadOnlyList<SellerOffer> offers, long? maxBudgetCents)
+    {
+        if (!maxBudgetCents.HasValue)
+        {
+            return offers;
+        }
+
+        return offers
+            .Where(offer => offer.PriceCents > 0 && offer.PriceCents <= maxBudgetCents.Value)
+            .ToList();
+    }
+
+    private static bool IsLeadWithinBudget(LlmProductLead lead, long? maxBudgetCents)
+    {
+        if (!maxBudgetCents.HasValue)
+        {
+            return true;
+        }
+
+        var priceCents = ParsePriceCents(lead.TargetPrice);
+        return priceCents <= 0 || priceCents <= maxBudgetCents.Value;
     }
 
     private IReadOnlyList<string> BuildFallbackSignals(ProductResult? product, SellerOffer? offer)
@@ -229,9 +321,13 @@ public sealed class LlmSuggestionService(
             signals.Add($"{product.Score}% match");
         }
 
-        if (offer is not null)
+        if (offer is not null && offer.IsLivePrice)
         {
             signals.Add($"{offer.Seller}: {offer.Price}");
+        }
+        else if (offer is not null)
+        {
+            signals.Add(text.Pick("Preço final a confirmar na loja", "Final price to confirm in store"));
         }
 
         return signals.Count > 0
@@ -268,6 +364,67 @@ public sealed class LlmSuggestionService(
         return string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
     }
 
+    private static long? TryExtractMaxBudgetCents(string query)
+    {
+        var normalized = RemoveDiacritics(query.Trim().ToLowerInvariant());
+        var match = BudgetRegex.Match(normalized);
+        if (!match.Success)
+        {
+            return null;
+        }
+
+        var rawAmount = match.Groups["amount"].Value.Replace(',', '.');
+        return decimal.TryParse(rawAmount, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount)
+            ? (long)Math.Round(amount * 100m, MidpointRounding.AwayFromZero)
+            : null;
+    }
+
+    private static long ParsePriceCents(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return 0;
+        }
+
+        var match = PriceRegex.Match(value);
+        if (!match.Success)
+        {
+            return 0;
+        }
+
+        var amount = match.Groups[1].Value.Replace(" ", string.Empty);
+        if (amount.Contains(',', StringComparison.Ordinal))
+        {
+            amount = amount.Replace(".", string.Empty).Replace(',', '.');
+        }
+        else if (Regex.IsMatch(amount, @"\.\d{3}$"))
+        {
+            amount = amount.Replace(".", string.Empty);
+        }
+
+        return decimal.TryParse(amount, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsed)
+            ? (long)Math.Round(parsed * 100m, MidpointRounding.AwayFromZero)
+            : 0;
+    }
+
+    private static string RemoveDiacritics(string value)
+    {
+        var normalized = value.Normalize(System.Text.NormalizationForm.FormD);
+        var chars = normalized
+            .Where(character => CharUnicodeInfo.GetUnicodeCategory(character) != UnicodeCategory.NonSpacingMark)
+            .ToArray();
+
+        return new string(chars).Normalize(System.Text.NormalizationForm.FormC);
+    }
+
+    private static readonly Regex BudgetRegex = new(
+        @"(?:ate|under|below|maximo|max|orcamento)\s*(?:de\s*)?(?:eur|euros?|\u20ac)?\s*(?<amount>\d+(?:[\.,]\d{1,2})?)|(?<amount>\d+(?:[\.,]\d{1,2})?)\s*(?:eur|euros?|\u20ac)",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex PriceRegex = new(
+        @"(\d+(?:[\s\.]\d{3})*(?:[,.]\d{1,2})?|\d+)",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
     private sealed class LlmPayload
     {
         public string? Intent { get; set; }
@@ -283,6 +440,48 @@ public sealed class LlmSuggestionService(
         public IReadOnlyList<string>? Warnings { get; set; }
 
         public IReadOnlyList<LlmLeadPayload>? ProductLeads { get; set; }
+    }
+
+    private sealed class FlexibleDoubleConverter : JsonConverter<double>
+    {
+        public override double Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            if (reader.TokenType == JsonTokenType.Number)
+            {
+                return reader.GetDouble();
+            }
+
+            if (reader.TokenType != JsonTokenType.String)
+            {
+                return 0;
+            }
+
+            var value = reader.GetString();
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return 0;
+            }
+
+            var normalized = value.Trim().TrimEnd('%').Replace(',', '.');
+            if (double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed))
+            {
+                return parsed;
+            }
+
+            var numericText = new string(value
+                .Where(character => char.IsDigit(character) || character is '.' or ',')
+                .ToArray())
+                .Replace(',', '.');
+
+            return double.TryParse(numericText, NumberStyles.Float, CultureInfo.InvariantCulture, out parsed)
+                ? parsed
+                : 0;
+        }
+
+        public override void Write(Utf8JsonWriter writer, double value, JsonSerializerOptions options)
+        {
+            writer.WriteNumberValue(value);
+        }
     }
 
     private sealed class LlmLeadPayload

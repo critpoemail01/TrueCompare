@@ -90,7 +90,7 @@ As sugestões aparecem nos resultados e correm no servidor. A chave nunca é env
 
 ```powershell
 dotnet user-secrets set "Llm:ApiKey" "sk-..."
-dotnet user-secrets set "Llm:Model" "gpt-4o-mini"
+dotnet user-secrets set "Llm:Model" "qwen3-vl:235b-cloud"
 ```
 
 Também podes usar variável de ambiente:
@@ -103,8 +103,8 @@ Endpoint por omissão:
 
 ```json
 "Llm": {
-  "Endpoint": "https://api.openai.com/v1/chat/completions",
-  "Model": "gpt-4o-mini"
+  "Endpoint": "http://10.22.4.151:11434/v1/chat/completions",
+  "Model": "qwen3-vl:235b-cloud"
 }
 ```
 

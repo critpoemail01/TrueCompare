@@ -1051,6 +1051,19 @@ The application must include tests to guarantee that all implemented functionali
 
 Testing must be part of the normal development workflow, not an optional task.
 
+### Test execution scope
+
+Do not run the full test suite automatically after every small user-requested change.
+
+Use this rule:
+
+- For documentation-only changes, do not run application tests.
+- For small CSS, layout, copy or visual-only changes, prefer a focused browser/manual verification of the affected page instead of running all tests.
+- For narrow code changes, run only the relevant targeted test class or test method using `dotnet test --filter ...`.
+- For new business logic, security-sensitive flows, billing, authentication, authorization, database changes, migrations, shared services or broad refactors, run the relevant targeted tests and then the full test suite when appropriate.
+- Run the full test suite only when the change has broad impact, when multiple unrelated areas were touched, before considering a larger feature complete, or when the user explicitly asks for it.
+- If tests are skipped or only targeted tests are run, state that clearly in the final response with the reason.
+
 Testing libraries are allowed. The restriction on external UI component libraries applies only to the application UI.
 
 Use test libraries appropriate for .NET and Blazor, such as:

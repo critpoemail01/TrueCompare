@@ -11,6 +11,7 @@
             <AuthorizeView>
                 <Authorized>
                     <div class="topbar-actions">
+                        <AccountCreditSummary />
                         <form method="post" action="/auth/logout">
                             <AntiforgeryToken />
                             <button class="ghost-button" type="submit">@T["Layout.Logout"]</button>
@@ -31,9 +32,9 @@
             @Body
         </main>
 
-        <footer class="workspace-footer" aria-hidden="true">
-            <span>@T["Layout.Rights"]</span>
-            <strong>@T["Layout.Version"]</strong>
+        <footer class="workspace-footer">
+            <span>&copy; TrueCompare by</span>
+            <a href="https://www.advance.com.pt/" target="_blank" rel="noopener noreferrer">Advance</a>
         </footer>
     </section>
 </div>
