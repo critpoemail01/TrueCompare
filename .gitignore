@@ -8,6 +8,14 @@
 
 # Local QA screenshots
 qa-*.png
+truecompare-*.png
+
+# Local Codex/test run artifacts
+.codex-run/
+_test-run/
+
+# Temporary product validation datasets
+kuantokusta-products*.json
 
 # User-specific files
 *.rsuser

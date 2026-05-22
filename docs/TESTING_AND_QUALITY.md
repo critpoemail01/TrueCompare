@@ -1,6 +1,6 @@
-# TrueCompare - Validacao funcional e qualidade
+# TrueCompare - Testing and Quality
 
-Ultima atualizacao: 2026-05-21
+Ultima atualizacao: 2026-05-22
 
 Este ficheiro e a referencia viva para garantir que a TrueCompare continua funcional, coerente e pronta para evoluir. Sempre que uma funcionalidade for criada, alterada ou removida, este documento deve ser atualizado no mesmo trabalho.
 
@@ -16,6 +16,15 @@ Sempre que for lancada uma funcionalidade:
 - definir testes Playwright E2E quando houver interacao de utilizador;
 - definir testes .NET quando houver regra de negocio, dados, LLM, preco, loja, autenticacao, autorizacao ou persistencia;
 - indicar riscos residuais se a funcionalidade depender de dados externos ou sites de terceiros.
+
+Sempre que `docs/TRUECOMPARE_BLUEPRINT.md` for alterado:
+
+- rever este ficheiro no mesmo trabalho;
+- atualizar criterios de aceite quando o blueprint alterar comportamento esperado;
+- atualizar testes Playwright quando o blueprint alterar fluxos de utilizador, UI, plataformas, idiomas, mercados, lojas ou integracoes externas;
+- atualizar testes .NET quando o blueprint alterar regras de negocio, validacao, ranking, dados, seguranca, alertas, LLM ou persistencia;
+- atualizar a matriz de pesquisas quando o blueprint alterar categorias, mercados, lojas ou regras de recomendacao;
+- se a alteracao do blueprint nao exigir alteracao neste ficheiro, indicar essa razao na resposta final.
 
 ## Criterio global de pronto
 
@@ -34,6 +43,52 @@ A aplicacao so deve ser considerada pronta quando:
 - os testes .NET relevantes passam;
 - nao ha segredos, passwords ou tokens reais no repositorio;
 - nao ha regressao critica de seguranca, layout, autenticacao, alertas, historico, creditos, LLM ou checkout.
+
+## Release gates para producao
+
+Estes criterios sao os gates formais de entrada em producao e devem ser revistos sempre que o blueprint mudar.
+
+A aplicacao so pode ser considerada pronta para producao quando todos estes gates passarem.
+
+Pesquisa e recomendacao:
+
+- matriz minima de pesquisas passa;
+- pesquisas com limite de preco respeitam o limite;
+- acessorios nao devolvem produto principal;
+- resultados pertencem a categoria correta;
+- quando nao ha oferta valida, existe estado claro;
+- nao existem recomendacoes baseadas em dados inventados.
+
+Ofertas e lojas:
+
+- zero lojas recomendadas sem preco confirmado;
+- zero URLs de pesquisa/categoria/homepage usadas como URL de produto;
+- toda loja recomendada tem URL direta da pagina do produto;
+- ofertas marketplace identificam vendedor real quando aplicavel;
+- preco mostrado bate certo com a fonte quando a app apresenta preco confirmado;
+- lojas pertencem ao mercado correto.
+
+Fluxos criticos:
+
+- pesquisa por texto funciona ponta a ponta;
+- pesquisa por imagem funciona por upload e paste quando suportado;
+- detalhe do produto mostra dados coerentes;
+- checkout abre loja em nova tab na pagina real do produto;
+- alertas sao criados, monitorizados e enviados apenas quando o preco alvo e atingido;
+- emails de alerta renderizam HTML, incluem produto no subject e nao incluem assinatura externa indesejada;
+- historico guarda e reabre pesquisas por utilizador;
+- autenticacao, logout, definicoes, creditos e planos funcionam.
+
+Qualidade tecnica:
+
+- testes Playwright criticos passam;
+- testes .NET relevantes passam;
+- testes live externos criticos passam ou ficam skipped com motivo externo claro;
+- sem scroll horizontal indevido em desktop, tablet ou mobile;
+- sem segredos reais no repositorio;
+- sem ficheiros lixo, screenshots soltos, logs locais, outputs de build/publish ou datasets temporarios;
+- logs nao expoem passwords, tokens, API keys ou dados pessoais desnecessarios;
+- erros de producao nao mostram stack traces ao utilizador.
 
 ## Tipos de teste obrigatorios
 
@@ -214,6 +269,10 @@ Validar:
 - criterios mudam por categoria;
 - Enter ou botao "Comparar produtos" avanca;
 - pesos alterados influenciam ranking quando aplicavel;
+- formula base do ranking respeita os pesos do blueprint: 35% adequacao, 25% preco, 15% confianca, 10% garantia, 10% entrega/stock e 5% historico de preco;
+- produtos fora de restricoes obrigatorias, como preco maximo ou categoria, nao vencem o ranking;
+- ofertas sem preco confirmado ou sem URL direta de produto nao vencem o ranking de compra;
+- desempates seguem a ordem: confianca, menor preco, entrega e garantia;
 - tabs/segmentos nao quebram layout;
 - estado sem query e tratado;
 - acessivel por teclado.
@@ -230,6 +289,13 @@ Playwright:
 - `criteria_product_specific_weights.spec`
 - `criteria_enter_submits.spec`
 - `criteria_slider_keyboard_access.spec`
+
+.NET:
+
+- `RankingScoreCalculator_UsesBlueprintWeights`
+- `RankingScoreCalculator_ExcludesProductsOutsideMandatoryConstraints`
+- `RankingScoreCalculator_DoesNotPromoteOffersWithoutConfirmedPriceOrProductUrl`
+- `RankingScoreCalculator_TieBreaksByTrustThenPriceThenDeliveryThenWarranty`
 
 ## 5. Resultados comparativos
 
@@ -411,7 +477,7 @@ Validar Portugal:
 - UI em portugues;
 - lojas PT/EU: Worten, FNAC, PCDIGA, Radio Popular, KuantoKusta, Amazon.es, Apple Store PT;
 - moeda EUR;
-- formato `1 299,00 €` ou formato pt-PT equivalente;
+- formato `1 299,00 EUR` ou formato pt-PT equivalente;
 - sem Best Buy, Walmart, Target, Newegg como recomendacao valida.
 
 Validar Estados Unidos:
@@ -612,6 +678,11 @@ Pagina:
 
 - `/settings`
 
+Endpoints:
+
+- `/auth/settings/profile`
+- `/auth/settings/password`
+
 Validar:
 
 - so autenticado acede;
@@ -645,6 +716,12 @@ Paginas:
 - `/credits`
 - `/credits/success`
 
+Endpoints:
+
+- `/billing/create-checkout-session`
+- `/billing/create-subscription-session`
+- `/billing/stripe-webhook`
+
 Validar:
 
 - indicador de plano atual;
@@ -672,6 +749,11 @@ Playwright:
 - status de subscricao.
 
 ## 17. Email
+
+Endpoints de desenvolvimento:
+
+- `/dev/email/price-alert-preview`
+- `/dev/email/send-price-alert-test`
 
 Validar:
 
@@ -851,7 +933,71 @@ Helpers sugeridos:
 - `loginAsTestUser()`;
 - `createPriceAlert()`.
 
-## 24. Regras para atualizar este documento
+## 24. Mobile readiness, PWA e apps nativas
+
+Objetivo:
+
+- garantir que a web continua a funcionar;
+- preparar a aplicacao para Android/iOS sem duplicar regras criticas;
+- validar que a futura app mobile usa o servidor como fonte de verdade.
+
+Validar web mobile/PWA:
+
+- layout mobile sem scroll horizontal;
+- upload por botao funciona em mobile;
+- paste de imagem continua suportado onde o browser permitir;
+- campos e botoes tem tamanho touch;
+- checkout e alertas sao usaveis em ecras pequenos;
+- PWA tem manifesto valido quando for ativada;
+- icones e cores de PWA existem quando for ativada;
+- comportamento offline/de rede fraca mostra estado claro;
+- notificacoes push, se existirem, sao opt-in e respeitam permissao do utilizador.
+
+Validar preparacao MAUI Blazor Hybrid:
+
+- UI partilhavel fica isolada em Razor Class Library quando a app mobile for criada;
+- componentes partilhados nao dependem diretamente de APIs web-only;
+- funcionalidades nativas ficam atras de interfaces como `ICameraService`, `IImagePickerService`, `ILocationService`, `IClipboardService`, `IPushNotificationService`, `ISecureStorageService` e `IExternalBrowserService`;
+- implementacoes web e mobile sao registadas por DI;
+- app mobile nao acede diretamente a SQL Server;
+- app mobile nao guarda LLM keys, SMTP secrets, Stripe secret keys ou credenciais de conectores;
+- app mobile comunica com o servidor por APIs autenticadas;
+- tokens mobile ficam em secure storage;
+- alertas continuam a ser monitorizados pelo backend.
+
+Testes esperados quando mobile/PWA existir:
+
+- Playwright mobile viewport para fluxos web criticos;
+- testes de manifesto/service worker para PWA;
+- testes de API para endpoints consumidos por mobile;
+- testes MAUI em Android emulator;
+- testes MAUI em iOS simulator quando houver ambiente macOS;
+- testes de permissoes para camera, galeria, localizacao, clipboard e push;
+- testes de login/logout e refresh token no mobile;
+- testes de abertura de loja externa em browser externo.
+
+## 25. Higiene de ficheiros e repositorio
+
+Validar:
+
+- nao existem `bin/`, `obj/`, `.vs/`, `.codex-run/` ou `_test-run/` versionados;
+- nao existem screenshots soltos como `truecompare-*.png`;
+- nao existem logs locais versionados;
+- nao existem datasets temporarios na raiz do projeto;
+- fixtures de teste ficam em pasta clara, por exemplo `TrueCompare.Tests/Fixtures`;
+- fixtures grandes so existem quando sao usadas por testes automatizados ou validacoes documentadas;
+- ficheiros novos tem responsabilidade clara e sao referenciados por codigo, testes, configuracao ou documentacao;
+- outputs de publish nao entram no repositorio;
+- `.gitignore` cobre artefactos gerados pelas ferramentas usadas.
+
+Testes/verificacoes:
+
+- `git status --short` antes de finalizar;
+- `rg --files` para procurar artefactos inesperados;
+- procura por screenshots/logs/datasets temporarios;
+- confirmar que documentos renomeados nao deixam referencias antigas.
+
+## 26. Regras para atualizar este documento
 
 Ao criar uma funcionalidade nova:
 
@@ -870,7 +1016,7 @@ Ao corrigir um bug:
 3. criar teste que falharia antes da correcao;
 4. manter o teste na suite.
 
-## 25. Risco residual conhecido
+## 27. Risco residual conhecido
 
 Mesmo com todos os testes, ha risco em:
 

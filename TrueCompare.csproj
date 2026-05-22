@@ -32,9 +32,6 @@
 
   <ItemGroup>
     <Content Update="appsettings.Development.json" CopyToPublishDirectory="Never" />
-    <Content Update="kuantokusta-products*.json" CopyToPublishDirectory="Never" />
-    <Content Update="worten-products*.json" CopyToPublishDirectory="Never" />
-    <Content Update="truecompare-*.png" CopyToPublishDirectory="Never" />
     <Content Update="dotnet-tools.json" CopyToPublishDirectory="Never" />
   </ItemGroup>
 

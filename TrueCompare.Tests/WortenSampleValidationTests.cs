@@ -10,7 +10,7 @@ public sealed class WortenSampleValidationTests
     [Fact]
     public void WortenBalancedSample_ReturnsCompatibleCategory_ForAtLeastMostProducts()
     {
-        var samplePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "worten-products-balanced-1000.json"));
+        var samplePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Fixtures", "worten-products-balanced-1000.json"));
         if (!File.Exists(samplePath))
         {
             return;

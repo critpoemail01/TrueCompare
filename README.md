@@ -1,125 +1,55 @@
 # TrueCompare
 
-Blazor Web App em .NET 8 com Identity, SQL Server, limite de pesquisas e pagamentos por cartão via Stripe Checkout.
+TrueCompare e uma Blazor Web App em .NET 10 para comparar produtos, validar lojas/precos e criar alertas de preco.
 
-## Princípio de UX
+A aplicacao deve ajudar o utilizador a procurar qualquer produto por texto ou imagem, sugerir opcoes reais do mercado, validar lojas com URL direta do produto e enviar alertas quando o preco alvo for atingido.
 
-A aplicação deve falar por si: ações claras, estados visíveis e o mínimo de texto explicativo no ecrã.
+## Documentacao principal
 
-## Segurança e arquitetura de dados
+- [Blueprint da aplicacao](docs/TRUECOMPARE_BLUEPRINT.md): visao do produto, regras de negocio, mercados, lojas, ofertas validas, LLM, alertas e roadmap.
+- [Testes e qualidade](docs/TESTING_AND_QUALITY.md): checklist funcional, matriz de pesquisas, Playwright, testes .NET, seguranca, acessibilidade e criterios de pronto.
+- [AGENTS.md](AGENTS.md): regras curtas para Codex e agentes de IA.
 
-- Blazor Web App em .NET 8 com renderização interativa server-side.
-- ASP.NET Core Identity guarda utilizadores e hashes de password em SQL Server.
-- Passwords exigem mínimo de 10 caracteres, maiúscula, minúscula, número e símbolo.
-- Lockout ativo após tentativas falhadas e cookies de autenticação `HttpOnly`, `SameSite=Lax` e seguros em produção.
-- POSTs MVC usam validação antiforgery por omissão; o webhook Stripe é a exceção controlada.
-- Endpoints de login, pagamento e alertas usam rate limiting.
-- Compras e consumo de créditos correm em transações para evitar dupla atribuição ou consumo concorrente.
-- Cartões são processados pelo Stripe Checkout; a aplicação não guarda dados de cartão.
-- Secrets ficam em user-secrets/variáveis de ambiente, não em código.
+## Stack
+
+- .NET 10
+- Blazor Web App
+- Interactive Server render mode
+- SQL Server
+- Entity Framework Core
+- ASP.NET Core Identity
+- HTML/CSS e componentes Razor nativos
 
 ## Base de dados
 
-A aplicação usa SQL Server Express por omissão:
+Em desenvolvimento, a aplicacao usa SQL Server Express:
 
 ```json
-"DefaultConnection": "Server=.\\SQLExpress;Database=TrueCompareDb;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true"
+"DefaultConnection": "Server=.\\SQLExpress;Database=TrueCompareDB;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true"
 ```
 
-Se a instância exigir `sa`, troca a connection string por:
+As migrations devem ser aplicadas com EF Core. Nao usar `EnsureCreated()`.
 
-```json
-"DefaultConnection": "Server=.\\SQLExpress;Database=TrueCompareDb;User Id=sa;Password=A_TUA_PASSWORD;TrustServerCertificate=True;MultipleActiveResultSets=true"
-```
-
-Comandos usados:
+Comandos uteis:
 
 ```powershell
-dotnet tool run dotnet-ef migrations add InitialCreate --output-dir Data\Migrations
+dotnet tool run dotnet-ef migrations add NomeDaMigration --output-dir Data\Migrations
 dotnet tool run dotnet-ef database update
 ```
 
-## Testes
+## Configuracao local
 
-A solução inclui testes unitários e smoke tests HTTP para validar catálogo, quotas, alertas, sugestões LLM e páginas principais:
+Secrets devem ficar em User Secrets ou variaveis de ambiente. Nao colocar chaves reais no repositorio.
 
-```powershell
-dotnet test TrueCompare.slnx
-```
-
-## Login Google
-
-Configura OAuth no Google Cloud Console e define os secrets localmente:
+Exemplos:
 
 ```powershell
 dotnet user-secrets set "Authentication:Google:ClientId" "..."
 dotnet user-secrets set "Authentication:Google:ClientSecret" "..."
-```
 
-Callback OAuth:
+dotnet user-secrets set "Stripe:SecretKey" "..."
+dotnet user-secrets set "Stripe:WebhookSecret" "..."
 
-```text
-https://localhost:7022/signin-google
-http://localhost:5241/signin-google
-```
-
-## Pagamentos
-
-Os cartões são tratados pelo Stripe Checkout. A app não guarda dados de cartão.
-
-```powershell
-dotnet user-secrets set "Stripe:SecretKey" "sk_test_..."
-dotnet user-secrets set "Stripe:WebhookSecret" "whsec_..."
-```
-
-Webhook:
-
-```text
-POST /billing/stripe-webhook
-```
-
-Evento necessário:
-
-```text
-checkout.session.completed
-```
-
-## LLM de sugestões
-
-As sugestões aparecem nos resultados e correm no servidor. A chave nunca é enviada para o browser. Sem chave configurada, a app usa o catálogo local como fallback.
-
-```powershell
-dotnet user-secrets set "Llm:ApiKey" "sk-..."
-dotnet user-secrets set "Llm:Model" "qwen3-vl:235b-cloud"
-```
-
-Também podes usar variável de ambiente:
-
-```powershell
-$env:TRUECOMPARE_LLM_API_KEY="sk-..."
-```
-
-Endpoint por omissão:
-
-```json
-"Llm": {
-  "Endpoint": "http://10.22.4.151:11434/v1/chat/completions",
-  "Model": "qwen3-vl:235b-cloud"
-}
-```
-
-## Regra de créditos
-
-- Cada utilizador tem 3 pesquisas gratuitas.
-- Depois disso, cada comparação consome 1 crédito.
-- A compra Stripe cria um registo em `CreditPurchases`.
-- O webhook confirmado adiciona os créditos ao utilizador.
-
-## Alertas de preço por email
-
-Configura SMTP para enviar alertas quando o melhor preço conhecido ficar abaixo do preço alvo:
-
-```powershell
 dotnet user-secrets set "Email:Host" "smtp.exemplo.com"
 dotnet user-secrets set "Email:Port" "587"
 dotnet user-secrets set "Email:UserName" "..."
@@ -127,4 +57,29 @@ dotnet user-secrets set "Email:Password" "..."
 dotnet user-secrets set "Email:FromEmail" "alerts@truecompare.pt"
 ```
 
-O monitor corre em background a cada 15 minutos e verifica alertas ativos em `TargetPriceAlerts`.
+## LLM
+
+O LLM local/Ollama deve ser a primeira opcao quando estiver disponivel. Fallbacks externos so devem ser usados quando o local falhar ou nao suportar a tarefa.
+
+Exemplo de configuracao:
+
+```json
+"Llm": {
+  "Endpoint": "http://172.20.10.55:11434/v1/chat/completions",
+  "Model": "qwen3-vl:235b-cloud"
+}
+```
+
+## Testes
+
+Para alteracoes pequenas, correr apenas testes focados. Para alteracoes de negocio, seguranca, dados, alertas, autenticacao ou refactors largos, correr a suite relevante e depois a suite completa quando fizer sentido.
+
+```powershell
+dotnet test TrueCompare.slnx
+```
+
+Os criterios completos estao em [docs/TESTING_AND_QUALITY.md](docs/TESTING_AND_QUALITY.md).
+
+## Alertas de preco
+
+Alertas devem ser enviados apenas quando existir preco confirmado, vendedor conhecido quando aplicavel e URL direta do produto. O email deve usar template HTML coerente com a aplicacao e nao deve incluir assinaturas automaticas indevidas.
