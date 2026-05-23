@@ -19,19 +19,46 @@
 <section class="tutorial-grid">
     @foreach (var tutorial in FilteredTutorials)
     {
-        <article class="tutorial-card">
+        <button type="button" class="tutorial-card" @onclick="() => OpenTutorial(tutorial)" aria-label='@T.Format("Tutorials.PlayAria", tutorial.Title)'>
             <div class="video-thumb">
+                <video class="tutorial-preview" preload="metadata" muted playsinline aria-hidden="true">
+                    <source src="@tutorial.VideoUrl" type="video/webm" />
+                </video>
                 <span class="play-button">▶</span>
                 <span class="duration">@tutorial.Duration</span>
             </div>
             <span class="tutorial-category">@tutorial.Category</span>
             <h2>@tutorial.Title</h2>
-        </article>
+            <p>@tutorial.Description</p>
+        </button>
     }
 </section>
 
+@if (ActiveTutorial is not null)
+{
+    <section class="tutorial-player-backdrop" role="dialog" aria-modal="true" aria-labelledby="tutorial-player-title" @onclick="CloseTutorial">
+        <article class="tutorial-player" @onclick:stopPropagation="true">
+            <header class="tutorial-player-header">
+                <div>
+                    <span class="tutorial-category">@ActiveTutorial.Category</span>
+                    <h2 id="tutorial-player-title">@ActiveTutorial.Title</h2>
+                    <p>@ActiveTutorial.Description</p>
+                </div>
+                <button type="button" class="secondary-button compact" @onclick="CloseTutorial">@T["Tutorials.Close"]</button>
+            </header>
+
+            <video class="tutorial-video" controls autoplay muted playsinline @key="ActiveTutorial.VideoUrl">
+                <source src="@ActiveTutorial.VideoUrl" type="video/webm" />
+                @T["Tutorials.VideoUnavailable"]
+            </video>
+        </article>
+    </section>
+}
+
 @code {
     private string ActiveFilter { get; set; } = string.Empty;
+
+    private TutorialItem? ActiveTutorial { get; set; }
 
     private IReadOnlyList<string> Filters => new[] { T["Tutorials.All"], T["Tutorials.Beginners"], T["Tutorials.Advanced"], T["Tutorials.Security"], T["Tutorials.Orders"] };
 
@@ -42,5 +69,15 @@
     protected override void OnInitialized()
     {
         ActiveFilter = T["Tutorials.All"];
+    }
+
+    private void OpenTutorial(TutorialItem tutorial)
+    {
+        ActiveTutorial = tutorial;
+    }
+
+    private void CloseTutorial()
+    {
+        ActiveTutorial = null;
     }
 }

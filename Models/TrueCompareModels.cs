@@ -20,6 +20,8 @@ public sealed record ProductResult(
     public IReadOnlyList<ProductSpecification> OfficialSpecifications { get; init; } = Array.Empty<ProductSpecification>();
 
     public IReadOnlyList<ProductReviewLink> ReviewLinks { get; init; } = Array.Empty<ProductReviewLink>();
+
+    public ProductLifecycleInfo? LifecycleInfo { get; init; }
 }
 
 public sealed record ProductSourceLink(
@@ -36,6 +38,14 @@ public sealed record ProductReviewLink(
     string Channel,
     string Url,
     string ViewSignal);
+
+public sealed record ProductLifecycleInfo(
+    string ReleaseYear,
+    string VersionStatus,
+    string NewerVersion,
+    string NextReleaseForecast,
+    string SourceLabel,
+    string? SourceUrl);
 
 public sealed record CriteriaWeight(
     string Name,
@@ -65,7 +75,10 @@ public sealed record SellerOffer(
 public sealed record TutorialItem(
     string Category,
     string Title,
-    string Duration);
+    string Duration,
+    string Slug = "",
+    string Description = "",
+    string VideoUrl = "");
 
 public sealed record FraudAlert(
     string Source,

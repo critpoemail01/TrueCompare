@@ -1,147 +1,24 @@
 @page "/criteria"
-@implements IAsyncDisposable
-@inject ComparisonDataService Data
 @inject NavigationManager Navigation
-@inject IJSRuntime JS
-@inject AppText T
-
-<PageTitle>@T["Criteria.PageTitle"]</PageTitle>
-
-<div id="@CriteriaPageId" class="criteria-page">
-    <section class="page-header">
-        <h1>@T["Criteria.Title"]</h1>
-        <p>@T["Criteria.Lead"]</p>
-    </section>
-
-    <div class="tab-strip" role="tablist" aria-label='@T["Criteria.ModeAria"]'>
-        @foreach (var tab in Tabs)
-        {
-            <button class="@(ActiveTab == tab.Id ? "active" : null)"
-                    type="button"
-                    role="tab"
-                    aria-selected="@(ActiveTab == tab.Id)"
-                    @onclick="() => ActiveTab = tab.Id">
-                @tab.Label
-            </button>
-        }
-    </div>
-
-    <div class="comparison-command">
-        <div class="query-card">
-            <span>@T["Criteria.LookingFor"]</span>
-            <strong>@ActiveQuery</strong>
-        </div>
-        <a class="primary-button command-button" href="@ResultsUrl">@T["Criteria.CompareProducts"]</a>
-    </div>
-
-    <div class="workspace-grid">
-        <section class="criteria-workbench">
-            <div class="criteria-grid">
-                @foreach (var weight in Weights)
-                {
-                    <article class="weight-row" style="--accent:@weight.Accent;--value:@weight.Value">
-                        <div class="weight-header">
-                            <label for="@weight.Id">@weight.Name</label>
-                            <output>@weight.Value%</output>
-                        </div>
-                        <input id="@weight.Id" type="range" min="0" max="100" @bind="weight.Value" @bind:event="oninput" />
-                    </article>
-                }
-            </div>
-        </section>
-
-        <aside class="analysis-panel">
-            <div class="analysis-copy">
-                <h2>@T["Criteria.RankingTitle"]</h2>
-                <p>@T["Criteria.RankingLead"]</p>
-            </div>
-            <h2>@T["Criteria.Signals"]</h2>
-            <ol class="process-list">
-                <li>@T["Criteria.OfficialSpecs"]</li>
-                <li>@T["Criteria.VerifiedSellers"]</li>
-                <li>@T["Criteria.TotalPrice"]</li>
-                <li>@T["Criteria.FraudRisk"]</li>
-            </ol>
-        </aside>
-    </div>
-</div>
 
 @code {
-    private const string CriteriaPageId = "criteria-page";
-
     [SupplyParameterFromQuery]
     public string? Query { get; set; }
 
-    private List<WeightState> Weights { get; set; } = new();
-    private IJSObjectReference? keyboardModule;
-    private DotNetObjectReference<Criteria>? dotNetReference;
-    private string ActiveTab { get; set; } = "ai";
-
-    private IReadOnlyList<CriteriaTab> Tabs =>
-    [
-        new("ai", T["Criteria.TabAi"]),
-        new("price", T["Criteria.TabPrice"]),
-        new("warranty", T["Criteria.TabWarranty"]),
-        new("delivery", T["Criteria.TabDelivery"]),
-        new("risk", T["Criteria.TabRisk"])
-    ];
-
-    private string ActiveQuery => string.IsNullOrWhiteSpace(Query)
-        ? T["Criteria.DefaultQuery"]
-        : Query;
-
-    private string ResultsUrl => $"/results?query={Uri.EscapeDataString(ActiveQuery)}";
+    private bool redirected;
 
     protected override void OnParametersSet()
     {
-        Weights = Data.GetCriteriaWeights(ActiveQuery)
-            .Select((weight, index) => new WeightState($"weight-{index}", weight.Name, weight.Value, weight.Accent))
-            .ToList();
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (!firstRender)
+        if (redirected)
         {
             return;
         }
 
-        dotNetReference = DotNetObjectReference.Create(this);
-        keyboardModule = await JS.InvokeAsync<IJSObjectReference>("import", "./truecompare-criteria-keys.js?v=2");
-        await keyboardModule.InvokeVoidAsync("connect", CriteriaPageId, dotNetReference);
+        redirected = true;
+        var resultsUrl = string.IsNullOrWhiteSpace(Query)
+            ? "/results"
+            : $"/results?query={Uri.EscapeDataString(Query)}";
+
+        Navigation.NavigateTo(resultsUrl, replace: true);
     }
-
-    [JSInvokable]
-    public void SubmitCriteriaFromEnter()
-    {
-        Navigation.NavigateTo(ResultsUrl);
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (keyboardModule is not null)
-        {
-            try
-            {
-                await keyboardModule.InvokeVoidAsync("disconnect", CriteriaPageId);
-                await keyboardModule.DisposeAsync();
-            }
-            catch (JSDisconnectedException)
-            {
-                // The circuit may already be gone during navigation.
-            }
-        }
-
-        dotNetReference?.Dispose();
-    }
-
-    private sealed class WeightState(string id, string name, int value, string accent)
-    {
-        public string Id { get; } = id;
-        public string Name { get; } = name;
-        public int Value { get; set; } = value;
-        public string Accent { get; } = accent;
-    }
-
-    private sealed record CriteriaTab(string Id, string Label);
 }

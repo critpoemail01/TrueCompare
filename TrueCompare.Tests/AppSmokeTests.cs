@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,10 +12,9 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
 {
     [Theory]
     [InlineData("/", "O que queres comparar hoje?")]
-    [InlineData("/criteria?query=comprar%20smartphones", "Define o que valorizas")]
-    [InlineData("/results?query=comprar%20smartphones", "iPhone 15 Pro")]
+    [InlineData("/results?query=comprar%20smartphones", "iPhone 16e")]
     [InlineData("/product/iphone-15-pro?query=comprar%20smartphones", "Score IA")]
-    [InlineData("/checkout?product=iphone-15-pro", "Encomendar agora")]
+    [InlineData("/checkout?product=iphone-15-pro", "Sem loja validada")]
     [InlineData("/login", "Entrar com Gmail")]
     [InlineData("/register", "Criar com Gmail")]
     public async Task PublicPages_RenderExpectedContent(string url, string expectedContent)
@@ -37,20 +36,22 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
 
         Assert.Contains("Sugest", html);
         Assert.Contains("Modo local", html);
-        Assert.Contains("Continuar com recomendado", html);
+        Assert.DoesNotContain("Continuar com recomendado", html);
+        Assert.DoesNotContain("+ Adicionar produto", html);
         Assert.Contains("Samsung Galaxy S24", html);
-        Assert.Contains("Xiaomi 14", html);
+        Assert.Contains("iPhone 16e", html);
     }
 
     [Fact]
-    public async Task ResultsPage_ExposesNextStepLinks()
+    public async Task ResultsPage_ExposesOnlyCardDetailLinks()
     {
         var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/results?query=comprar%20smartphones");
         var decoded = WebUtility.HtmlDecode(html);
 
-        Assert.Contains("Continuar com recomendado", decoded);
+        Assert.DoesNotContain("Continuar com recomendado", decoded);
+        Assert.DoesNotContain("+ Adicionar produto", decoded);
         Assert.Contains("Ver detalhes", decoded);
         Assert.Contains("/product/", html);
     }
@@ -101,16 +102,122 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
         var html = await client.GetStringAsync("/checkout?product=iphone-17");
         var decoded = WebUtility.HtmlDecode(html);
 
-        Assert.Contains("Radio Popular", decoded);
-        Assert.Contains("424,99", decoded);
-        Assert.Contains("https://www.radiopopular.pt/produto/apple-iphone-17-pro-max-256gb-lj", html);
-        Assert.DoesNotContain("radiopopular.pt/pesquisa", html);
+        Assert.Contains("Worten", decoded);
+        Assert.Matches(@"(?<!\d)939,99\s*\u20AC", decoded);
+        Assert.Contains("https://www.worten.pt/produtos/iphone-17-apple-6-3-256-gb-preto-8600278", html);
+        Assert.DoesNotContain("worten.pt/search", html);
         Assert.DoesNotContain("amazon.es/s?k=", html);
         Assert.DoesNotContain("Confirmar na loja", decoded);
     }
 
     [Fact]
-    public async Task CheckoutPage_DoesNotRecommendSearchPage_WhenNoConfirmedStoreOfferExists()
+    public async Task ResultsPage_DoesNotRenderProductsWithoutValidatedStoreOffers()
+    {
+        var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/results?query=comprar%20smartphones");
+        var decoded = WebUtility.HtmlDecode(html);
+
+        Assert.Contains("iPhone 16e", decoded);
+        Assert.Contains("Samsung Galaxy S24", decoded);
+        Assert.DoesNotContain("Google Pixel 8", decoded);
+        Assert.DoesNotContain("Xiaomi 14", decoded);
+    }
+
+    [Fact]
+    public async Task ResultsPage_RendersMicrowavesWithValidatedStoreOffers()
+    {
+        var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/results?query=microondas");
+        var decoded = WebUtility.HtmlDecode(html);
+
+        Assert.Contains("Teka MW FS20", decoded);
+        Assert.Contains("Microondas", decoded);
+        Assert.DoesNotContain("Ainda não consegui validar produtos", decoded);
+        Assert.DoesNotContain("Bosch Serie 6 Frigorífico", decoded);
+    }
+
+    [Fact]
+    public async Task ResultsPage_RendersGamingChairInsteadOfConsole_WhenQueryAsksForGamingChair()
+    {
+        var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/results?query=cadeira%20gaming");
+        var decoded = WebUtility.HtmlDecode(html);
+
+        Assert.Contains("RACINGREAT Costas Altas Cadeira Gaming", decoded);
+        Assert.Contains("65,00", decoded);
+        Assert.DoesNotContain("PlayStation 5 Slim", decoded);
+        Assert.DoesNotContain("Ainda não consegui validar produtos", decoded);
+    }
+
+    [Fact]
+    public async Task ResultsPage_RendersDryerInsteadOfFashion_WhenQueryAsksForSecarRoupa()
+    {
+        var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/results?query=Maquina%20de%20Secar%20Roupa%20Beko%20BM3T48249W%208Kg%20Classe%20C");
+        var decoded = WebUtility.HtmlDecode(html);
+
+        Assert.Contains("Beko BM3T48249W Maquina de Secar Roupa 8Kg", decoded);
+        Assert.Contains("366,90", decoded);
+        Assert.DoesNotContain("Adidas", decoded);
+        Assert.DoesNotContain("Sapatilhas", decoded);
+        Assert.DoesNotContain("Ainda não consegui validar produtos", decoded);
+    }
+
+    [Fact]
+    public async Task CheckoutPage_RendersConfirmedDryerStorePriceAndProductPage()
+    {
+        var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/checkout?product=beko-bm3t48249w-maquina-secar-roupa");
+        var decoded = WebUtility.HtmlDecode(html);
+
+        Assert.Contains("Beko BM3T48249W", decoded);
+        Assert.Contains("KuantoKusta", decoded);
+        Assert.Contains("366,90", decoded);
+        Assert.Contains("https://www.kuantokusta.pt/p/11598597/beko-bm3t48249w-8kg-classe-c", html);
+        Assert.DoesNotContain("/search?", html);
+        Assert.DoesNotContain("/pesquisa", html);
+    }
+
+    [Fact]
+    public async Task CheckoutPage_RendersConfirmedMicrowaveStorePriceAndProductPage()
+    {
+        var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/checkout?product=teka-mw-fs20-g-wh-microondas");
+        var decoded = WebUtility.HtmlDecode(html);
+
+        Assert.Contains("Teka MW FS20 G WH", decoded);
+        Assert.Contains("Darty", decoded);
+        Assert.Contains("64,99", decoded);
+        Assert.Contains("https://darty.pt/products/teka-microond-mw-fs20-g-wh-grill-20", html);
+        Assert.DoesNotContain("/search?", html);
+        Assert.DoesNotContain("/pesquisa", html);
+    }
+
+    [Fact]
+    public async Task CheckoutPage_RendersConfirmedGamingChairStorePriceAndProductPage()
+    {
+        var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/checkout?product=racingreat-costas-altas-cadeira-gaming&query=cadeira%20gaming");
+        var decoded = WebUtility.HtmlDecode(html);
+
+        Assert.Contains("RACINGREAT Costas Altas Cadeira Gaming", decoded);
+        Assert.Contains("Worten", decoded);
+        Assert.Contains("65,00", decoded);
+        Assert.Contains("https://www.worten.pt/produtos/cadeira-de-escritorio-ergonomica-racingreat-costas-altas-inclinavel-bracos-regulaveis-preto-mrkean-8711544779636", html);
+        Assert.DoesNotContain("Sem loja validada", decoded);
+        Assert.DoesNotContain("/search?", html);
+        Assert.DoesNotContain("/pesquisa", html);
+    }
+
+    [Fact]
+    public async Task CheckoutPage_ShowsKuantoKustaSearchFallback_WhenNoConfirmedStoreOfferExists()
     {
         var client = factory.CreateClient();
 
@@ -118,9 +225,13 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
         var decoded = WebUtility.HtmlDecode(html);
 
         Assert.Contains("Sem loja validada", decoded);
-        Assert.Contains("preco confirmado com pagina direta", decoded);
+        Assert.Contains("preço confirmado com página direta", decoded);
+        Assert.Contains("Pesquisar no KuantoKusta", decoded);
+        Assert.Contains("https://www.kuantokusta.pt/search?q=iPhone%2015%20Pro", html);
+        Assert.Contains("target=\"_blank\"", html);
+        Assert.Contains("rel=\"noopener noreferrer\"", html);
         Assert.DoesNotContain("amazon.es/s?k=", html);
-        Assert.DoesNotContain("/search?", html);
+        Assert.DoesNotContain("seller-table", html);
     }
 
     [Fact]
@@ -145,21 +256,27 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
         var html = await client.GetStringAsync("/results?query=quero%20um%20rato%20ate%2050%20euros");
 
         Assert.Contains("Logitech Signature M650", html);
-        Assert.Contains("Microsoft Bluetooth Mouse", html);
+        Assert.DoesNotContain("Microsoft Bluetooth Mouse", html);
         Assert.DoesNotContain("MacBook Air M3", html);
     }
 
     [Fact]
-    public async Task CriteriaPage_RendersProductSpecificWeights()
+    public async Task TutorialsPage_RendersPlayableLocalVideoSources()
     {
         var client = factory.CreateClient();
 
-        var html = await client.GetStringAsync("/criteria?query=quero%20um%20rato%20ate%2050%20euros");
+        var html = await client.GetStringAsync("/tutorials");
+        var decoded = WebUtility.HtmlDecode(html);
+        var video = await client.GetAsync("/tutorials/primeiro-prompt.webm");
 
-        Assert.Contains("id=\"criteria-page\"", html);
-        Assert.Contains("Sensor / DPI", html);
-        Assert.Contains("Ergonomia", html);
-        Assert.DoesNotContain("Performance (CPU)", html);
+        Assert.Contains("Como criar o primeiro prompt", decoded);
+        Assert.Contains("<video", html);
+        Assert.Contains("tutorials/primeiro-prompt.webm", html);
+        Assert.Contains("tutorials/pagamento-seguro.webm", html);
+        Assert.Contains("Reproduzir tutorial", decoded);
+        Assert.True(video.IsSuccessStatusCode);
+        Assert.Equal("video/webm", video.Content.Headers.ContentType?.MediaType);
+        Assert.True(video.Content.Headers.ContentLength > 100_000);
     }
 
     [Fact]
@@ -175,6 +292,10 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
         Assert.Contains("Especificações oficiais", decoded);
         Assert.Contains("Abrir página oficial", decoded);
         Assert.Contains("Reviews no YouTube", decoded);
+        Assert.Contains("Versão e lançamento", decoded);
+        Assert.Contains("2023", decoded);
+        Assert.Contains("UX10/UX10-IP", decoded);
+        Assert.Contains("2025", decoded);
         Assert.Contains("youtube.com/results", html);
     }
 
@@ -197,21 +318,34 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
     }
 
     [Fact]
+    public async Task HomePage_ShowsPortugueseSearchMarketContext()
+    {
+        var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/");
+        var decoded = WebUtility.HtmlDecode(html);
+
+        Assert.Contains("A procurar em Portugal", decoded);
+        Assert.Contains("Idioma pt-PT", decoded);
+        Assert.Contains("moeda EUR", decoded);
+        Assert.Contains("LLM", decoded);
+        Assert.Contains("desligado", decoded);
+        Assert.Contains("Worten", decoded);
+        Assert.Contains("Castro Electronica", decoded);
+        Assert.Contains("Aquario", decoded);
+    }
+
+    [Fact]
     public async Task HomePage_DoesNotPreselectCategory()
     {
         var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/");
         var decoded = WebUtility.HtmlDecode(html);
-        var defaultCategoryIndex = decoded.IndexOf("Eletrodomésticos eficientes", StringComparison.Ordinal);
 
-        Assert.True(defaultCategoryIndex >= 0);
-        var beforeDefaultCategory = decoded[..defaultCategoryIndex];
-        var lastButtonStart = beforeDefaultCategory.LastIndexOf("<button", StringComparison.Ordinal);
-
-        Assert.True(lastButtonStart >= 0);
-        var defaultCategoryButton = decoded[lastButtonStart..defaultCategoryIndex];
-        Assert.DoesNotContain("active", defaultCategoryButton);
+        Assert.Contains("Smartphones premium", decoded);
+        Assert.DoesNotContain("category-menu button active", decoded);
+        Assert.DoesNotContain("class=\"active\"", decoded);
     }
 
     [Fact]
@@ -327,6 +461,10 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
 
         Assert.Contains("en-US", response.Content.Headers.ContentLanguage);
         Assert.Contains("What do you want to compare today?", html);
+        Assert.Contains("Searching in the United States", html);
+        Assert.Contains("Language en-US", html);
+        Assert.Contains("currency USD", html);
+        Assert.Contains("Best Buy, Walmart, Amazon.com", html);
         Assert.Contains("Create account", html);
         Assert.DoesNotContain("O que queres comparar hoje?", html);
     }
@@ -468,3 +606,5 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
         string Email,
         string Password);
 }
+
+

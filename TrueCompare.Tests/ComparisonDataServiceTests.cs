@@ -1,10 +1,221 @@
-using System.Globalization;
+﻿using System.Globalization;
 using TrueCompare.Services;
 
 namespace TrueCompare.Tests;
 
 public sealed class ComparisonDataServiceTests
 {
+    static ComparisonDataServiceTests()
+    {
+        var culture = CultureInfo.GetCultureInfo("pt-PT");
+        CultureInfo.DefaultThreadCurrentCulture = culture;
+        CultureInfo.DefaultThreadCurrentUICulture = culture;
+        CultureInfo.CurrentCulture = culture;
+        CultureInfo.CurrentUICulture = culture;
+    }
+
+    public ComparisonDataServiceTests()
+    {
+        var culture = CultureInfo.GetCultureInfo("pt-PT");
+        CultureInfo.CurrentCulture = culture;
+        CultureInfo.CurrentUICulture = culture;
+    }
+
+    [Fact]
+    public void CategorySuggestions_ReturnRelevantProductsWithConfirmedStoreOffers()
+    {
+        var service = new ComparisonDataService(new AppText());
+        var expectations = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Smartphones premium"] = ["iphone", "galaxy", "smartphone"],
+            ["Telemóveis e smartwatches"] = ["iphone", "smartphone", "galaxy", "watch"],
+            ["Smartphones e acessórios"] = ["iphone", "smartphone", "carregador", "galaxy"],
+            ["Carregadores e cabos"] = ["carregador", "usb-c", "20w"],
+            ["Informática e portáteis"] = ["portatil", "asus", "macbook"],
+            ["Computadores e tablets"] = ["asus", "lenovo", "tablet", "portatil"],
+            ["Ratos e periféricos até 50€"] = ["rato", "logitech", "mouse"],
+            ["Armazenamento externo"] = ["disco", "externo", "passport"],
+            ["Monitores"] = ["monitor", "ultragear", "27"],
+            ["Impressoras"] = ["impressora", "hp", "deskjet"],
+            ["Imagem, TV e Som"] = ["tv", "som", "jbl", "auscultadores"],
+            ["Gaming e consolas"] = ["playstation", "ps5", "consola"],
+            ["Gaming"] = ["playstation", "ps5", "consola"],
+            ["Jogos e brinquedos"] = ["lego", "brinquedo", "jogo"],
+            ["Fotografia, drones e vídeo"] = ["canon", "drone", "fotografia", "video"],
+            ["Eletrodomésticos"] = ["frigorifico", "bosch", "microondas", "balanca", "xiaomi", "secar", "beko"],
+            ["Grandes eletrodomésticos"] = ["frigorifico", "bosch", "combinado", "lavar", "becken", "secar", "beko"],
+            ["Pequenos eletrodomésticos"] = ["microondas", "teka", "cafe", "nespresso", "balanca", "xiaomi"],
+            ["Máquinas de lavar"] = ["maquina de lavar", "lavar", "becken", "roupa"],
+            ["Frigoríficos"] = ["frigorifico", "bosch", "combinado"],
+            ["Ventoinhas"] = ["ventoinha", "rowenta", "ventilacao"],
+            ["Máquinas de café"] = ["nespresso", "cafe", "café"],
+            ["Microondas compactos"] = ["microondas", "teka", "20"],
+            ["Preparação de alimentos"] = ["kenwood", "robot de cozinha", "chef", "preparacao"],
+            ["Aspiradores"] = ["aspirador", "becken", "limpeza"],
+            ["Beleza e saúde"] = ["perfume", "lattafa", "beleza", "saude"],
+            ["Saúde, beleza e perfumaria"] = ["perfume", "lattafa", "beleza"],
+            ["Animais de estimação"] = ["royal", "racao", "cao"],
+            ["Bebé"] = ["fraldas", "bebe", "rascals"],
+            ["Bebé, puericultura e brinquedos"] = ["fraldas", "bebe", "lego"],
+            ["Bricolage"] = ["bosch", "berbequim", "bricolage", "karcher", "pressao"],
+            ["Bricolagem e construção"] = ["bosch", "berbequim", "bricolagem", "karcher", "pressao"],
+            ["Casa e decoração"] = ["cadeira", "casa", "mitsai"],
+            ["Sofás"] = ["sofa", "homcom", "cama"],
+            ["Bricolage e jardim"] = ["bosch", "berbequim", "weber", "jardim"],
+            ["Jardim"] = ["weber", "barbecue", "jardim"],
+            ["Desporto, outdoor e viagem"] = ["bicicleta", "otte", "desporto", "trotinete", "fitness", "passadeira"],
+            ["Desporto"] = ["bicicleta", "otte", "desporto", "trotinete", "fitness", "passadeira"],
+            ["Fitness"] = ["fitfiu", "fitness", "passadeira"],
+            ["Mobilidade"] = ["bicicleta", "trotinete", "mobilidade", "xiaomi"],
+            ["Moda e acessórios"] = ["adidas", "sapatilhas", "moda"],
+            ["Auto e moto"] = ["castrol", "oleo", "auto"],
+            ["Escritório e papelaria"] = ["hp", "tinteiros", "papelaria"],
+            ["Cultura, lazer e livros"] = ["livro", "catan", "atomic", "vinho", "papa"],
+            ["Livros, música e filmes"] = ["livro", "atomic", "habits"],
+            ["Gastronomia e vinhos"] = ["vinho", "papa", "figos", "gin"],
+            ["Recondicionados e outlet"] = ["playstation", "ps5", "consola"],
+            ["Consolas PlayStation"] = ["playstation", "ps5"]
+        };
+
+        Assert.Equal(expectations.Keys.OrderBy(category => category), service.Categories.OrderBy(category => category));
+
+        foreach (var category in service.Categories)
+        {
+            var query = $"{category}: melhor preço, vendedores verificados, baixo risco.";
+            var products = service.GetProducts(query);
+            Assert.NotEmpty(products);
+
+            var productsWithConfirmedOffers = products
+                .Where(product => service.BuildSellerOffersForProduct(product, query).Any(ComparisonDataService.IsConfirmedStoreOffer))
+                .ToList();
+
+            Assert.True(
+                productsWithConfirmedOffers.Count > 0,
+                $"{category} should have at least one product with a confirmed direct store offer. Products: {string.Join(", ", products.Select(product => product.Slug))}");
+            Assert.All(productsWithConfirmedOffers, product =>
+            {
+                var productText = string.Join(
+                    ' ',
+                    product.Name,
+                    product.Brand,
+                    product.Badge,
+                    product.AiSummary,
+                    string.Join(' ', product.Specs));
+                Assert.Contains(expectations[category], term => productText.Contains(term, StringComparison.OrdinalIgnoreCase));
+            });
+        }
+    }
+
+    [Theory]
+    [InlineData("KuantoKusta", "Electrodomésticos", "bosch")]
+    [InlineData("KuantoKusta", "Saúde e Beleza", "perfume")]
+    [InlineData("KuantoKusta", "Informática", "portatil")]
+    [InlineData("KuantoKusta", "Smartphones e Acessórios", "iphone")]
+    [InlineData("KuantoKusta", "Imagem e Som", "tv")]
+    [InlineData("KuantoKusta", "Gaming", "playstation")]
+    [InlineData("KuantoKusta", "Animais de Estimação", "advance")]
+    [InlineData("KuantoKusta", "Puericultura e Brinquedos", "fraldas")]
+    [InlineData("KuantoKusta", "Bricolagem e Construção", "bosch")]
+    [InlineData("KuantoKusta", "Casa e Decoração", "cadeira")]
+    [InlineData("KuantoKusta", "Desporto", "bicicleta")]
+    [InlineData("KuantoKusta", "Moda e Acessórios", "adidas")]
+    [InlineData("KuantoKusta", "Auto e Moto", "castrol")]
+    [InlineData("KuantoKusta", "Escritório e Papelaria", "tinteiros")]
+    [InlineData("KuantoKusta", "Cultura e Lazer", "catan")]
+    [InlineData("KuantoKusta", "Gastronomia e Vinhos", "papa")]
+    [InlineData("Worten", "Recondicionados e Outlet", "playstation")]
+    [InlineData("Worten", "Eletrodomésticos", "bosch")]
+    [InlineData("Worten", "Grandes eletrodomésticos", "bosch")]
+    [InlineData("Worten", "Pequenos eletrodomésticos", "microondas")]
+    [InlineData("Worten", "Máquinas de lavar", "becken")]
+    [InlineData("Worten", "Frigoríficos", "bosch")]
+    [InlineData("Worten", "Ventoinhas", "rowenta")]
+    [InlineData("Worten", "Preparação de alimentos", "kenwood")]
+    [InlineData("Worten", "Aspiradores", "aspirador")]
+    [InlineData("Worten", "Telemóveis e Smartwatches", "iphone")]
+    [InlineData("Worten", "Informática", "asus")]
+    [InlineData("Worten", "Computadores e Tablets", "asus")]
+    [InlineData("Worten", "TV e Som", "tv")]
+    [InlineData("Worten", "Gaming", "playstation")]
+    [InlineData("Worten", "Jogos e Brinquedos", "lego")]
+    [InlineData("Worten", "Fotografia, Drones e Vídeo", "canon")]
+    [InlineData("Worten", "Beleza e Saúde", "perfume")]
+    [InlineData("Worten", "Cuidado Pessoal e Saúde", "perfume")]
+    [InlineData("Worten", "Perfumaria e Cosmética", "perfume")]
+    [InlineData("Worten", "Bebé", "fraldas")]
+    [InlineData("Worten", "Casa e Decoração", "cadeira")]
+    [InlineData("Worten", "Sofás", "sofa")]
+    [InlineData("Worten", "Jardim", "weber")]
+    [InlineData("Worten", "Bricolage", "bosch")]
+    [InlineData("Worten", "Bricolage e Jardim", "weber")]
+    [InlineData("Worten", "Desporto, Outdoor e Viagem", "bicicleta")]
+    [InlineData("Worten", "Fitness", "fitfiu")]
+    [InlineData("Worten", "Mobilidade", "trotinete")]
+    [InlineData("Worten", "Mobilidade, Auto e Moto", "castrol")]
+    [InlineData("Worten", "Livros, Música e Filmes", "atomic")]
+    [InlineData("Worten", "Escritório e Papelaria", "tinteiros")]
+    public void OfficialMarketplaceCategories_ReturnValidatedStoreOptions(
+        string source,
+        string category,
+        string expectedTerm)
+    {
+        var service = new ComparisonDataService(new AppText());
+        var query = $"{category}: melhor preço, vendedores verificados, baixo risco.";
+
+        var products = service.GetProducts(query);
+        var productsWithConfirmedOffers = products
+            .Where(product => service.BuildSellerOffersForProduct(product, query).Any(ComparisonDataService.IsConfirmedStoreOffer))
+            .ToList();
+
+        Assert.True(
+            productsWithConfirmedOffers.Count > 0,
+            $"{source}/{category} should return at least one product with a direct confirmed store offer.");
+        Assert.Contains(productsWithConfirmedOffers, product =>
+            string.Join(' ', product.Name, product.Brand, product.Badge, product.AiSummary, string.Join(' ', product.Specs))
+                .Contains(expectedTerm, StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Theory]
+    [InlineData("Electrodomésticos", "Microondas Teka MW FS20 WH 20L", "Teka MW FS20 WH Microondas 20L", "teka-mw-fs20-wh-microondas", 4939, "PlayStation")]
+    [InlineData("Electrodomésticos", "Delta Q Mini Qool Cinzento", "Delta Q Mini Qool Cinzento", "delta-q-mini-qool-cinzento", 3599, "Delta Q Qalidus")]
+    [InlineData("Máquinas de Lavar Roupa", "Hisense WF1G7021BW 7Kg 1200RPM Classe B", "Hisense WF1G7021BW Maquina de Lavar Roupa", "hisense-wf1g7021bw-maquina-lavar", 21490, "Lavar Loica")]
+    [InlineData("Máquinas de Secar Roupa", "Beko BM3T48249W 8Kg Classe C", "Beko BM3T48249W Maquina de Secar Roupa 8Kg", "beko-bm3t48249w-maquina-secar-roupa", 36690, "Adidas")]
+    [InlineData("Informática", "Apple iPad 2025 11 A16 128GB Wi-Fi Prateado", "Apple iPad 11 A16 128GB Wi-Fi", "apple-ipad-11-a16-128gb", 33990, "MacBook")]
+    [InlineData("Escritório e Papelaria", "Tinteiro HP 308 Preto Tricolor Pack 2x", "Tinteiro HP 308 Preto/Tricolor Pack 2x", "hp-308-preto-tricolor-pack", 3221, "HP DeskJet")]
+    [InlineData("Smartphones e Acessórios", "Samsung Galaxy A16 4G 6.7 Dual SIM 4GB 128GB Black", "Samsung Galaxy A16", "samsung-galaxy-a16", 10889, "iPhone")]
+    [InlineData("Animais de Estimação", "Advance Cat Adult Frango e Arroz 12kg", "Advance Cat Adult Frango e Arroz 12kg", "advance-cat-adult-frango-arroz-12kg", 4388, "Royal Canin")]
+    [InlineData("Bricolagem e Construção", "Karcher K3 Lavadora de Alta Pressao", "Karcher K3 Lavadora de Alta Pressao", "karcher-k3-lavadora-alta-pressao", 9199, "Bosch Professional")]
+    [InlineData("Desporto", "Cecotec Bicicleta Estatica DrumFit Indoor 10000 Teseo", "Cecotec DrumFit Indoor 10000 Teseo", "cecotec-drumfit-indoor-10000-teseo", 12299, "PlayStation")]
+    public void KuantoKustaPublicProducts_ReturnMatchingProductAndConfirmedOffer(
+        string category,
+        string query,
+        string expectedProduct,
+        string expectedSlug,
+        long expectedPriceCents,
+        string wrongTopTerm)
+    {
+        var service = new ComparisonDataService(new AppText());
+
+        var products = service.GetProducts($"{category}: {query}");
+
+        Assert.NotEmpty(products);
+        var topProduct = products[0];
+        Assert.Equal(expectedSlug, topProduct.Slug);
+        Assert.Equal(expectedProduct, topProduct.Name);
+
+        var topText = string.Join(' ', topProduct.Name, topProduct.Brand, topProduct.Badge, topProduct.AiSummary, string.Join(' ', topProduct.Specs));
+        Assert.DoesNotContain(wrongTopTerm, topText, StringComparison.OrdinalIgnoreCase);
+
+        var kuantoKusta = service.BuildSellerOffersForProduct(topProduct, query)
+            .SingleOrDefault(offer => offer.Seller == "KuantoKusta");
+
+        Assert.NotNull(kuantoKusta);
+        Assert.True(ComparisonDataService.IsConfirmedStoreOffer(kuantoKusta!));
+        Assert.Equal(expectedPriceCents, kuantoKusta.PriceCents);
+        Assert.StartsWith("https://www.kuantokusta.pt/p/", kuantoKusta.Url);
+        Assert.DoesNotContain("/search", kuantoKusta.Url);
+    }
+
     [Fact]
     public void GetProducts_ReturnsSmartphoneCatalog_WhenQueryMentionsSmartphones()
     {
@@ -149,9 +360,63 @@ public sealed class ComparisonDataServiceTests
 
         var products = service.GetProducts("comprar frigorifico classe A");
 
-        Assert.Equal("Bosch Serie 6 Frigorífico", products[0].Name);
+        Assert.Contains("Frigorifico", products[0].Name, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(products, product => string.Join(' ', product.Name, string.Join(' ', product.Specs)).Contains("Classe A", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(products, product => product.Brand.Contains("Bosch", StringComparison.OrdinalIgnoreCase));
+        Assert.All(products, product =>
+            Assert.Contains(
+                service.BuildSellerOffersForProduct(product, "comprar frigorifico classe A"),
+                ComparisonDataService.IsConfirmedStoreOffer));
         Assert.DoesNotContain(products, product => product.Name == "Miele W1 Lavadora");
         Assert.DoesNotContain(products, product => product.Name == "Samsung Bespoke Lava-loiça");
+    }
+
+    [Theory]
+    [InlineData("microondas")]
+    [InlineData("micro-ondas compacto")]
+    public void GetProducts_ReturnsMicrowaveCatalogWithConfirmedStoreOffers(string query)
+    {
+        var service = new ComparisonDataService(new AppText());
+
+        var products = service.GetProducts(query);
+
+        Assert.NotEmpty(products);
+        Assert.All(products, product =>
+        {
+            var productText = string.Join(' ', product.Name, product.Brand, product.Badge, product.AiSummary, string.Join(' ', product.Specs));
+            Assert.Contains("Microondas", productText, StringComparison.OrdinalIgnoreCase);
+        });
+        Assert.Contains(products, product => product.Slug == "teka-mw-fs20-wh-microondas");
+        Assert.DoesNotContain(products, product => product.Name == "Bosch Serie 6 Frigorífico");
+        Assert.All(products, product =>
+            Assert.Contains(
+                service.BuildSellerOffersForProduct(product, query),
+                ComparisonDataService.IsConfirmedStoreOffer));
+    }
+
+    [Fact]
+    public void GetSellerOffers_ReturnsDirectStorePagesForMicrowaves()
+    {
+        var service = new ComparisonDataService(new AppText());
+
+        var cheapestOffers = service.GetSellerOffers("teka-mw-fs20-wh-microondas");
+        var grillOffers = service.GetSellerOffers("teka-mw-fs20-g-wh-microondas");
+        var blackGrillOffers = service.GetSellerOffers("teka-mw-fs20-g-bk-microondas");
+
+        var castro = Assert.Single(cheapestOffers.Where(offer => offer.Seller == "Castro Electronica"));
+        Assert.True(castro.IsLivePrice);
+        Assert.Equal(4939, castro.PriceCents);
+        Assert.Equal("https://www.castroelectronica.pt/pt/product/microondas-mw-fs20-wh-20l-700w-pretobranco--teka", castro.Url);
+
+        var darty = Assert.Single(grillOffers.Where(offer => offer.Seller == "Darty"));
+        Assert.True(darty.IsLivePrice);
+        Assert.Equal(6499, darty.PriceCents);
+        Assert.Equal("https://darty.pt/products/teka-microond-mw-fs20-g-wh-grill-20", darty.Url);
+
+        var worten = Assert.Single(blackGrillOffers.Where(offer => offer.Seller == "Worten"));
+        Assert.True(worten.IsLivePrice);
+        Assert.Equal(8599, worten.PriceCents);
+        Assert.Equal("https://www.worten.pt/produtos/microondas-teka-mwfs20gbk-20-l-grill-preto-8471475", worten.Url);
     }
 
     [Fact]
@@ -194,6 +459,79 @@ public sealed class ComparisonDataServiceTests
         Assert.Equal("Amazon.es", offer.Seller);
         Assert.True(offer.Preferred);
         Assert.True(offer.ReliabilityScore >= 85);
+    }
+
+    [Fact]
+    public void GetProducts_ReturnsDishwasherNotWashingMachine_WhenQueryMentionsLavarLoica()
+    {
+        var service = new ComparisonDataService(new AppText());
+
+        var products = service.GetProducts("Maquina de Lavar Loica Indesit IN2FE13DT9S 13 conjuntos classe E");
+
+        Assert.NotEmpty(products);
+        Assert.Equal("Indesit IN2FE13DT9S Maquina de Lavar Loica", products[0].Name);
+        Assert.DoesNotContain(products, product => product.Name.Contains("Lavar Roupa", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(products, product => product.Name.Contains("Lavadora", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void GetSellerOffers_ReturnsConfirmedDishwasherProductPage_WhenQueryMentionsLavarLoica()
+    {
+        var service = new ComparisonDataService(new AppText());
+
+        var offers = service.GetSellerOffers("indesit-in2fe13dt9s-lava-loica");
+        var castro = offers.Single(offer => offer.Seller == "Castro Electronica");
+
+        Assert.True(castro.IsLivePrice);
+        Assert.Equal(23619, castro.PriceCents);
+        Assert.Contains("maquina-de-lavar-loica-in2fe13dt9s", castro.Url, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("/search", castro.Url);
+        Assert.DoesNotContain("/pesquisa", castro.Url);
+    }
+
+    [Fact]
+    public void GetProducts_ReturnsWashingMachineNotDishwasher_WhenQueryMentionsLavarRoupa()
+    {
+        var service = new ComparisonDataService(new AppText());
+
+        var products = service.GetProducts("maquina de lavar roupa 8kg");
+
+        Assert.NotEmpty(products);
+        Assert.Equal("becken-bwm8812n-maquina-lavar", products[0].Slug);
+        Assert.DoesNotContain(products, product => product.Name.Contains("Adidas", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(products, product => product.Name.Contains("Lavar Loica", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(products, product => product.Name.Contains("Lava-loi", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void GetProducts_ReturnsDryerNotFashion_WhenQueryMentionsSecarRoupa()
+    {
+        var service = new ComparisonDataService(new AppText());
+
+        var products = service.GetProducts("Maquina de Secar Roupa Beko BM3T48249W 8Kg Classe C");
+
+        Assert.NotEmpty(products);
+        Assert.Equal("beko-bm3t48249w-maquina-secar-roupa", products[0].Slug);
+        Assert.DoesNotContain(products, product => product.Name.Contains("Adidas", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(products, product => product.Name.Contains("Sapatilhas", StringComparison.OrdinalIgnoreCase));
+        Assert.All(products, product => Assert.Contains("secar", string.Join(' ', product.Name, product.Specs, product.AiSummary), StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void GetSellerOffers_ReturnsConfirmedDryerProductPages_WhenQueryMentionsSecarRoupa()
+    {
+        var service = new ComparisonDataService(new AppText());
+
+        var offers = service.GetSellerOffers("beko-bm3t48249w-maquina-secar-roupa");
+
+        var kuantoKusta = offers.Single(offer => offer.Seller == "KuantoKusta");
+        Assert.True(ComparisonDataService.IsConfirmedStoreOffer(kuantoKusta));
+        Assert.Equal(36690, kuantoKusta.PriceCents);
+        Assert.Equal("https://www.kuantokusta.pt/p/11598597/beko-bm3t48249w-8kg-classe-c", kuantoKusta.Url);
+        Assert.DoesNotContain("/search", kuantoKusta.Url);
+
+        Assert.Contains(offers, offer => offer.Seller == "Worten" && offer.Url.Contains("beko-bm3t48249w", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(offers, offer => offer.Seller == "Darty" && offer.PriceCents == 46199);
     }
 
     [Fact]
@@ -244,7 +582,7 @@ public sealed class ComparisonDataServiceTests
         var products = service.GetProducts("rato gaming logitech g305 lightspeed");
         var g305 = products.Single(product => product.Slug == "logitech-g305-lightspeed");
 
-        Assert.Equal("42,98 €", g305.Price);
+        Assert.Contains("40,80", g305.Price);
     }
 
     [Fact]
@@ -253,14 +591,23 @@ public sealed class ComparisonDataServiceTests
         var service = new ComparisonDataService(new AppText());
 
         var offers = service.GetSellerOffers("logitech-g305-lightspeed");
+        var aquario = offers.Single(offer => offer.Seller == "Aquario");
+        var globaldata = offers.Single(offer => offer.Seller == "Globaldata");
         var kuantoKusta = offers.Single(offer => offer.Seller == "KuantoKusta");
         var pcdiga = offers.Single(offer => offer.Seller == "PCDIGA");
         var radioPopular = offers.Single(offer => offer.Seller == "Radio Popular");
 
-        Assert.True(kuantoKusta.Preferred);
+        Assert.True(aquario.Preferred);
+        Assert.True(aquario.IsLivePrice);
+        Assert.Equal(4080, aquario.PriceCents);
+        Assert.Equal("https://www.aquario.pt/en/product/logitech-logitech-g305-preto-910-005283", aquario.Url);
+
+        Assert.True(globaldata.IsLivePrice);
+        Assert.Equal(4590, globaldata.PriceCents);
+        Assert.Equal("https://www.globaldata.pt/rato-logitech-g-series-g305-lightspeed-wireless-gaming-preto/910-005283.html", globaldata.Url);
+
         Assert.True(kuantoKusta.IsLivePrice);
         Assert.Equal(4298, kuantoKusta.PriceCents);
-        Assert.Equal("42,98 €", kuantoKusta.Price);
         Assert.Equal("https://www.kuantokusta.pt/p/199266/logitech-g305-lightspeed-wireless-gaming-910-005283", kuantoKusta.Url);
 
         Assert.True(pcdiga.IsLivePrice);
@@ -291,12 +638,26 @@ public sealed class ComparisonDataServiceTests
         var service = new ComparisonDataService(new AppText());
 
         var offers = service.GetSellerOffers("iphone-17");
-        var radioPopular = offers.Single(offer => offer.Seller == "Radio Popular");
+        var worten = offers.Single(offer => offer.Seller == "Worten");
 
-        Assert.True(radioPopular.IsLivePrice);
-        Assert.Equal(142499, radioPopular.PriceCents);
-        Assert.Equal("https://www.radiopopular.pt/produto/apple-iphone-17-pro-max-256gb-lj", radioPopular.Url);
-        Assert.DoesNotContain("/pesquisa/", radioPopular.Url);
+        Assert.True(worten.IsLivePrice);
+        Assert.Equal(93999, worten.PriceCents);
+        Assert.Equal("https://www.worten.pt/produtos/iphone-17-apple-6-3-256-gb-preto-8600278", worten.Url);
+        Assert.DoesNotContain("/pesquisa/", worten.Url);
+    }
+
+    [Fact]
+    public void GetSellerOffers_ReturnsConfirmedGalaxyWatch7StorePriceAndProductPage()
+    {
+        var service = new ComparisonDataService(new AppText());
+
+        var offers = service.GetSellerOffers("samsung-galaxy-watch7");
+        var kuantoKusta = offers.Single(offer => offer.Seller == "KuantoKusta");
+
+        Assert.True(kuantoKusta.IsLivePrice);
+        Assert.Equal(15700, kuantoKusta.PriceCents);
+        Assert.Equal("https://www.kuantokusta.pt/p/11345402/samsung-galaxy-watch7-40mm-bt-green", kuantoKusta.Url);
+        Assert.DoesNotContain("/search", kuantoKusta.Url);
     }
 
     [Fact]
@@ -434,7 +795,7 @@ public sealed class ComparisonDataServiceTests
     }
 
     [Theory]
-    [InlineData("Smartwatch XIAOMI Redmi Watch 5 Active Bluetooth Autonomia ate 18 dias Preto", "Samsung Galaxy Watch7")]
+    [InlineData("Smartwatch XIAOMI Redmi Watch 5 Active Bluetooth Autonomia ate 18 dias Preto", "Xiaomi Redmi Watch 5 Active")]
     [InlineData("Drone PRIXTON Delta 480p Autonomia Ate 10 min Cinzento", "Prixton Delta Drone")]
     [InlineData("Suporte de TV ONE FOR ALL WM4611 Fixo 32 a 90 Ate 100 kg", "TooQ Suporte TV VESA")]
     public void GetProducts_DoesNotTreatNonPriceAteValuesAsBudget(string query, string expectedProduct)
@@ -472,8 +833,9 @@ public sealed class ComparisonDataServiceTests
         var products = service.GetProducts("teclado sem fios ate 80 euros");
 
         Assert.NotEmpty(products);
-        Assert.Contains(products, product => product.Name == "Logitech K380");
+        var k380 = Assert.Single(products.Where(product => product.Name == "Logitech K380"));
         Assert.DoesNotContain(products, product => product.Name == "Logitech Signature M650");
+        Assert.Null(k380.OfficialSource);
     }
 
     [Fact]
@@ -496,8 +858,40 @@ public sealed class ComparisonDataServiceTests
         var products = service.GetProducts("quero uma cadeira ergonomica ate 100 euros");
 
         Assert.NotEmpty(products);
-        Assert.Contains(products, product => product.Name == "SONGMICS OBG22B");
+        Assert.Contains(products, product => product.Name == "Mitsai Roma II Cadeira de Escritorio");
         Assert.DoesNotContain(products, product => product.Name == "MacBook Air M3");
+    }
+
+    [Fact]
+    public void GetProducts_ReturnsGamingChairCatalog_WhenQueryAsksForGamingChair()
+    {
+        var service = new ComparisonDataService(new AppText());
+
+        var products = service.GetProducts("cadeira gaming");
+
+        Assert.NotEmpty(products);
+        Assert.Equal("RACINGREAT Costas Altas Cadeira Gaming", products[0].Name);
+        Assert.DoesNotContain(products, product => product.Name == "PlayStation 5 Slim");
+        Assert.All(products, product =>
+        {
+            var productText = string.Join(' ', product.Name, product.Brand, product.Badge, product.AiSummary, string.Join(' ', product.Specs));
+            Assert.Contains("Cadeira", productText, StringComparison.OrdinalIgnoreCase);
+        });
+    }
+
+    [Fact]
+    public void GetSellerOffers_ReturnsConfirmedGamingChairStorePriceAndProductPage()
+    {
+        var service = new ComparisonDataService(new AppText());
+
+        var offers = service.GetSellerOffers("racingreat-costas-altas-cadeira-gaming");
+        var worten = offers.Single(offer => offer.Seller == "Worten");
+
+        Assert.True(worten.IsLivePrice);
+        Assert.Equal(6500, worten.PriceCents);
+        Assert.Equal("https://www.worten.pt/produtos/cadeira-de-escritorio-ergonomica-racingreat-costas-altas-inclinavel-bracos-regulaveis-preto-mrkean-8711544779636", worten.Url);
+        Assert.DoesNotContain("/search", worten.Url);
+        Assert.DoesNotContain("/pesquisa", worten.Url);
     }
 
     [Theory]
@@ -506,17 +900,24 @@ public sealed class ComparisonDataServiceTests
     [InlineData("auscultadores bluetooth noise cancelling", "Sony WH-1000XM5", "Samsung Galaxy S24")]
     [InlineData("televisor 55 polegadas oled", "LG OLED C4 55\"", "Dell XPS 14")]
     [InlineData("maquina de cafe automatica", "De'Longhi Magnifica Start", "Bosch Serie 6 Frigorífico")]
+    [InlineData("delta q mini qool", "Delta Q Mini Qool Cinzento", "Delta Q Qalidus Capsulas")]
     [InlineData("berbequim sem fios 18v", "Bosch Professional GSB 18V-55", "MacBook Air M3")]
+    [InlineData("karcher k3 lavadora alta pressao", "Karcher K3 Lavadora de Alta Pressao", "Becken Boostwash BWM8812N Maquina de Lavar Roupa")]
     [InlineData("pneu 205 55 r16", "Michelin Primacy 4+ 205/55 R16", "Samsung Galaxy S24")]
     [InlineData("impressora multifuncoes wifi", "Epson EcoTank L3250", "MacBook Air M3")]
+    [InlineData("tinteiro hp 308 preto tricolor pack 2x", "Tinteiro HP 308 Preto/Tricolor Pack 2x", "HP DeskJet 2921 All-in-One")]
     [InlineData("racao cao adulto 15kg", "Royal Canin Medium Adult 15kg", "Bosch Serie 6 Frigorífico")]
+    [InlineData("advance cat adult frango arroz 12kg", "Advance Cat Adult Frango e Arroz 12kg", "Bosch Serie 6 Frigorífico")]
     [InlineData("fraldas bebe tamanho 4", "Pampers Premium Protection T4", "iPhone 17")]
     [InlineData("mesa escritorio ate 100 euros", "IKEA LAGKAPTEN / ADILS", "Sony WH-1000XM5")]
     [InlineData("aspirador robot com mapeamento", "Roborock Q8 Max", "Bosch Serie 6 Frigorífico")]
+    [InlineData("maquina de lavar roupa hisense 7kg", "Hisense WF1G7021BW Maquina de Lavar Roupa", "Indesit IN2FE13DT9S Maquina de Lavar Loica")]
+    [InlineData("maquina de secar roupa beko bm3t48249w 8kg classe c", "Beko BM3T48249W Maquina de Secar Roupa 8Kg", "Adidas Adizero Evo SL")]
+    [InlineData("bicicleta estatica cecotec drumfit indoor 10000 teseo", "Cecotec DrumFit Indoor 10000 Teseo", "PlayStation 5 Slim")]
     [InlineData("consola ps5", "PlayStation 5 Slim", "Nintendo Switch OLED")]
-    [InlineData("smartwatch android", "Samsung Galaxy Watch7", "MacBook Air M3")]
+    [InlineData("smartwatch android", "Samsung Galaxy Watch8", "MacBook Air M3")]
     [InlineData("camera vigilancia interior wifi", "TP-Link Tapo C200", "iPhone 17")]
-    [InlineData("trotinete eletrica cidade", "Xiaomi Electric Scooter 4", "Bosch Serie 6 Frigorífico")]
+    [InlineData("trotinete eletrica cidade", "Xiaomi 4 Lite 2nd Gen Trotinete", "Bosch Serie 6 Frigorífico")]
     public void GetProducts_ReturnsKuantoKustaCategoryMatches(string query, string expectedProduct, string wrongProduct)
     {
         var service = new ComparisonDataService(new AppText());
@@ -535,8 +936,8 @@ public sealed class ComparisonDataServiceTests
 
         var offer = service.GetBestOffer("bosch-serie-6-frigorifico");
 
-        Assert.Equal("Amazon.es", offer.Seller);
-        Assert.Equal(174300, offer.PriceCents);
+        Assert.Equal("Worten", offer.Seller);
+        Assert.Equal(244900, offer.PriceCents);
         Assert.True(offer.Preferred);
     }
 
@@ -592,3 +993,4 @@ public sealed class ComparisonDataServiceTests
         }
     }
 }
+

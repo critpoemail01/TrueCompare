@@ -1,0 +1,20 @@
+@inject SearchMarketContextService SearchMarket
+@inject AppText T
+
+@{
+    var context = SearchMarket.Current();
+}
+
+<section class="search-market-indicator @CssClass" aria-label="@T["SearchContext.Aria"]">
+    <span class="search-market-dot" aria-hidden="true"></span>
+    <div>
+        <strong>@context.Heading</strong>
+        <span>@T.Format("SearchContext.Meta", context.LanguageCode, context.CurrencyCode)</span>
+        <small>@T.Format("SearchContext.Stores", context.StoreExamples)</small>
+    </div>
+</section>
+
+@code {
+    [Parameter]
+    public string? CssClass { get; set; }
+}

@@ -1,19 +1,21 @@
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using TrueCompare.Data;
+using TrueCompare.Models;
 
 namespace TrueCompare.Services;
 
 public sealed class TargetPriceAlertService(ApplicationDbContext dbContext, ComparisonDataService comparisonData)
 {
-    public async Task<TargetPriceAlert> CreateAsync(
+    public async Task<CreatedPriceAlert> CreateAsync(
         string userId,
         string productSlug,
         string productName,
         decimal targetPrice,
         CancellationToken cancellationToken = default)
     {
-        var bestOffer = comparisonData.GetBestOffer(productSlug);
+        var bestOffer = GetBestConfirmedOffer(productSlug)
+            ?? throw new InvalidOperationException("Cannot create a price alert without a confirmed store offer.");
         var alert = new TargetPriceAlert
         {
             UserId = userId,
@@ -27,15 +29,40 @@ public sealed class TargetPriceAlertService(ApplicationDbContext dbContext, Comp
 
         dbContext.TargetPriceAlerts.Add(alert);
         await dbContext.SaveChangesAsync(cancellationToken);
-        return alert;
+        return new CreatedPriceAlert(
+            alert.ProductSlug,
+            alert.ProductName,
+            alert.TargetPriceCents,
+            alert.LastSeenPriceCents,
+            alert.LastSeenSeller,
+            alert.ProductUrl,
+            alert.IsActive,
+            alert.EmailSent);
     }
 
-    public async Task<IReadOnlyList<TargetPriceAlert>> GetActiveForUserAsync(string userId, CancellationToken cancellationToken = default)
+    public SellerOffer? GetBestConfirmedOffer(string productSlug)
+    {
+        return comparisonData.GetSellerOffers(productSlug)
+            .Where(ComparisonDataService.IsConfirmedStoreOffer)
+            .OrderBy(offer => offer.PriceCents)
+            .ThenByDescending(offer => offer.ReliabilityScore)
+            .FirstOrDefault();
+    }
+
+    public async Task<IReadOnlyList<PriceAlertListItem>> GetActiveForUserAsync(string userId, CancellationToken cancellationToken = default)
     {
         return await dbContext.TargetPriceAlerts
             .AsNoTracking()
             .Where(alert => alert.UserId == userId && alert.IsActive && !alert.EmailSent)
             .OrderByDescending(alert => alert.CreatedUtc)
+            .Select(alert => new PriceAlertListItem(
+                alert.ProductSlug,
+                alert.ProductName,
+                alert.TargetPriceCents,
+                alert.LastSeenPriceCents,
+                alert.LastSeenSeller,
+                alert.ProductUrl,
+                alert.CreatedUtc))
             .ToListAsync(cancellationToken);
     }
 
@@ -62,3 +89,22 @@ public sealed class TargetPriceAlertService(ApplicationDbContext dbContext, Comp
         return (cents / 100m).ToString("C", CultureInfo.GetCultureInfo("pt-PT"));
     }
 }
+
+public sealed record PriceAlertListItem(
+    string ProductSlug,
+    string ProductName,
+    long TargetPriceCents,
+    long LastSeenPriceCents,
+    string? LastSeenSeller,
+    string? ProductUrl,
+    DateTime CreatedUtc);
+
+public sealed record CreatedPriceAlert(
+    string ProductSlug,
+    string ProductName,
+    long TargetPriceCents,
+    long LastSeenPriceCents,
+    string? LastSeenSeller,
+    string? ProductUrl,
+    bool IsActive,
+    bool EmailSent);

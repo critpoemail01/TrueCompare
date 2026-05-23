@@ -1,0 +1,119 @@
+@using Microsoft.Extensions.Options
+@using Microsoft.AspNetCore.Hosting
+@using TrueCompare.Options
+@inject NavigationManager Navigation
+@inject IWebHostEnvironment Environment
+@inject IOptions<LlmOptions> LlmOptionsAccessor
+@inject AppText T
+
+@if (Indicator is not null)
+{
+    <div class="topbar-llm-indicator" aria-label="@Indicator.AriaLabel" title="@Indicator.AriaLabel">
+        <span class="topbar-llm-dot" aria-hidden="true"></span>
+        <span class="topbar-llm-copy">
+            <strong>@Indicator.ProviderLabel</strong>
+            <small>@Indicator.ModelLabel</small>
+        </span>
+    </div>
+}
+
+@code {
+    private LlmIndicatorView? Indicator { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        Indicator = BuildIndicator();
+    }
+
+    private LlmIndicatorView? BuildIndicator()
+    {
+        if (!ShouldShowLocalDiagnostics())
+        {
+            return null;
+        }
+
+        var options = LlmOptionsAccessor.Value;
+        if (!options.Enabled)
+        {
+            var disabled = T["Layout.LlmDisabled"];
+            return new LlmIndicatorView("LLM", disabled, T.Format("Layout.LlmIndicatorAria", "LLM", disabled));
+        }
+
+        var provider = ResolvePrimaryProvider(options);
+        if (provider is null)
+        {
+            return null;
+        }
+
+        var providerLabel = string.IsNullOrWhiteSpace(provider.Name) ? "LLM" : provider.Name.Trim();
+        var modelLabel = string.IsNullOrWhiteSpace(provider.Model) ? options.Model : provider.Model.Trim();
+        return new LlmIndicatorView(
+            providerLabel,
+            modelLabel,
+            T.Format("Layout.LlmIndicatorAria", providerLabel, modelLabel));
+    }
+
+    private bool ShouldShowLocalDiagnostics()
+    {
+        if (Environment.IsDevelopment() || Environment.IsEnvironment("Testing"))
+        {
+            return true;
+        }
+
+        if (!Uri.TryCreate(Navigation.Uri, UriKind.Absolute, out var uri))
+        {
+            return false;
+        }
+
+        return uri.IsLoopback
+            || uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+            || uri.Host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase)
+            || uri.Host.Equals("::1", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static LlmProviderOptions? ResolvePrimaryProvider(LlmOptions options)
+    {
+        IEnumerable<LlmProviderOptions> providers = options.Providers.Count > 0
+            ? options.Providers
+            : new[]
+            {
+                new LlmProviderOptions
+            {
+                Name = "LLM",
+                Enabled = options.Enabled,
+                Priority = 100,
+                Endpoint = options.Endpoint,
+                Model = options.Model
+            }
+            };
+
+        return providers
+            .Where(provider => provider.Enabled)
+            .Select(provider => new LlmProviderOptions
+            {
+                Name = string.IsNullOrWhiteSpace(provider.Name) ? provider.Model : provider.Name,
+                Enabled = provider.Enabled,
+                Priority = provider.Priority,
+                IsLocal = provider.IsLocal || IsLocalEndpoint(provider.Endpoint),
+                Endpoint = provider.Endpoint,
+                Model = string.IsNullOrWhiteSpace(provider.Model) ? options.Model : provider.Model
+            })
+            .Where(provider => !string.IsNullOrWhiteSpace(provider.Model))
+            .OrderBy(provider => provider.IsLocal ? 0 : 1)
+            .ThenBy(provider => provider.Priority)
+            .ThenBy(provider => provider.Name, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault();
+    }
+
+    private static bool IsLocalEndpoint(string endpoint)
+    {
+        return Uri.TryCreate(endpoint, UriKind.Absolute, out var uri)
+            && (uri.IsLoopback
+                || uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+                || uri.Host.StartsWith("10.", StringComparison.OrdinalIgnoreCase)
+                || uri.Host.StartsWith("172.", StringComparison.OrdinalIgnoreCase)
+                || uri.Host.StartsWith("192.168.", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private sealed record LlmIndicatorView(string ProviderLabel, string ModelLabel, string AriaLabel);
+}

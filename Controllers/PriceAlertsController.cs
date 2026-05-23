@@ -32,7 +32,18 @@ public sealed class PriceAlertsController(
             return RedirectWithMessage(input.ReturnUrl, text.Pick("Define um preço alvo válido.", "Set a valid target price."));
         }
 
-        await alertService.CreateAsync(userId, product.Slug, product.Name, targetPrice);
+        try
+        {
+            await alertService.CreateAsync(userId, product.Slug, product.Name, targetPrice);
+        }
+        catch (InvalidOperationException)
+        {
+            return RedirectWithMessage(
+                input.ReturnUrl,
+                text.Pick(
+                    "So e possivel criar alerta quando existe uma loja validada para este produto.",
+                    "A price alert can only be created when this product has a validated store."));
+        }
 
         return RedirectWithMessage(
             input.ReturnUrl,

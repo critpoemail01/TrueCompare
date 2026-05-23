@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -47,15 +47,15 @@ public sealed class LlmSuggestionServiceTests
         });
 
         var result = await service.GetSuggestionsAsync(
-            "disco externo 1tb usb 3.2",
-            data.GetProducts("disco externo 1tb usb 3.2"),
-            data.GetSellerOffers("disco externo 1tb usb 3.2"));
+            "macbook air m3",
+            data.GetProducts("macbook air m3"),
+            data.GetSellerOffers("macbook-air-m3"));
 
         Assert.False(result.FromLlm);
         Assert.Contains("confirmar na loja", result.Summary, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("€", result.Summary);
         Assert.Contains(result.BuyingSignals, signal => signal.Contains("confirmar na loja", StringComparison.OrdinalIgnoreCase));
-        Assert.DoesNotContain(result.BuyingSignals, signal => signal.Contains('€'));
+        Assert.DoesNotContain(result.BuyingSignals, signal => signal.Contains("€", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -70,12 +70,12 @@ public sealed class LlmSuggestionServiceTests
               "confidence": 91,
               "buyingSignals": ["garantia UE", "vendedor autorizado"],
               "suggestedQueries": ["smartphone premium garantia Portugal"],
-              "warnings": ["Desconfia de preços 40% abaixo do mercado"],
+              "warnings": ["Desconfia de pre\u00e7os 40% abaixo do mercado"],
               "productLeads": [
                 {
                   "name": "iPhone 15 Pro",
-                  "reason": "Melhor equilíbrio entre suporte, câmara e revenda.",
-                  "targetPrice": "até 900 €",
+                  "reason": "Melhor equil\u00edbrio entre suporte, c\u00e2mara e revenda.",
+                  "targetPrice": "at\u00e9 900 \u20ac",
                   "searchHint": "iPhone 15 Pro vendedor autorizado",
                   "source": "LLM"
                 }
@@ -113,7 +113,7 @@ public sealed class LlmSuggestionServiceTests
         Assert.StartsWith("LLM ativo", result.SourceLabel);
         Assert.Equal("Smartphone premium", result.Intent);
         Assert.Equal(91, result.Confidence);
-        Assert.Contains(result.ProductLeads, lead => lead.Name == "iPhone 15 Pro" && lead.TargetPrice == "até 900 €");
+        Assert.Contains(result.ProductLeads, lead => lead.Name == "iPhone 15 Pro" && lead.TargetPrice == "at\u00e9 900 \u20ac");
         Assert.Equal(new AuthenticationHeaderValue("Bearer", "test-key"), handler.LastRequest?.Headers.Authorization);
         Assert.Contains("comprar smartphones", handler.LastBody);
     }
@@ -213,7 +213,7 @@ public sealed class LlmSuggestionServiceTests
               "productLeads": [
                 {
                   "name": "iPhone 15 Pro",
-                  "reason": "Boa câmara e suporte longo.",
+                  "reason": "Boa c\u00e2mara e suporte longo.",
                   "targetPrice": "confirmar",
                   "searchHint": "iPhone 15 Pro vendedor autorizado",
                   "source": "Provider B"
@@ -258,7 +258,7 @@ public sealed class LlmSuggestionServiceTests
         var validAssistantJson = """
             {
               "intent": "Smartphone premium",
-              "summary": "Resposta validada após rate limit.",
+              "summary": "Resposta validada ap\u00f3s rate limit.",
               "confidence": 90,
               "buyingSignals": ["suporte longo"],
               "suggestedQueries": ["smartphone premium vendedor autorizado"],
@@ -266,7 +266,7 @@ public sealed class LlmSuggestionServiceTests
               "productLeads": [
                 {
                   "name": "iPhone 15 Pro",
-                  "reason": "Boa câmara e suporte longo.",
+                  "reason": "Boa c\u00e2mara e suporte longo.",
                   "targetPrice": "confirmar",
                   "searchHint": "iPhone 15 Pro vendedor autorizado",
                   "source": "Provider B"
@@ -367,3 +367,5 @@ public sealed class LlmSuggestionServiceTests
         }
     }
 }
+
+

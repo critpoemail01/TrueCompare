@@ -8,6 +8,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using TrueCompare.Data;
+using TrueCompare.Models;
+using TrueCompare.Services;
 
 namespace TrueCompare.Tests.Support;
 
@@ -31,6 +33,7 @@ public sealed class TrueCompareWebApplicationFactory : WebApplicationFactory<Pro
             services.RemoveAll<DbContextOptions<ApplicationDbContext>>();
             services.RemoveAll<IDbContextOptionsConfiguration<ApplicationDbContext>>();
             services.RemoveAll<ApplicationDbContext>();
+            services.RemoveAll<IStoreOfferValidationService>();
             services.RemoveAll<IHostedService>();
 
             var databaseName = $"TrueCompare.Web.{Guid.NewGuid():N}";
@@ -40,6 +43,20 @@ public sealed class TrueCompareWebApplicationFactory : WebApplicationFactory<Pro
                     .UseInMemoryDatabase(databaseName)
                     .ConfigureWarnings(warnings => warnings.Ignore(InMemoryEventId.TransactionIgnoredWarning));
             });
+            services.AddSingleton<IStoreOfferValidationService, DeterministicStoreOfferValidationService>();
         });
+    }
+
+    private sealed class DeterministicStoreOfferValidationService : IStoreOfferValidationService
+    {
+        public Task<IReadOnlyList<SellerOffer>> ValidateConfirmedOffersAsync(
+            ProductResult? product,
+            IReadOnlyList<SellerOffer> offers,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult((IReadOnlyList<SellerOffer>)offers
+                .Where(ComparisonDataService.IsConfirmedStoreOffer)
+                .ToList());
+        }
     }
 }

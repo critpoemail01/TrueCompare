@@ -74,7 +74,7 @@ public sealed class SearchQuotaService
                 .AnyAsync(candidate => candidate.Id == userId, cancellationToken);
             if (!localUserExists)
             {
-                return new SearchConsumptionResult(false, CreateLocalUnlimitedStatus());
+                return new SearchConsumptionResult(true, CreateLocalUnlimitedStatus());
             }
 
             dbContext.SearchRequests.Add(new SearchRequest

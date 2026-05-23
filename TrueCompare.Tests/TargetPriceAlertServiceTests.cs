@@ -1,3 +1,4 @@
+using System.Globalization;
 using TrueCompare.Data;
 using TrueCompare.Models;
 using TrueCompare.Services;
@@ -7,6 +8,22 @@ namespace TrueCompare.Tests;
 
 public sealed class TargetPriceAlertServiceTests
 {
+    static TargetPriceAlertServiceTests()
+    {
+        var culture = CultureInfo.GetCultureInfo("pt-PT");
+        CultureInfo.DefaultThreadCurrentCulture = culture;
+        CultureInfo.DefaultThreadCurrentUICulture = culture;
+        CultureInfo.CurrentCulture = culture;
+        CultureInfo.CurrentUICulture = culture;
+    }
+
+    public TargetPriceAlertServiceTests()
+    {
+        var culture = CultureInfo.GetCultureInfo("pt-PT");
+        CultureInfo.CurrentCulture = culture;
+        CultureInfo.CurrentUICulture = culture;
+    }
+
     [Theory]
     [InlineData("699,50 €", 69950)]
     [InlineData("1199.99", 119999)]
@@ -33,24 +50,34 @@ public sealed class TargetPriceAlertServiceTests
 
         var service = new TargetPriceAlertService(dbContext, new ComparisonDataService(new AppText()));
 
-        var alert = await service.CreateAsync(user.Id, "iphone-15-pro", "iPhone 15 Pro", 700m);
+        var alert = await service.CreateAsync(user.Id, "logitech-g305-lightspeed", "Logitech G305 Lightspeed", 35m);
 
-        Assert.Equal("iphone-15-pro", alert.ProductSlug);
-        Assert.Equal(70000, alert.TargetPriceCents);
-        Assert.Equal(97900, alert.LastSeenPriceCents);
-        Assert.Equal("Amazon.es", alert.LastSeenSeller);
+        Assert.Equal("logitech-g305-lightspeed", alert.ProductSlug);
+        Assert.Equal(3500, alert.TargetPriceCents);
+        Assert.Equal(4080, alert.LastSeenPriceCents);
+        Assert.Equal("Aquario", alert.LastSeenSeller);
         Assert.True(alert.IsActive);
         Assert.False(alert.EmailSent);
+
+        var storedAlert = Assert.Single(dbContext.TargetPriceAlerts);
+        Assert.Equal(alert.ProductSlug, storedAlert.ProductSlug);
+        Assert.Equal(alert.TargetPriceCents, storedAlert.TargetPriceCents);
+    }
+
+    [Fact]
+    public async Task CreateAsync_RejectsProductWithoutConfirmedStoreOffer()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var service = new TargetPriceAlertService(dbContext, new ComparisonDataService(new AppText()));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.CreateAsync("alert-user", "iphone-15-pro", "iPhone 15 Pro", 700m));
     }
 
     [Fact]
     public void AlertEmailTemplate_UsesTrueCompareLayoutAndEscapesExternalValues()
     {
-        var alert = new TargetPriceAlert
-        {
-            ProductName = "Disco <script>",
-            TargetPriceCents = 5500
-        };
+        var alert = new PriceAlertEmailModel("Disco <script>", 5500);
         var offer = new SellerOffer(
             "Worten & Loja",
             "52,90 €",

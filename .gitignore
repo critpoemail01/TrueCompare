@@ -9,6 +9,8 @@
 # Local QA screenshots
 qa-*.png
 truecompare-*.png
+test-results/
+playwright-report/
 
 # Local Codex/test run artifacts
 .codex-run/

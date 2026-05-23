@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using TrueCompare.Data;
 using TrueCompare.Models;
 using TrueCompare.Services;
 
@@ -64,12 +63,7 @@ public sealed class DevEmailController(
 
     private static string BuildExampleEmail()
     {
-        var alert = new TargetPriceAlert
-        {
-            ProductName = ExampleProductName,
-            ProductSlug = "western-digital-my-passport",
-            TargetPriceCents = 5500
-        };
+        var alert = new PriceAlertEmailModel(ExampleProductName, 5500);
         var offer = new SellerOffer(
             "Worten",
             "52,90 €",

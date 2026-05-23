@@ -209,7 +209,7 @@ public sealed partial class LlmProductDiscoveryService(
                     A categoria principal do pedido e obrigatoria: cadeira nao pode devolver mesa/escrivaninha, rato nao pode devolver portatil.
                     Se houver orcamento maximo, todos os produtos devem ficar dentro desse orcamento.
                     Usa precos aproximados e publicamente plausiveis; nao afirmes stock real nem disponibilidade em tempo real.
-                    Cria URLs de pesquisa de retalhistas conhecidos quando nao souberes o link exato do produto.
+                    Nao cries URLs de pesquisa nem links de loja. A aplicacao so mostra lojas validadas fora da resposta do LLM.
                     O JSON deve ter: category, confidence, products.
                     products deve ter exatamente 1 item com: name, brand, price, priceCents, score, badge, specs, highlights, verificationChecks, summary, warnings.
                     Mantem specs, highlights, verificationChecks e warnings curtos. Nao preenchas sellerOffers; usa sellerOffers: [].
@@ -515,49 +515,14 @@ public sealed partial class LlmProductDiscoveryService(
 
     private IReadOnlyList<SellerOffer> NormalizeOffers(IReadOnlyList<DiscoveryOfferPayload>? offers, ProductResult product)
     {
-        var normalized = Clean(offers)
-            .Select(offer =>
-            {
-                var seller = CleanText(offer.Seller);
-                if (string.IsNullOrWhiteSpace(seller))
-                {
-                    return null;
-                }
-
-                var priceCents = offer.PriceCents > 0
-                    ? (long)Math.Round(offer.PriceCents, MidpointRounding.AwayFromZero)
-                    : ParsePriceCents(offer.Price);
-                if (priceCents <= 0)
-                {
-                    priceCents = ParsePriceCents(product.Price);
-                }
-
-                return new SellerOffer(
-                    seller,
-                    CleanText(offer.Price, FormatCurrency(priceCents)),
-                    priceCents,
-                    CleanText(offer.Delivery, text.Pick("Confirmar loja", "Confirm store")),
-                    CleanText(offer.Warranty, text.Pick("Validar vendedor", "Validate seller")),
-                    CleanText(offer.Status, text.Pick("A confirmar", "To confirm")),
-                    CleanText(offer.Url, BuildSellerSearchUrl(seller, product.Name)),
-                    offer.Preferred,
-                    offer.Preferred ? 88 : 80,
-                    string.Empty,
-                    text.Pick("Oferta sugerida pela IA; confirma preco, stock e vendedor antes de comprar.", "AI-suggested offer; confirm price, stock and seller before buying."),
-                    false);
-            })
-            .Where(offer => offer is not null)
-            .Cast<SellerOffer>()
-            .OrderBy(offer => offer.PriceCents)
-            .Take(5)
-            .ToList();
-
-        return normalized.Count > 0 ? normalized : BuildDefaultOffers(product);
+        return BuildDefaultOffers(product);
     }
 
     private IReadOnlyList<SellerOffer> BuildDefaultOffers(ProductResult product)
     {
-        return data.BuildSellerOffersForProduct(product);
+        return data.BuildSellerOffersForProduct(product)
+            .Where(ComparisonDataService.IsConfirmedStoreOffer)
+            .ToList();
     }
 
     private static DiscoveryPayload? ReadPayload(string content)
@@ -766,7 +731,7 @@ public sealed partial class LlmProductDiscoveryService(
     {
         return requestedTerm switch
         {
-            "cadeira" or "chair" => ContainsAny(identityText, "mesa", "desk", "table", "escrivaninha", "escrivaneta"),
+            "cadeira" or "chair" => ContainsAny(identityText, "mesa", "desk", "table", "escrivaninha", "escrivaneta", "consola", "console", "playstation", "ps5", "xbox", "nintendo", "smartphone", "telemovel", "telefone", "rato", "mouse", "teclado", "keyboard", "monitor"),
             "rato" or "ratos" or "mouse" or "mice" => ContainsAny(identityText, "portatil", "laptop", "notebook", "smartphone", "telefone"),
             "carregador" or "carregadores" or "charger" or "chargers" or "adaptador" or "cabo" or "lightning" or "magsafe" or "powerbank" => ContainsAny(identityText, "smartphone", "telefone", "telemovel", "iphone 17", "iphone 16", "galaxy s", "pixel")
                 && !ContainsAny(identityText, "carregador", "charger", "adaptador", "cabo", "usb-c", "magsafe", "lightning", "power delivery", "powerbank"),
@@ -842,20 +807,6 @@ public sealed partial class LlmProductDiscoveryService(
     private static string FormatCurrency(long cents)
     {
         return $"{(cents / 100m).ToString("N2", CultureInfo.CurrentCulture)} \u20AC";
-    }
-
-    private static string BuildSellerSearchUrl(string seller, string query)
-    {
-        var encoded = Uri.EscapeDataString(query);
-        return seller.ToLowerInvariant() switch
-        {
-            var value when value.Contains("amazon") => $"https://www.amazon.es/s?k={encoded}",
-            var value when value.Contains("worten") => $"https://www.worten.pt/search?query={encoded}",
-            var value when value.Contains("fnac") => $"https://www.fnac.pt/SearchResult/ResultList.aspx?Search={encoded}",
-            var value when value.Contains("mediamarkt") => $"https://www.mediamarkt.pt/pt/search.html?query={encoded}",
-            var value when value.Contains("kuanto") => $"https://www.kuantokusta.pt/search?q={encoded}",
-            _ => $"https://www.google.com/search?q={encoded}"
-        };
     }
 
     private static string GuessBrand(string name)

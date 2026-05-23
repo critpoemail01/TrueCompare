@@ -36,6 +36,7 @@ public sealed class ComparisonDataService(AppText text)
     private const string OfficeCatalog = "office";
     private const string CultureFoodCatalog = "culture-food";
     private const string FashionCatalog = "fashion";
+    private const string GardenCatalog = "garden";
     private const string MarketplaceCatalog = "marketplace";
     private const string GeneralCatalog = "general";
 
@@ -43,7 +44,13 @@ public sealed class ComparisonDataService(AppText text)
     [
         "smartphone",
         "smartphones",
+        "smartphones e acessorios",
+        "smartphones e acessórios",
+        "telemoveis e smartwatches",
+        "telemóveis e smartwatches",
         "telemovel",
+        "telemoveis",
+        "telemóveis",
         "phone",
         "phones",
         "mobile",
@@ -91,14 +98,33 @@ public sealed class ComparisonDataService(AppText text)
         "eletrodomesticos",
         "electrodomestico",
         "electrodomesticos",
+        "grandes eletrodomesticos",
+        "pequenos eletrodomesticos",
         "appliance",
         "appliances",
         "frigorifico",
+        "frigorificos",
+        "frigoríficos",
         "fridge",
         "geladeira",
         "combinado",
         "maquina de lavar",
         "maquina lavar",
+        "maquinas de lavar",
+        "máquinas de lavar",
+        "maquina de secar",
+        "maquina secar",
+        "maquinas de secar",
+        "maquina de secar roupa",
+        "maquinas de secar roupa",
+        "secar roupa",
+        "secador roupa",
+        "secadora",
+        "bomba de calor",
+        "hisense",
+        "wf1g7021bw",
+        "beko",
+        "bm3t48249w",
         "lavadora",
         "lavagem",
         "lava loica",
@@ -112,19 +138,27 @@ public sealed class ComparisonDataService(AppText text)
         "forno",
         "fornos",
         "microondas",
+        "micro-ondas",
+        "micro ondas",
         "placa",
         "placas",
         "exaustor",
         "exaustores",
         "balanca",
         "balancas",
+        "ventoinha",
+        "ventoinhas",
         "fritadeira",
         "fritadeiras",
         "torradeira",
         "torradeiras",
         "jarro eletrico",
         "robot de cozinha",
-        "robots de cozinha"
+        "robots de cozinha",
+        "preparacao de alimentos",
+        "preparação de alimentos",
+        "aspirador",
+        "aspiradores"
     ];
 
     private static readonly string[] LaptopCatalogTerms =
@@ -135,6 +169,11 @@ public sealed class ComparisonDataService(AppText text)
         "portateis",
         "notebook",
         "computador",
+        "computadores",
+        "informatica",
+        "informática",
+        "computadores e tablets",
+        "pc",
         "macbook",
         "thinkpad",
         "zenbook",
@@ -258,6 +297,10 @@ public sealed class ComparisonDataService(AppText text)
         "soundbar",
         "coluna",
         "colunas",
+        "imagem e som",
+        "tv e som",
+        "audio",
+        "som",
         "noise cancelling",
         "anc"
     ];
@@ -276,6 +319,9 @@ public sealed class ComparisonDataService(AppText text)
         "ecras",
         "ecrãs",
         "tv",
+        "tvs",
+        "tv e som",
+        "imagem e som",
         "oled",
         "qled",
         "mini led",
@@ -288,6 +334,9 @@ public sealed class ComparisonDataService(AppText text)
         "camera",
         "camara",
         "câmara",
+        "fotografia",
+        "video",
+        "vídeo",
         "maquina fotografica",
         "máquina fotográfica",
         "fotografica",
@@ -319,6 +368,8 @@ public sealed class ComparisonDataService(AppText text)
         "coffee machine",
         "espresso",
         "nespresso",
+        "delta q mini qool",
+        "mini qool",
         "delonghi",
         "magnifica"
     ];
@@ -330,9 +381,20 @@ public sealed class ComparisonDataService(AppText text)
         "aparafusadora",
         "aparafusadoras",
         "drill",
+        "bricolage",
+        "bricolagem",
+        "construcao",
+        "construção",
         "ferramenta",
         "ferramentas",
         "bosch professional",
+        "karcher",
+        "karcher k3",
+        "alta pressao",
+        "alta pressão",
+        "lavadora de alta pressao",
+        "lavadora de alta pressão",
+        "hidrolimpiadora",
         "makita",
         "dewalt",
         "18v"
@@ -344,6 +406,10 @@ public sealed class ComparisonDataService(AppText text)
         "cadeiras",
         "chair",
         "chairs",
+        "cadeira gaming",
+        "cadeira gamer",
+        "gaming chair",
+        "gamer chair",
         "cadeira escritorio",
         "cadeira escritório",
         "cadeira ergonomica",
@@ -388,6 +454,9 @@ public sealed class ComparisonDataService(AppText text)
     [
         "racao",
         "ração",
+        "animais",
+        "animais de estimacao",
+        "animais de estimação",
         "comida cao",
         "comida cão",
         "pet food",
@@ -397,6 +466,7 @@ public sealed class ComparisonDataService(AppText text)
         "acana",
         "orijen",
         "advance",
+        "advance cat",
         "advance mini",
         "advance vet",
         "vet diets",
@@ -422,6 +492,7 @@ public sealed class ComparisonDataService(AppText text)
     [
         "fralda",
         "fraldas",
+        "puericultura",
         "pampers",
         "dodot",
         "bebe",
@@ -455,7 +526,12 @@ public sealed class ComparisonDataService(AppText text)
     private static readonly string[] HealthBeautyCatalogTerms =
     [
         "saude",
+        "saúde",
         "beleza",
+        "cuidado pessoal",
+        "perfumaria",
+        "cosmetica",
+        "cosmética",
         "comprimidos",
         "capsulas",
         "saquetas",
@@ -477,6 +553,9 @@ public sealed class ComparisonDataService(AppText text)
     [
         "casa",
         "decoracao",
+        "decoração",
+        "casa e decoracao",
+        "casa e decoração",
         "mesa",
         "mesas",
         "desk",
@@ -484,6 +563,9 @@ public sealed class ComparisonDataService(AppText text)
         "cadeira",
         "cadeiras",
         "sofa",
+        "sofas",
+        "sofá",
+        "sofás",
         "colchao",
         "candeeiro",
         "tapete",
@@ -503,9 +585,16 @@ public sealed class ComparisonDataService(AppText text)
     private static readonly string[] SportCatalogTerms =
     [
         "desporto",
+        "outdoor",
+        "viagem",
+        "viagens",
+        "mobilidade",
         "fitness",
         "bicicleta",
         "bicicletas",
+        "bicicleta estatica",
+        "bicicleta estática",
+        "cecotec drumfit",
         "trotinete",
         "trotinetes",
         "passadeira",
@@ -527,6 +616,8 @@ public sealed class ComparisonDataService(AppText text)
     [
         "auto",
         "moto",
+        "auto e moto",
+        "mobilidade",
         "pneu",
         "pneus",
         "oleo motor",
@@ -549,6 +640,7 @@ public sealed class ComparisonDataService(AppText text)
     private static readonly string[] OfficeCatalogTerms =
     [
         "escritorio",
+        "escritório",
         "papelaria",
         "caderno",
         "caneta",
@@ -563,10 +655,22 @@ public sealed class ComparisonDataService(AppText text)
     [
         "livro",
         "livros",
+        "musica",
+        "música",
+        "filme",
+        "filmes",
+        "cultura",
+        "cultura e lazer",
+        "lazer",
+        "bilheteira",
+        "experiencias",
+        "experiências",
         "manga",
         "romance",
         "vinho",
         "vinhos",
+        "gastronomia",
+        "gastronomia e vinhos",
         "gin",
         "whisky",
         "rum",
@@ -591,13 +695,14 @@ public sealed class ComparisonDataService(AppText text)
     private static readonly string[] FashionCatalogTerms =
     [
         "moda",
+        "moda e acessorios",
+        "moda e acessórios",
         "sapatilhas",
         "tenis",
         "ténis",
         "trainers",
         "calcado",
         "calçado",
-        "roupa",
         "camisola",
         "casaco",
         "mochila",
@@ -607,6 +712,25 @@ public sealed class ComparisonDataService(AppText text)
         "new balance",
         "nike",
         "adidas"
+    ];
+
+    private static readonly string[] GardenCatalogTerms =
+    [
+        "jardim",
+        "garden",
+        "horta",
+        "jardinagem",
+        "mangueira",
+        "rega",
+        "barbecue",
+        "churrasco",
+        "grelhador",
+        "corta relvas",
+        "corta-relvas",
+        "aparador relva",
+        "mobiliario jardim",
+        "mobiliário jardim",
+        "piscina"
     ];
 
     private static readonly string[] MarketplaceCatalogTerms =
@@ -631,6 +755,7 @@ public sealed class ComparisonDataService(AppText text)
         "consolas",
         "pro gamer",
         "smartwatch",
+        "smartwatches",
         "smartwatch android",
         "relogio inteligente",
         "relógio inteligente",
@@ -660,44 +785,102 @@ public sealed class ComparisonDataService(AppText text)
         ? new List<string>
         {
             "Premium smartphones",
+            "Phones and smartwatches",
+            "Smartphones and accessories",
             "Chargers and cables",
-            "Professional laptops",
-            "Energy-efficient appliances",
+            "IT and laptops",
+            "Computers and tablets",
             "Mice and peripherals under €50",
-            "Rugged tablets for factory floor",
             "External storage",
-            "Monitors and displays",
-            "TV and audio",
+            "Monitors",
+            "Printers",
+            "Image, TV and sound",
+            "Gaming and consoles",
+            "Photography, drones and video",
+            "Home appliances",
+            "Large appliances",
+            "Small appliances",
+            "Washing machines",
+            "Fridges",
+            "Fans",
             "Coffee machines",
-            "Industrial tools",
-            "Office chairs",
-            "Printers and office",
-            "Pet food",
-            "Sports equipment",
-            "Car accessories",
-            "Furniture & decor",
-            "Audio & DJ equipment"
+            "Compact microwaves",
+            "Food preparation",
+            "Vacuum cleaners",
+            "Beauty and health",
+            "Health, beauty and perfume",
+            "Pets",
+            "Baby",
+            "Baby, nursery and toys",
+            "Games and toys",
+            "DIY",
+            "DIY and construction",
+            "Home and decoration",
+            "DIY and garden",
+            "Garden",
+            "Sport, outdoor and travel",
+            "Sport",
+            "Fitness",
+            "Mobility",
+            "Fashion and accessories",
+            "Auto and moto",
+            "Office and stationery",
+            "Culture, leisure and books",
+            "Books, music and films",
+            "Gastronomy and wines",
+            "Refurbished and outlet",
+            "PlayStation consoles"
         }
         : new List<string>
         {
             "Smartphones premium",
+            "Telemóveis e smartwatches",
+            "Smartphones e acessórios",
             "Carregadores e cabos",
-            "Portáteis profissionais",
-            "Eletrodomésticos eficientes",
+            "Informática e portáteis",
+            "Computadores e tablets",
             "Ratos e periféricos até 50€",
-            "Tablets industriais todo-terreno",
             "Armazenamento externo",
-            "Monitores e ecrãs",
-            "TV e áudio",
+            "Monitores",
+            "Impressoras",
+            "Imagem, TV e Som",
+            "Gaming e consolas",
+            "Gaming",
+            "Jogos e brinquedos",
+            "Fotografia, drones e vídeo",
+            "Eletrodomésticos",
+            "Grandes eletrodomésticos",
+            "Pequenos eletrodomésticos",
+            "Máquinas de lavar",
+            "Frigoríficos",
+            "Ventoinhas",
             "Máquinas de café",
-            "Ferramentas industriais",
-            "Cadeiras de escritório",
-            "Impressoras e escritório",
-            "Alimentação animal",
-            "Equipamento desportivo",
-            "Acessórios automóvel",
-            "Móveis & decoração",
-            "Áudio & DJ equipment"
+            "Microondas compactos",
+            "Preparação de alimentos",
+            "Aspiradores",
+            "Beleza e saúde",
+            "Saúde, beleza e perfumaria",
+            "Animais de estimação",
+            "Bebé",
+            "Bebé, puericultura e brinquedos",
+            "Bricolage",
+            "Bricolagem e construção",
+            "Casa e decoração",
+            "Sofás",
+            "Bricolage e jardim",
+            "Jardim",
+            "Desporto, outdoor e viagem",
+            "Desporto",
+            "Fitness",
+            "Mobilidade",
+            "Moda e acessórios",
+            "Auto e moto",
+            "Escritório e papelaria",
+            "Cultura, lazer e livros",
+            "Livros, música e filmes",
+            "Gastronomia e vinhos",
+            "Recondicionados e outlet",
+            "Consolas PlayStation"
         };
 
     public IReadOnlyList<CriteriaWeight> DefaultWeights => GetCriteriaWeights(null);
@@ -719,7 +902,7 @@ public sealed class ComparisonDataService(AppText text)
         : new List<FeatureItem>
         {
             new("01", "Prompt inteligente", "Descreve em linguagem natural o que procuras — sem filtros complicados.", "#7BE8E0"),
-            new("02", "Pesos personalizados", "Define o que valorizas (preço, autonomia, garantia) e a IA ranqueia por ti.", "#5EE9A8"),
+            new("02", "Ranking pela pesquisa", "A pesquisa e o produto guiam o ranking por preço validado, autenticidade e risco.", "#5EE9A8"),
             new("03", "Comparação isenta", "Zero patrocínios, zero afiliados. Os produtos são ranqueados pelo mérito.", "#B49CFF"),
             new("04", "Verificação anti-fraude", "Deteção de listagens suspeitas, validação de vendedores e número de série.", "#E97B7B"),
             new("05", "Checkout seguro", "Encomenda directa pela app com garantia de autenticidade e devolução.", "#E9D67B"),
@@ -729,21 +912,21 @@ public sealed class ComparisonDataService(AppText text)
     public IReadOnlyList<TutorialItem> Tutorials => text.IsEnglish
         ? new List<TutorialItem>
         {
-            new("Beginners", "Create the first prompt", "1:42"),
-            new("Beginners", "Adjust criteria weights", "2:15"),
-            new("Beginners", "Read the AI score", "1:58"),
-            new("Advanced", "Add a product manually", "1:30"),
-            new("Security", "Detect fake sellers", "3:05"),
-            new("Orders", "Order with secure payment", "2:40")
+            new("Beginners", "Create the first prompt", "1:42", "first-prompt", "Learn how to describe the product, budget and priority before comparing.", "tutorials/primeiro-prompt.webm"),
+            new("Beginners", "Adjust criteria weights", "2:15", "criteria-weights", "See how price, quality, warranty and risk change the recommendation.", "tutorials/criterios.webm"),
+            new("Beginners", "Read the AI score", "1:58", "ai-score", "Understand what the AI score means and when to verify the source.", "tutorials/score-ia.webm"),
+            new("Advanced", "Add a product manually", "1:30", "manual-product", "Add an alternative product and keep validation before store suggestions.", "tutorials/produto-manual.webm"),
+            new("Security", "Detect fake sellers", "3:05", "fake-sellers", "Spot suspicious prices, missing direct URLs and weak seller evidence.", "tutorials/vendedores-falsos.webm"),
+            new("Orders", "Order with secure payment", "2:40", "secure-order", "Open the validated store page or create a price alert when the price is not right.", "tutorials/pagamento-seguro.webm")
         }
         : new List<TutorialItem>
         {
-            new("Iniciantes", "Como criar o primeiro prompt", "1:42"),
-            new("Iniciantes", "Ajustar pesos dos critérios", "2:15"),
-            new("Iniciantes", "Ler o score da IA", "1:58"),
-            new("Avançado", "Adicionar produto manual", "1:30"),
-            new("Segurança", "Detectar vendedores falsos", "3:05"),
-            new("Encomendas", "Encomendar com pagamento seguro", "2:40")
+            new("Iniciantes", "Como criar o primeiro prompt", "1:42", "primeiro-prompt", "Aprende a descrever o produto, orcamento e prioridade antes de comparar.", "tutorials/primeiro-prompt.webm"),
+            new("Iniciantes", "Ajustar pesos dos critérios", "2:15", "criterios", "Ve como preco, qualidade, garantia e risco mudam a recomendacao.", "tutorials/criterios.webm"),
+            new("Iniciantes", "Ler o score da IA", "1:58", "score-ia", "Percebe o que significa o score e quando deves validar a fonte.", "tutorials/score-ia.webm"),
+            new("Avançado", "Adicionar produto manual", "1:30", "produto-manual", "Adiciona uma alternativa e mantem a validacao antes das lojas.", "tutorials/produto-manual.webm"),
+            new("Segurança", "Detectar vendedores falsos", "3:05", "vendedores-falsos", "Identifica precos suspeitos, falta de URL direta e prova fraca do vendedor.", "tutorials/vendedores-falsos.webm"),
+            new("Encomendas", "Encomendar com pagamento seguro", "2:40", "pagamento-seguro", "Abre a pagina validada da loja ou cria alerta quando o preco nao serve.", "tutorials/pagamento-seguro.webm")
         };
 
     private static IReadOnlyList<ProductResult> LaptopProducts { get; } = new List<ProductResult>
@@ -872,7 +1055,19 @@ public sealed class ComparisonDataService(AppText text)
             new[] { "Revendedor autorizado", "Garantia validada", "Confirmar configuracao exata" },
             Array.Empty<FraudAlert>(),
             "Boa correspondencia para portateis gaming Lenovo Legion ou HP Omen com GPU dedicada."
-        )
+        ),
+        CatalogProduct(
+            "asus-vivobook-go-14-e1404f",
+            9,
+            82,
+            "ASUS Vivobook Go 14 E1404F",
+            "ASUS",
+            "499,99 EUR",
+            "#5EE9A8",
+            "Informática",
+            ["Portatil", "14\"", "Ryzen 5", "8GB RAM", "512GB SSD", "Windows"],
+            ["Categoria informatica", "Preco validavel", "Boa opcao estudante"],
+            "Referencia para pesquisas genericas de informatica e computadores portateis.")
     };
 
     private static IReadOnlyList<ProductResult> SmartphoneProducts { get; } = new List<ProductResult>
@@ -1145,15 +1340,15 @@ public sealed class ComparisonDataService(AppText text)
             "1.779 €",
             "#5EE9A8",
             "Mais eficiente",
-            new[] { "Classe A", "363 L total", "No Frost", "29 dB", "203 cm", "Garantia 3 anos" },
-            new[] { "Consumo muito baixo", "Silencioso", "Boa capacidade familiar" },
+            new[] { "Frigorifico combinado", "Classe A", "363 L total", "No Frost", "29 dB", "203 cm", "Garantia 3 anos" },
+            new[] { "Consumo muito baixo", "Silencioso", "Boa capacidade familiar", "Preco validavel" },
             new[] { "Número de série validado", "Revendedor autorizado", "Etiqueta energética confirmada", "Stock real confirmado", "Garantia UE confirmada" },
             new[]
             {
                 new FraudAlert("home-clearance.shop", "Preço 50% abaixo do mercado"),
                 new FraudAlert("outlet-domestico.net", "Sem registo fiscal verificável")
             },
-            "Melhor escolha para frigorífico eficiente, silencioso e com garantia forte."
+            "Melhor escolha para frigorifico combinado eficiente, silencioso, baixo risco e com garantia forte."
         ),
         new(
             "lg-instaview-combinado",
@@ -1161,7 +1356,7 @@ public sealed class ComparisonDataService(AppText text)
             88,
             "LG InstaView Combinado",
             "LG",
-            "1.049 €",
+            "2.699 EUR",
             "#7BE8E0",
             "Melhor tecnologia",
             new[] { "Classe A++", "635 L", "DoorCooling+", "36 dB", "Wi-Fi", "Garantia 3 anos" },
@@ -1170,6 +1365,54 @@ public sealed class ComparisonDataService(AppText text)
             Array.Empty<FraudAlert>(),
             "Excelente para famílias que precisam de grande capacidade e controlo inteligente."
         ),
+        CatalogProduct(
+            "becken-bc3901n2-frigorifico-combinado",
+            3,
+            84,
+            "Becken BC3901N2 WH Frigorifico Combinado",
+            "Becken",
+            "499,99 EUR",
+            "#7BE8E0",
+            "Mais barata No Frost",
+            ["Frigorifico combinado", "No Frost", "291 L", "185 cm", "Branco", "Garantia loja"],
+            ["Worten direto", "Preco validavel", "Boa entrada No Frost"],
+            "Opcao economica para quem quer frigorifico combinado No Frost com preco controlado."),
+        CatalogProduct(
+            "samsung-rb34c600esa-frigorifico-combinado",
+            4,
+            90,
+            "Samsung RB34C600ESA A Frigorifico Combinado",
+            "Samsung",
+            "499,99 EUR",
+            "#5EE9A8",
+            "Preco/qualidade",
+            ["Frigorifico combinado", "No Frost", "344 L", "Classe A", "Inox", "Garantia loja"],
+            ["Worten direto", "Classe A", "Boa capacidade familiar"],
+            "Melhor ponto de partida para quem quer equilibrio entre preco, eficiencia e capacidade."),
+        CatalogProduct(
+            "bosch-kgn497ldf-frigorifico-combinado",
+            5,
+            89,
+            "Bosch KGN497LDF Frigorifico Combinado",
+            "Bosch",
+            "849,99 EUR",
+            "#B49CFF",
+            "Grande capacidade",
+            ["Frigorifico combinado", "No Frost", "440 L", "203 cm", "Inox", "Garantia loja"],
+            ["Worten direto", "Grande capacidade", "Marca forte", "Preco validavel"],
+            "Boa escolha para familia que precisa de muita capacidade sem ir para frigorifico americano."),
+        CatalogProduct(
+            "lg-gbbs726cmb-frigorifico-combinado",
+            6,
+            87,
+            "LG GBBS726CMB Frigorifico Combinado",
+            "LG",
+            "779,99 EUR",
+            "#E9D67B",
+            "Topo equilibrado",
+            ["Frigorifico combinado", "No Frost", "375 L", "203 cm", "Inox", "Garantia loja"],
+            ["Worten direto", "Capacidade alta", "Boa opcao premium"],
+            "Alternativa mais premium para uso familiar quando valorizas capacidade e acabamento."),
         new(
             "miele-w1-lavadora",
             3,
@@ -1201,41 +1444,149 @@ public sealed class ComparisonDataService(AppText text)
             "Opção equilibrada para cozinha moderna com bom preço e baixo ruído."
         ),
         CatalogProduct(
+            "indesit-in2fe13dt9s-lava-loica",
+            5,
+            83,
+            "Indesit IN2FE13DT9S Maquina de Lavar Loica",
+            "Indesit",
+            "236,19 EUR",
+            "#5EE9A8",
+            "Lava-loica 13 conjuntos",
+            ["Maquina de lavar loica", "13 conjuntos", "Classe E", "60 cm", "Inox", "51 dB"],
+            ["Modelo IN2FE13DT9S", "Categoria lava-loica", "Preco Castro confirmado"],
+            "Correspondencia direta para pedidos de maquina de lavar loica Indesit IN2FE13DT9S."),
+        CatalogProduct(
             "teka-hcb-6370-forno",
             5,
             80,
             "Teka HCB 6370 Forno",
             "Teka",
-            "289 EUR",
+            "216,47 EUR",
             "#7BE8E0",
             "Forno encastre",
             ["Forno", "70 L", "Encastre", "Multifuncoes", "Classe A", "Garantia 3 anos"],
             ["Categoria correta", "Marca comum em PT", "Confirmar dimensoes"],
             "Boa referencia quando o pedido e forno de encastre."),
         CatalogProduct(
-            "teka-mw-fs20-microondas",
+            "teka-mw-fs20-wh-microondas",
             6,
-            78,
-            "Teka MW FS20 Microondas 20L",
+            84,
+            "Teka MW FS20 WH Microondas 20L",
             "Teka",
-            "89 EUR",
+            "49,39 EUR",
+            "#5EE9A8",
+            "Mais barato",
+            ["Microondas", "20 L", "700 W", "Livre instalacao", "Branco", "Garantia 3 anos"],
+            ["Preco online baixo", "Modelo oficial Teka", "Confirmar entrega"],
+            "Microondas Teka de livre instalacao para quem quer preco baixo e capacidade compacta."),
+        CatalogProduct(
+            "teka-mw-fs20-g-wh-microondas",
+            7,
+            82,
+            "Teka MW FS20 G WH Microondas Grill 20L",
+            "Teka",
+            "64,99 EUR",
+            "#7BE8E0",
+            "Com grill",
+            ["Microondas", "20 L", "700 W", "Grill 1000 W", "Branco", "Garantia 3 anos"],
+            ["Preco Darty confirmado", "Grill incluido", "Pagina oficial Teka"],
+            "Opcao compacta com grill para aquecer, descongelar e gratinar em cozinhas pequenas."),
+        CatalogProduct(
+            "teka-mw-fs20-g-bk-microondas",
+            8,
+            80,
+            "Teka MW FS20 G BK Microondas Grill 20L",
+            "Teka",
+            "85,99 EUR",
             "#B49CFF",
-            "Microondas compacto",
-            ["Microondas", "20 L", "Livre instalacao", "Potencia media", "Branco", "Garantia 3 anos"],
-            ["Preco acessivel", "Facil de comparar", "Confirmar medidas"],
-            "Referencia para pedidos de microondas compacto."),
+            "Preto com grill",
+            ["Microondas", "20 L", "700 W", "Grill 1000 W", "Preto", "Garantia 3 anos"],
+            ["Vendido pela Worten", "Modelo oficial Teka", "Confirmar stock"],
+            "Alternativa preta com grill quando a cor e o vendedor Worten sao preferidos."),
         CatalogProduct(
             "xiaomi-mi-smart-scale-s400",
-            7,
+            9,
             76,
             "Xiaomi Mi Smart Scale S400",
             "Xiaomi",
-            "29,99 EUR",
+            "17,96 EUR",
             "#E9D67B",
             "Balanca inteligente",
             ["Balanca", "Bluetooth", "App", "Metricas corporais", "Casa", "Garantia loja"],
             ["Preco baixo", "Liga a app", "Nao e smartphone"],
-            "Boa opcao quando o pedido e balanca inteligente Xiaomi, sem confundir com telemoveis.")
+            "Boa opcao quando o pedido e balanca inteligente Xiaomi, sem confundir com telemoveis."),
+        CatalogProduct(
+            "becken-bwm8812n-maquina-lavar",
+            10,
+            80,
+            "Becken Boostwash BWM8812N Maquina de Lavar Roupa",
+            "Becken",
+            "299,99 EUR",
+            "#5EE9A8",
+            "Lavagem",
+            ["Maquina de lavar", "8 kg", "1400 rpm", "Roupa", "Branco", "Garantia loja"],
+            ["Preco validavel", "Categoria lavagem", "Worten direto"],
+            "Referencia validada para pedidos de maquinas de lavar roupa."),
+        CatalogProduct(
+            "hisense-wf1g7021bw-maquina-lavar",
+            11,
+            84,
+            "Hisense WF1G7021BW Maquina de Lavar Roupa",
+            "Hisense",
+            "214,90 EUR",
+            "#7BE8E0",
+            "Lavagem 7 kg",
+            ["Maquina de lavar roupa", "7 kg", "1200 rpm", "Classe B", "Branco", "Garantia loja"],
+            ["Produto popular KuantoKusta", "Categoria lavagem", "Preco validavel"],
+            "Correspondencia direta para pedidos Hisense WF1G7021BW ou maquinas de lavar roupa 7 kg."),
+        CatalogProduct(
+            "beko-bm3t48249w-maquina-secar-roupa",
+            12,
+            86,
+            "Beko BM3T48249W Maquina de Secar Roupa 8Kg",
+            "Beko",
+            "366,90 EUR",
+            "#5EE9A8",
+            "Secagem 8 kg",
+            ["Maquina de secar roupa", "8 kg", "Bomba de calor", "Classe C", "Branco", "Garantia loja"],
+            ["Produto KuantoKusta validado", "Categoria secagem", "Preco validavel"],
+            "Correspondencia direta para pedidos Beko BM3T48249W ou maquinas de secar roupa 8 kg."),
+        CatalogProduct(
+            "becken-bbvc9255-aspirador",
+            13,
+            78,
+            "Becken BBVC9255 Aspirador Vertical",
+            "Becken",
+            "44,99 EUR",
+            "#7BE8E0",
+            "Aspirador entrada",
+            ["Aspirador", "Vertical", "Com fio", "800 ml", "Limpeza", "Garantia loja"],
+            ["Preco validavel", "Categoria aspiradores", "Worten direto"],
+            "Referencia validada para pedidos de aspiradores simples."),
+        CatalogProduct(
+            "rowenta-vu2640f0-ventoinha-mesa",
+            14,
+            78,
+            "Rowenta VU2640F0 Ventoinha de Mesa",
+            "Rowenta",
+            "74,99 EUR",
+            "#B49CFF",
+            "Ventilacao",
+            ["Ventoinha", "Mesa", "70 W", "40 cm", "5 velocidades", "Garantia loja"],
+            ["Preco validavel", "Categoria ventoinhas", "Vendido por Worten"],
+            "Referencia validada para pedidos de ventoinhas de casa."),
+        CatalogProduct(
+            "kenwood-titanium-chef-baker-lite",
+            15,
+            82,
+            "Kenwood Titanium Chef Baker Lite",
+            "Kenwood",
+            "479,99 EUR",
+            "#5EE9A8",
+            "Preparacao alimentos",
+            ["Robot de cozinha", "Batedeira", "Chef", "Preparacao de alimentos", "Cozinha", "Garantia loja"],
+            ["Marca conhecida", "Preco validavel", "Worten direto"],
+            "Referencia validada para preparacao de alimentos e robots de cozinha.")
     };
 
     private static IReadOnlyList<ProductResult> MouseProducts { get; } = new List<ProductResult>
@@ -1518,8 +1869,20 @@ public sealed class ComparisonDataService(AppText text)
     private static IReadOnlyList<ProductResult> HeadphonesProducts { get; } = new List<ProductResult>
     {
         CatalogProduct(
-            "sony-wh-1000xm5",
+            "jbl-tune-520-bt",
             1,
+            84,
+            "JBL Tune 520 BT",
+            "JBL",
+            "37,99 EUR",
+            "#5EE9A8",
+            "Audio acessivel",
+            ["Auscultadores Bluetooth", "On Ear", "Microfone", "Som", "USB-C", "Garantia loja"],
+            ["Preco baixo", "Categoria TV e som", "Boa autonomia"],
+            "Referencia para pedidos de audio, auscultadores ou TV e som."),
+        CatalogProduct(
+            "sony-wh-1000xm5",
+            2,
             92,
             "Sony WH-1000XM5",
             "Sony",
@@ -1531,7 +1894,7 @@ public sealed class ComparisonDataService(AppText text)
             "Melhor escolha quando isolamento e qualidade geral são prioridade."),
         CatalogProduct(
             "apple-airpods-pro-2",
-            2,
+            3,
             89,
             "Apple AirPods Pro 2",
             "Apple",
@@ -1543,7 +1906,7 @@ public sealed class ComparisonDataService(AppText text)
             "A melhor opção para utilizadores iPhone que querem auriculares compactos com ANC."),
         CatalogProduct(
             "jbl-tune-770nc",
-            3,
+            4,
             80,
             "JBL Tune 770NC",
             "JBL",
@@ -1556,7 +1919,7 @@ public sealed class ComparisonDataService(AppText text)
         ,
         CatalogProduct(
             "samsung-galaxy-buds-4-pro",
-            4,
+            5,
             84,
             "Samsung Galaxy Buds 4 Pro",
             "Samsung",
@@ -1568,7 +1931,7 @@ public sealed class ComparisonDataService(AppText text)
             "Boa correspondencia para pedidos de Galaxy Buds ou auriculares Samsung."),
         CatalogProduct(
             "lg-s40t-soundbar",
-            5,
+            6,
             80,
             "LG S40T Soundbar",
             "LG",
@@ -1583,8 +1946,20 @@ public sealed class ComparisonDataService(AppText text)
     private static IReadOnlyList<ProductResult> TvProducts { get; } = new List<ProductResult>
     {
         CatalogProduct(
-            "lg-oled-c4-55",
+            "smart-tech-32hn01k-tv",
             1,
+            80,
+            "Smart Tech 32HN01K TV 32\"",
+            "Smart Tech",
+            "119,99 EUR",
+            "#5EE9A8",
+            "TV entrada",
+            ["TV", "32\"", "LED", "HD", "Smart TV", "Garantia loja"],
+            ["Preco baixo", "Categoria TV e som", "Pagina direta Worten"],
+            "Referencia para pedidos genericos de TV e som com preco validavel."),
+        CatalogProduct(
+            "lg-oled-c4-55",
+            2,
             92,
             "LG OLED C4 55\"",
             "LG",
@@ -1596,7 +1971,7 @@ public sealed class ComparisonDataService(AppText text)
             "Melhor correspondência para quem pede TV 55 polegadas premium."),
         CatalogProduct(
             "samsung-qn90d-55",
-            2,
+            3,
             88,
             "Samsung QN90D 55\"",
             "Samsung",
@@ -1608,7 +1983,7 @@ public sealed class ComparisonDataService(AppText text)
             "Boa escolha para salas com muita luz e uso misto."),
         CatalogProduct(
             "tcl-55c805",
-            3,
+            4,
             82,
             "TCL 55C805",
             "TCL",
@@ -1620,7 +1995,7 @@ public sealed class ComparisonDataService(AppText text)
             "Opção de valor para quem quer boa imagem sem chegar ao preço das gamas premium."),
         CatalogProduct(
             "tooq-suporte-tv-vesa",
-            4,
+            5,
             76,
             "TooQ Suporte TV VESA",
             "TooQ",
@@ -1635,8 +2010,44 @@ public sealed class ComparisonDataService(AppText text)
     private static IReadOnlyList<ProductResult> CoffeeMachineProducts { get; } = new List<ProductResult>
     {
         CatalogProduct(
-            "delonghi-magnifica-start",
+            "krups-nespresso-essenza-mini",
             1,
+            82,
+            "Krups Nespresso Essenza Mini",
+            "Krups",
+            "59,99 EUR",
+            "#B49CFF",
+            "Mais barata Nespresso",
+            ["Maquina de cafe de capsulas", "Nespresso", "Compacta", "19 bar", "Deposito 0.6 L", "Uso simples"],
+            ["Preco baixo", "Capsulas Nespresso", "Muito compacta"],
+            "Boa opcao para gastar pouco e usar capsulas Nespresso sem ocupar espaco."),
+        CatalogProduct(
+            "delta-q-mini-qool-cinzento",
+            2,
+            86,
+            "Delta Q Mini Qool Cinzento",
+            "Delta Q",
+            "35,99 EUR",
+            "#5EE9A8",
+            "Capsulas Delta Q",
+            ["Maquina de cafe de capsulas", "Delta Q", "Mini Qool", "0.6 L", "20 bar", "Cinzento"],
+            ["Produto popular KuantoKusta", "Categoria maquinas de cafe", "Preco validavel"],
+            "Correspondencia direta para pedidos Delta Q Mini Qool ou maquina de cafe de capsulas Delta Q."),
+        CatalogProduct(
+            "delonghi-stilosa-ec260",
+            3,
+            84,
+            "De'Longhi Stilosa EC260",
+            "De'Longhi",
+            "99,99 EUR",
+            "#7BE8E0",
+            "Intermedia manual",
+            ["Maquina de cafe manual", "15 bar", "Porta-filtro", "Vapor manual", "Cafe moido", "Compacta"],
+            ["Entrada em espresso manual", "Boa para aprender", "Preco controlado"],
+            "Opcao intermedia para quem quer espresso com porta-filtro sem subir para automatica."),
+        CatalogProduct(
+            "delonghi-magnifica-start",
+            4,
             88,
             "De'Longhi Magnifica Start",
             "De'Longhi",
@@ -1647,8 +2058,32 @@ public sealed class ComparisonDataService(AppText text)
             ["Bom valor", "Café fresco em grão", "Funcionamento automático"],
             "Boa escolha para quem quer máquina automática sem entrar nos modelos mais caros."),
         CatalogProduct(
+            "philips-serie-2200-ep2224",
+            5,
+            86,
+            "Philips Serie 2200 EP2224/10",
+            "Philips",
+            "369,99 EUR",
+            "#7BE8E0",
+            "Automatica com grao",
+            ["Maquina de cafe automatica", "15 bar", "12 niveis de moagem", "Moinho integrado", "Vapor", "Cafe em grao"],
+            ["Automatica completa", "Moagem ajustavel", "Boa para uso diario"],
+            "Boa alternativa automatica com grao para quem quer simplicidade diaria e moagem ajustavel."),
+        CatalogProduct(
+            "delonghi-rivelia-exam440",
+            6,
+            90,
+            "De'Longhi Rivelia EXAM440.55",
+            "De'Longhi",
+            "639,99 EUR",
+            "#F0A36A",
+            "Topo automatica",
+            ["Maquina de cafe automatica", "19 bar", "13 niveis de moagem", "Bebidas automaticas", "Moinho integrado", "Premium"],
+            ["Mais completa", "Bebidas automaticas", "Boa para varios utilizadores"],
+            "Opcao topo para quem quer automatizacao, mais bebidas e acabamento premium."),
+        CatalogProduct(
             "sage-bambino-plus",
-            2,
+            7,
             86,
             "Sage Bambino Plus",
             "Sage",
@@ -1660,7 +2095,7 @@ public sealed class ComparisonDataService(AppText text)
             "Indicada para quem quer controlar melhor o espresso e bebidas com leite."),
         CatalogProduct(
             "nespresso-vertuo-pop",
-            3,
+            8,
             76,
             "Nespresso Vertuo Pop",
             "Nespresso",
@@ -1779,8 +2214,32 @@ public sealed class ComparisonDataService(AppText text)
     private static IReadOnlyList<ProductResult> ToolProducts { get; } = new List<ProductResult>
     {
         CatalogProduct(
-            "bosch-professional-gsb-18v-55",
+            "bosch-easyimpact-600",
             1,
+            82,
+            "Bosch EasyImpact 600",
+            "Bosch",
+            "54,99 EUR",
+            "#5EE9A8",
+            "Bricolage",
+            ["Berbequim", "Percussao", "600 W", "Bricolagem", "Construcao", "Garantia loja"],
+            ["Preco validavel", "Marca conhecida", "Boa entrada"],
+            "Referencia para bricolage e construcao domestica."),
+        CatalogProduct(
+            "karcher-k3-lavadora-alta-pressao",
+            2,
+            84,
+            "Karcher K3 Lavadora de Alta Pressao",
+            "Karcher",
+            "91,99 EUR",
+            "#7BE8E0",
+            "Alta pressao",
+            ["Lavadora de alta pressao", "K3", "120 bar", "1600 W", "Jardim", "Garantia loja"],
+            ["Produto popular KuantoKusta", "Categoria lavadoras de alta pressao", "Preco validavel"],
+            "Correspondencia direta para pedidos Karcher K3, hidrolimpiadora ou lavadora de alta pressao."),
+        CatalogProduct(
+            "bosch-professional-gsb-18v-55",
+            3,
             88,
             "Bosch Professional GSB 18V-55",
             "Bosch",
@@ -1792,7 +2251,7 @@ public sealed class ComparisonDataService(AppText text)
             "Escolha equilibrada para bricolage exigente e uso profissional ligeiro."),
         CatalogProduct(
             "makita-dhp482z",
-            2,
+            4,
             84,
             "Makita DHP482Z",
             "Makita",
@@ -1804,7 +2263,7 @@ public sealed class ComparisonDataService(AppText text)
             "Boa opção para quem já usa baterias Makita 18V."),
         CatalogProduct(
             "dewalt-dcd796p2",
-            3,
+            5,
             82,
             "DeWalt DCD796P2",
             "DeWalt",
@@ -1819,8 +2278,32 @@ public sealed class ComparisonDataService(AppText text)
     private static IReadOnlyList<ProductResult> ChairProducts { get; } = new List<ProductResult>
     {
         CatalogProduct(
-            "ikea-markus",
+            "racingreat-costas-altas-cadeira-gaming",
             1,
+            86,
+            "RACINGREAT Costas Altas Cadeira Gaming",
+            "RACINGREAT",
+            "65,00 EUR",
+            "#5EE9A8",
+            "Melhor gaming",
+            ["Cadeira gaming", "Costas altas", "Bracos regulaveis", "Inclinavel", "Apoio lombar", "Garantia loja"],
+            ["Pagina direta Worten", "Preco validavel", "Formato gaming"],
+            "Opcao validada para pedidos de cadeira gaming, sem trocar por consolas ou perifericos."),
+        CatalogProduct(
+            "mitsai-roma-ii-cadeira-escritorio",
+            2,
+            82,
+            "Mitsai Roma II Cadeira de Escritorio",
+            "Mitsai",
+            "49,99 EUR",
+            "#5EE9A8",
+            "Casa e escritorio",
+            ["Cadeira", "Escritorio", "Malha", "Bracos fixos", "Ergonomia simples", "Garantia loja"],
+            ["Preco validavel", "Categoria cadeira", "Boa compra simples"],
+            "Referencia validada para pedidos de cadeira de escritorio sem terminar num checkout vazio."),
+        CatalogProduct(
+            "ikea-markus",
+            3,
             84,
             "IKEA MARKUS",
             "IKEA",
@@ -1832,7 +2315,7 @@ public sealed class ComparisonDataService(AppText text)
             "Boa escolha de valor para escritório doméstico ou posto de trabalho simples."),
         CatalogProduct(
             "sihoo-m57",
-            2,
+            4,
             82,
             "SIHOO M57",
             "SIHOO",
@@ -1844,7 +2327,7 @@ public sealed class ComparisonDataService(AppText text)
             "Opção interessante quando os ajustes ergonómicos são prioritários."),
         CatalogProduct(
             "songmics-obg22b",
-            3,
+            5,
             76,
             "SONGMICS OBG22B",
             "SONGMICS",
@@ -1899,8 +2382,20 @@ public sealed class ComparisonDataService(AppText text)
     private static IReadOnlyList<ProductResult> PrinterProducts { get; } = new List<ProductResult>
     {
         CatalogProduct(
-            "hp-officejet-pro-9120e",
+            "hp-deskjet-2921-all-in-one",
             1,
+            82,
+            "HP DeskJet 2921 All-in-One",
+            "HP",
+            "59,99 EUR",
+            "#5EE9A8",
+            "Impressora entrada",
+            ["Impressora", "Multifuncoes", "Jato de tinta", "Wi-Fi", "Instant Ink", "Garantia loja"],
+            ["Preco baixo", "Boa para casa", "Categoria impressoras"],
+            "Referencia para pedidos de impressoras e multifuncoes domesticas."),
+        CatalogProduct(
+            "hp-officejet-pro-9120e",
+            2,
             84,
             "HP OfficeJet Pro 9120e",
             "HP",
@@ -1912,7 +2407,7 @@ public sealed class ComparisonDataService(AppText text)
             "Boa opção para pequenos escritórios com impressão e digitalização regulares."),
         CatalogProduct(
             "epson-ecotank-l3250",
-            2,
+            3,
             86,
             "Epson EcoTank L3250",
             "Epson",
@@ -1924,7 +2419,7 @@ public sealed class ComparisonDataService(AppText text)
             "Melhor se imprimes muitas páginas e queres poupar em tinta."),
         CatalogProduct(
             "brother-dcp-l2620dw",
-            3,
+            4,
             82,
             "Brother DCP-L2620DW",
             "Brother",
@@ -1950,6 +2445,18 @@ public sealed class ComparisonDataService(AppText text)
             ["Cão adulto", "15 kg", "Raças médias", "Ração seca", "Nutrição completa", "Saco grande"],
             ["Marca conhecida", "Formato económico", "Boa disponibilidade"],
             "Boa escolha para cães adultos de porte médio quando a prioridade é consistência nutricional."),
+        CatalogProduct(
+            "advance-cat-adult-frango-arroz-12kg",
+            2,
+            82,
+            "Advance Cat Adult Frango e Arroz 12kg",
+            "Advance",
+            "43,88 EUR",
+            "#7BE8E0",
+            "Gato adulto",
+            ["Gato adulto", "12 kg", "Frango e arroz", "Racao seca", "Formato familiar", "Garantia loja"],
+            ["Produto popular KuantoKusta", "Categoria animais", "Preco validavel"],
+            "Correspondencia direta para pedidos Advance Cat Adult ou racao de gato adulto 12 kg."),
         CatalogProduct(
             "purina-pro-plan-medium-adult-14kg",
             2,
@@ -2004,8 +2511,20 @@ public sealed class ComparisonDataService(AppText text)
     private static IReadOnlyList<ProductResult> BabyCareProducts { get; } = new List<ProductResult>
     {
         CatalogProduct(
-            "pampers-premium-protection-t4",
+            "rascals-premium-fraldas-t3",
             1,
+            80,
+            "Rascals Premium Fraldas T3",
+            "Rascals",
+            "15,99 EUR",
+            "#5EE9A8",
+            "Fraldas bebe",
+            ["Fraldas", "Tamanho 3", "Bebe", "Puericultura", "Pack", "Garantia loja"],
+            ["Categoria puericultura", "Preco validavel", "Produto comum"],
+            "Referencia para puericultura e fraldas com pagina direta de loja."),
+        CatalogProduct(
+            "pampers-premium-protection-t4",
+            2,
             84,
             "Pampers Premium Protection T4",
             "Pampers",
@@ -2017,7 +2536,7 @@ public sealed class ComparisonDataService(AppText text)
             "Boa opção para quem procura fraldas premium com boa absorção."),
         CatalogProduct(
             "dodot-aqua-pure",
-            2,
+            3,
             78,
             "Dodot Aqua Pure Toalhitas",
             "Dodot",
@@ -2029,7 +2548,7 @@ public sealed class ComparisonDataService(AppText text)
             "Produto complementar para higiene diária do bebé."),
         CatalogProduct(
             "chicco-next2me",
-            3,
+            4,
             82,
             "Chicco Next2Me",
             "Chicco",
@@ -2049,7 +2568,7 @@ public sealed class ComparisonDataService(AppText text)
             88,
             "Apple iPad 11 A16 128GB Wi-Fi",
             "Apple",
-            "349 EUR",
+            "339,90 EUR",
             "#5EE9A8",
             "Tablet equilibrado",
             ["11\"", "A16", "128GB", "Wi-Fi", "iPadOS", "Garantia 3 anos"],
@@ -2108,8 +2627,20 @@ public sealed class ComparisonDataService(AppText text)
     private static IReadOnlyList<ProductResult> HealthBeautyProducts { get; } = new List<ProductResult>
     {
         CatalogProduct(
-            "tecnifar-artrozen-60",
+            "lattafa-yara-woman-perfume",
             1,
+            82,
+            "Lattafa Yara Woman Eau de Parfum 100ml",
+            "Lattafa",
+            "24,99 EUR",
+            "#5EE9A8",
+            "Perfumaria",
+            ["Perfume", "Eau de Parfum", "100 ml", "Mulher", "Cosmetica", "Garantia loja"],
+            ["Categoria saude e beleza", "Preco validavel", "Confirmar vendedor"],
+            "Referencia para perfumaria, cosmetica e beleza com pagina direta de retalhista."),
+        CatalogProduct(
+            "tecnifar-artrozen-60",
+            2,
             82,
             "Tecnifar Artrozen 60 Comprimidos",
             "Tecnifar",
@@ -2121,7 +2652,7 @@ public sealed class ComparisonDataService(AppText text)
             "Opcao representativa quando o pedido e suplemento de saude; confirmar composicao e aconselhamento profissional antes de comprar."),
         CatalogProduct(
             "la-roche-posay-cicaplast-baume-b5",
-            2,
+            3,
             84,
             "La Roche-Posay Cicaplast Baume B5+",
             "La Roche-Posay",
@@ -2133,7 +2664,7 @@ public sealed class ComparisonDataService(AppText text)
             "Boa correspondencia para pedidos de creme reparador ou cuidados de pele sensivel."),
         CatalogProduct(
             "dolce-gabbana-light-blue",
-            3,
+            4,
             80,
             "Dolce & Gabbana Light Blue Eau de Toilette",
             "Dolce & Gabbana",
@@ -2145,7 +2676,7 @@ public sealed class ComparisonDataService(AppText text)
             "Boa referencia quando o pedido e perfume; validar sempre capacidade e vendedor."),
         CatalogProduct(
             "isdin-fotoprotector-fusion-water",
-            4,
+            5,
             78,
             "ISDIN Fotoprotector Fusion Water SPF50",
             "ISDIN",
@@ -2160,8 +2691,20 @@ public sealed class ComparisonDataService(AppText text)
     private static IReadOnlyList<ProductResult> ToyProducts { get; } = new List<ProductResult>
     {
         CatalogProduct(
-            "lego-icons-ferrari-f2004",
+            "lego-botanical-pequeno-buque-10347",
             1,
+            84,
+            "LEGO Botanical Pequeno Buque Soalheiro 10347",
+            "LEGO",
+            "29,99 EUR",
+            "#5EE9A8",
+            "Brinquedo LEGO",
+            ["LEGO", "Botanical", "Brinquedo", "Construcao", "Jogo", "Garantia loja"],
+            ["Categoria brinquedos", "Preco validavel", "Marca oficial"],
+            "Referencia para jogos e brinquedos com pagina direta de loja."),
+        CatalogProduct(
+            "lego-icons-ferrari-f2004",
+            2,
             86,
             "LEGO Icons Ferrari F2004 Michael Schumacher",
             "LEGO",
@@ -2173,7 +2716,7 @@ public sealed class ComparisonDataService(AppText text)
             "Boa correspondencia para pedidos LEGO ou brinquedos de construcao."),
         CatalogProduct(
             "lego-minecraft-creeper",
-            2,
+            3,
             82,
             "LEGO Minecraft O Creeper",
             "LEGO",
@@ -2185,7 +2728,7 @@ public sealed class ComparisonDataService(AppText text)
             "Opcao adequada para pedidos de LEGO tematico."),
         CatalogProduct(
             "hot-wheels-pack-tematico",
-            3,
+            4,
             76,
             "Hot Wheels Pack Tematico",
             "Mattel",
@@ -2200,8 +2743,20 @@ public sealed class ComparisonDataService(AppText text)
     private static IReadOnlyList<ProductResult> HomeProducts { get; } = new List<ProductResult>
     {
         CatalogProduct(
-            "ikea-lagkapten-adils",
+            "mitsai-roma-ii-cadeira-escritorio",
             1,
+            82,
+            "Mitsai Roma II Cadeira de Escritorio",
+            "Mitsai",
+            "49,99 EUR",
+            "#5EE9A8",
+            "Casa e escritorio",
+            ["Cadeira", "Escritorio", "Malha", "Bracos fixos", "Casa", "Garantia loja"],
+            ["Preco validavel", "Categoria casa", "Boa compra simples"],
+            "Referencia para casa, decoracao e mobiliario de escritorio."),
+        CatalogProduct(
+            "ikea-lagkapten-adils",
+            2,
             82,
             "IKEA LAGKAPTEN / ADILS",
             "IKEA",
@@ -2213,7 +2768,7 @@ public sealed class ComparisonDataService(AppText text)
             "Boa opcao quando o pedido e uma mesa de escritorio simples e barata."),
         CatalogProduct(
             "emma-original-colchao",
-            2,
+            3,
             84,
             "Emma Original Colchao",
             "Emma",
@@ -2225,7 +2780,7 @@ public sealed class ComparisonDataService(AppText text)
             "Referencia adequada para pedidos de colchao ou artigos de quarto."),
         CatalogProduct(
             "philips-hue-white-color-e27",
-            3,
+            4,
             80,
             "Philips Hue White and Color E27",
             "Philips Hue",
@@ -2234,14 +2789,62 @@ public sealed class ComparisonDataService(AppText text)
             "Iluminacao smart",
             ["Lampada E27", "RGB", "App", "Zigbee/Bluetooth", "Casa inteligente", "Garantia loja"],
             ["Ecossistema forte", "Boa integracao", "Preco comparavel"],
-            "Boa opcao para pedidos de iluminacao e decoracao inteligente.")
+            "Boa opcao para pedidos de iluminacao e decoracao inteligente."),
+        CatalogProduct(
+            "sofa-cama-homcom-azul",
+            5,
+            78,
+            "Sofa Cama Individual Homcom Azul",
+            "Homcom",
+            "182,99 EUR",
+            "#7BE8E0",
+            "Sofa cama",
+            ["Sofa", "Sofa cama", "Linho sintetico", "Azul", "Casa", "Decoracao"],
+            ["Pagina direta Worten", "Preco validavel", "Confirmar medidas"],
+            "Referencia validada para pedidos de sofas e sofa-cama, com medidas a confirmar antes da compra.")
     };
 
     private static IReadOnlyList<ProductResult> SportProducts { get; } = new List<ProductResult>
     {
         CatalogProduct(
-            "garmin-forerunner-255",
+            "fitfiu-fitness-mc-90-passadeira",
             1,
+            80,
+            "FITFIU Fitness MC-90 Passadeira",
+            "FITFIU Fitness",
+            "199,99 EUR",
+            "#5EE9A8",
+            "Fitness casa",
+            ["Passadeira", "Fitness", "14 km/h", "Inclinacao", "Dobravel", "App"],
+            ["Preco validavel", "Categoria fitness", "Boa para treino em casa"],
+            "Referencia validada para pedidos de fitness e passadeiras."),
+        CatalogProduct(
+            "cecotec-drumfit-indoor-10000-teseo",
+            2,
+            82,
+            "Cecotec DrumFit Indoor 10000 Teseo",
+            "Cecotec",
+            "122,99 EUR",
+            "#7BE8E0",
+            "Bicicleta estatica",
+            ["Bicicleta estatica", "Indoor", "Volante 10 kg", "Monitor LCD", "Fitness", "Garantia loja"],
+            ["Produto popular KuantoKusta", "Categoria bicicletas estaticas", "Preco validavel"],
+            "Correspondencia direta para pedidos de bicicleta estatica Cecotec DrumFit Indoor 10000 Teseo."),
+        CatalogProduct(
+            "otte-kosmo-bicicleta-montanha",
+            3,
+            82,
+            "OTTE Kosmo Bicicleta de Montanha",
+            "OTTE",
+            "279 EUR",
+            "#5EE9A8",
+            "Outdoor",
+            ["Bicicleta", "Montanha", "Outdoor", "Desporto", "Tamanho L", "Garantia loja"],
+            ["Preco validavel", "Categoria desporto", "Confirmar tamanho"],
+            "Referencia para desporto, outdoor e mobilidade leve."),
+        CatalogProduct(
+            "garmin-forerunner-255",
+            4,
             84,
             "Garmin Forerunner 255",
             "Garmin",
@@ -2252,20 +2855,20 @@ public sealed class ComparisonDataService(AppText text)
             ["Forte para treino", "Boa autonomia", "Metricas avancadas"],
             "Recomendado quando o pedido e equipamento desportivo ou relogio para treino."),
         CatalogProduct(
-            "xiaomi-electric-scooter-4",
-            2,
+            "xiaomi-4-lite-2nd-gen-trotinete",
+            5,
             82,
-            "Xiaomi Electric Scooter 4",
+            "Xiaomi 4 Lite 2nd Gen Trotinete",
             "Xiaomi",
-            "449 EUR",
+            "199,49 EUR",
             "#7BE8E0",
             "Mobilidade urbana",
-            ["Trotinete eletrica", "Ate 25 km/h", "Autonomia urbana", "Dobravel", "App", "Travagem dupla"],
-            ["Boa para cidade", "Facil de transportar", "Marca conhecida"],
-            "Boa opcao para mobilidade urbana leve."),
+            ["Trotinete eletrica", "300 W", "25 km autonomia", "Dobravel", "Cinzento", "Garantia loja"],
+            ["Pagina direta Worten", "Preco validavel", "Boa para cidade"],
+            "Boa opcao validavel para mobilidade urbana leve."),
         CatalogProduct(
             "domyos-run100-passadeira",
-            3,
+            6,
             78,
             "Domyos RUN100 Passadeira",
             "Domyos",
@@ -2277,7 +2880,7 @@ public sealed class ComparisonDataService(AppText text)
             "Referencia para pedidos de equipamento de fitness domestico."),
         CatalogProduct(
             "asics-gel-kayano-32",
-            4,
+            7,
             82,
             "ASICS Gel-Kayano 32",
             "ASICS",
@@ -2289,7 +2892,7 @@ public sealed class ComparisonDataService(AppText text)
             "Boa referencia quando o pedido e sapatilhas de running."),
         CatalogProduct(
             "adidas-adizero-evo-sl",
-            5,
+            8,
             80,
             "Adidas Adizero Evo SL",
             "Adidas",
@@ -2344,8 +2947,32 @@ public sealed class ComparisonDataService(AppText text)
     private static IReadOnlyList<ProductResult> OfficeProducts { get; } = new List<ProductResult>
     {
         CatalogProduct(
-            "navigator-universal-a4-80g",
+            "hp-305-tricolor-pack",
             1,
+            80,
+            "Pack 2 Tinteiros HP 305 Tricolor",
+            "HP",
+            "35,99 EUR",
+            "#5EE9A8",
+            "Consumiveis impressao",
+            ["Tinteiros", "HP 305", "Tricolor", "Pack 2", "Escritorio", "Papelaria"],
+            ["Produto comum", "Categoria escritorio", "Preco validavel"],
+            "Referencia para escritorio e papelaria quando o pedido e consumiveis de impressao."),
+        CatalogProduct(
+            "hp-308-preto-tricolor-pack",
+            2,
+            82,
+            "Tinteiro HP 308 Preto/Tricolor Pack 2x",
+            "HP",
+            "32,21 EUR",
+            "#7BE8E0",
+            "Consumiveis HP 308",
+            ["Tinteiros", "HP 308", "Preto", "Tricolor", "Pack 2", "Escritorio"],
+            ["Produto popular KuantoKusta", "Categoria tinteiros", "Preco validavel"],
+            "Correspondencia direta para pedidos HP 308 preto e tricolor pack 2x."),
+        CatalogProduct(
+            "navigator-universal-a4-80g",
+            3,
             78,
             "Navigator Universal A4 80g",
             "Navigator",
@@ -2357,7 +2984,7 @@ public sealed class ComparisonDataService(AppText text)
             "Boa referencia para pedidos de papelaria e consumiveis de escritorio."),
         CatalogProduct(
             "bic-cristal-pack",
-            2,
+            4,
             74,
             "BIC Cristal Pack Canetas",
             "BIC",
@@ -2369,7 +2996,7 @@ public sealed class ComparisonDataService(AppText text)
             "Opcao adequada para material de escrita."),
         CatalogProduct(
             "casio-fx-991cw",
-            3,
+            5,
             82,
             "Casio FX-991CW",
             "Casio",
@@ -2455,6 +3082,62 @@ public sealed class ComparisonDataService(AppText text)
             ["Jogo de tabuleiro", "Familia", "Estrategia", "Confirmar idioma", "2-4 jogadores", "Garantia loja"],
             ["Titulo conhecido", "Boa disponibilidade", "Confirmar edicao"],
             "Boa correspondencia para pedidos de jogos de tabuleiro como Catan, Monopoly ou Dixit.")
+    };
+
+    private static IReadOnlyList<ProductResult> FashionProducts { get; } = new List<ProductResult>
+    {
+        CatalogProduct(
+            "adidas-adizero-evo-sl-sapatilhas",
+            1,
+            82,
+            "Adidas Adizero Evo SL",
+            "Adidas",
+            "149 EUR",
+            "#5EE9A8",
+            "Sapatilhas running",
+            ["Sapatilhas", "Running", "Leve", "Estrada", "Varios tamanhos", "Confirmar numeracao"],
+            ["Marca conhecida", "Comparar tamanho e cor", "Boa procura online"],
+            "Opcao adequada para moda desportiva e sapatilhas de running; confirmar tamanho antes de comprar."),
+        CatalogProduct(
+            "nike-air-max-sc",
+            2,
+            78,
+            "Nike Air Max SC",
+            "Nike",
+            "74,99 EUR",
+            "#7BE8E0",
+            "Sapatilhas casual",
+            ["Sapatilhas", "Casual", "Air Max", "Varios tamanhos", "Confirmar cor", "Garantia loja"],
+            ["Modelo popular", "Facil de comparar", "Categoria moda"],
+            "Referencia para pedidos de sapatilhas casuais ou moda e acessorios.")
+    };
+
+    private static IReadOnlyList<ProductResult> GardenProducts { get; } = new List<ProductResult>
+    {
+        CatalogProduct(
+            "gardena-mangueira-equipada-20m",
+            1,
+            80,
+            "Gardena Mangueira Equipada 20m",
+            "Gardena",
+            "24,99 EUR",
+            "#5EE9A8",
+            "Rega jardim",
+            ["Mangueira", "20 m", "Jardim", "Rega", "Acessorios", "Garantia loja"],
+            ["Produto comum", "Marca conhecida", "Boa comparacao de preco"],
+            "Boa correspondencia para pedidos de jardim, rega ou mangueiras."),
+        CatalogProduct(
+            "weber-compact-kettle-47",
+            2,
+            84,
+            "Weber Compact Kettle 47cm",
+            "Weber",
+            "99,99 EUR",
+            "#7BE8E0",
+            "Barbecue jardim",
+            ["Barbecue", "Carvao", "47 cm", "Jardim", "Churrasco", "Garantia loja"],
+            ["Marca conhecida", "Boa para exterior", "Confirmar dimensoes"],
+            "Opcao adequada para jardim, barbecue e churrasco.")
     };
 
     private static IReadOnlyList<ProductResult> MarketplaceProducts { get; } = new List<ProductResult>
@@ -2544,8 +3227,20 @@ public sealed class ComparisonDataService(AppText text)
             ["Melhor integração Apple", "Bom ecossistema de apps", "Métricas de saúde"],
             "Melhor smartwatch para utilizadores iPhone."),
         CatalogProduct(
-            "samsung-galaxy-watch7",
+            "xiaomi-redmi-watch-5-active",
             8,
+            82,
+            "Xiaomi Redmi Watch 5 Active",
+            "Xiaomi",
+            "35,99 EUR",
+            "#7BE8E0",
+            "Smartwatch entrada",
+            ["Smartwatch", "Redmi Watch", "5 Active", "Bluetooth", "Autonomia ate 18 dias", "Preto"],
+            ["Pagina direta Worten", "Preco validavel", "Boa autonomia"],
+            "Referencia validada para pedidos de Xiaomi Redmi Watch 5 Active sem inventar oferta."),
+        CatalogProduct(
+            "samsung-galaxy-watch7",
+            9,
             84,
             "Samsung Galaxy Watch7",
             "Samsung",
@@ -2557,7 +3252,7 @@ public sealed class ComparisonDataService(AppText text)
             "Boa escolha para utilizadores Android."),
         CatalogProduct(
             "samsung-galaxy-watch8",
-            9,
+            10,
             85,
             "Samsung Galaxy Watch8",
             "Samsung",
@@ -2569,7 +3264,7 @@ public sealed class ComparisonDataService(AppText text)
             "Boa correspondencia para pedidos de Galaxy Watch 8."),
         CatalogProduct(
             "samsung-galaxy-fit3",
-            10,
+            11,
             78,
             "Samsung Galaxy Fit3",
             "Samsung",
@@ -2581,7 +3276,7 @@ public sealed class ComparisonDataService(AppText text)
             "Boa correspondencia para pedidos de Galaxy Fit 3."),
         CatalogProduct(
             "xiaomi-smart-band-9",
-            11,
+            12,
             78,
             "Xiaomi Smart Band 9",
             "Xiaomi",
@@ -2604,17 +3299,17 @@ public sealed class ComparisonDataService(AppText text)
             ["Muito barata", "Instalação simples", "Boa para interior"],
             "Opção acessível para vigilância doméstica interior."),
         CatalogProduct(
-            "xiaomi-electric-scooter-4",
+            "xiaomi-4-lite-2nd-gen-trotinete",
             10,
             82,
-            "Xiaomi Electric Scooter 4",
+            "Xiaomi 4 Lite 2nd Gen Trotinete",
             "Xiaomi",
-            "449 €",
+            "199,49 EUR",
             "#7BE8E0",
             "Mobilidade urbana",
-            ["Trotinete elétrica", "Até 25 km/h", "Autonomia urbana", "Dobrável", "App", "Travagem dupla"],
-            ["Boa para cidade", "Fácil de transportar", "Marca conhecida"],
-            "Boa opção para mobilidade urbana leve."),
+            ["Trotinete eletrica", "300 W", "25 km autonomia", "Dobravel", "Cinzento", "Garantia loja"],
+            ["Pagina direta Worten", "Preco validavel", "Boa para cidade"],
+            "Boa opcao validavel para mobilidade urbana leve."),
         CatalogProduct(
             "garmin-forerunner-255",
             11,
@@ -2657,6 +3352,8 @@ public sealed class ComparisonDataService(AppText text)
         .Concat(AutoProducts)
         .Concat(OfficeProducts)
         .Concat(CultureFoodProducts)
+        .Concat(FashionProducts)
+        .Concat(GardenProducts)
         .Concat(MarketplaceProducts)
         .ToList();
 
@@ -2667,8 +3364,12 @@ public sealed class ComparisonDataService(AppText text)
         new("PT", "Portugal", "Portugal", "Worten", [], [], 93, 1.02m, "2 dias", "2 days", "3 anos PT", "3-year PT", "Verificado", "Verified", "https://www.worten.pt/search?query={0}", true),
         new("PT", "Portugal", "Portugal", "FNAC", [LaptopCatalog, SmartphoneCatalog, ChargerCatalog, MouseCatalog, RuggedTabletCatalog, StorageCatalog, MonitorCatalog, KeyboardCatalog, HeadphonesCatalog, TvCatalog, PrinterCatalog, BabyCareCatalog, GeneralCatalog], [], 90, 1.03m, "3 dias", "3 days", "3 anos PT", "3-year PT", "Verificado", "Verified", "https://www.fnac.pt/SearchResult/ResultList.aspx?Search={0}", true),
         new("PT", "Portugal", "Portugal", "MediaMarkt", [], [], 91, 1.01m, "2-3 dias", "2-3 days", "3 anos PT", "3-year PT", "Verificado", "Verified", "https://www.mediamarkt.pt/pt/search.html?query={0}", true),
+        new("PT", "Portugal", "Portugal", "Darty", [], [], 91, 1.00m, "1-2 dias", "1-2 days", "3 anos PT", "3-year PT", "Verificado", "Verified", "https://www.darty.pt/search?q={0}", true),
+        new("PT", "Portugal", "Portugal", "Globaldata", [LaptopCatalog, SmartphoneCatalog, ChargerCatalog, MouseCatalog, StorageCatalog, MonitorCatalog, KeyboardCatalog, HeadphonesCatalog, TvCatalog, PrinterCatalog, GeneralCatalog], [], 92, 0.99m, "1-2 dias", "1-2 days", "3 anos PT", "3-year PT", "Verificado", "Verified", "https://www.globaldata.pt/catalogsearch/result/?q={0}", true),
         new("PT", "Portugal", "Portugal", "PCDIGA", [LaptopCatalog, ChargerCatalog, MouseCatalog, RuggedTabletCatalog, StorageCatalog, MonitorCatalog, KeyboardCatalog, HeadphonesCatalog, PrinterCatalog, GeneralCatalog], [], 92, 0.99m, "1-2 dias", "1-2 days", "3 anos PT", "3-year PT", "Verificado", "Verified", "https://www.pcdiga.com/pesquisa/{0}", true),
         new("PT", "Portugal", "Portugal", "Radio Popular", [ApplianceCatalog, SmartphoneCatalog, ChargerCatalog, MouseCatalog, HeadphonesCatalog, TvCatalog, CoffeeMachineCatalog, GeneralCatalog], [], 89, 1.00m, "3 dias", "3 days", "3 anos PT", "3-year PT", "Verificado", "Verified", "https://www.radiopopular.pt/pesquisa/{0}", true),
+        new("PT", "Portugal", "Portugal", "Castro Electronica", [SmartphoneCatalog, ChargerCatalog, ApplianceCatalog, MouseCatalog, StorageCatalog, MonitorCatalog, KeyboardCatalog, HeadphonesCatalog, TvCatalog, CoffeeMachineCatalog, GeneralCatalog], [], 86, 0.98m, "2-4 dias", "2-4 days", "3 anos PT", "3-year PT", "Verificado", "Verified", "https://www.castroelectronica.pt/pt/search?search_query={0}", true),
+        new("PT", "Portugal", "Portugal", "Aquario", [SmartphoneCatalog, ChargerCatalog, ApplianceCatalog, MouseCatalog, StorageCatalog, MonitorCatalog, KeyboardCatalog, HeadphonesCatalog, TvCatalog, GeneralCatalog], [], 84, 0.97m, "2-5 dias", "2-5 days", "3 anos PT", "3-year PT", "Verificado", "Verified", "https://www.aquario.pt/pt/pesquisa?controller=search&s={0}", true),
         new("PT", "Portugal", "Portugal", "Amazon.es", [], [], 88, 0.98m, "2-5 dias", "2-5 days", "3 anos UE", "3-year EU", "Autorizado", "Authorized", "https://www.amazon.es/s?k={0}", true),
         new("PT", "Portugal", "Portugal", "KuantoKusta", [], [], 82, 0.97m, "Confirmar loja", "Confirm store", "Validar vendedor", "Validate seller", "Comparador", "Comparator", "https://www.kuantokusta.pt/search?q={0}", false),
 
@@ -2688,11 +3389,71 @@ public sealed class ComparisonDataService(AppText text)
 
     private static IReadOnlyDictionary<string, RetailerProductOffer> RetailerProductOffers { get; } = new Dictionary<string, RetailerProductOffer>(StringComparer.OrdinalIgnoreCase)
     {
-        [RetailerProductUrlKey("Radio Popular", "iphone-17")] = new(
-            "https://www.radiopopular.pt/produto/apple-iphone-17-pro-max-256gb-lj",
-            142499,
-            "2-3 dias",
-            "2-3 days"),
+        [RetailerProductUrlKey("Darty", "iphone-16e")] = new(
+            "https://darty.pt/products/apple-iphone-16e-128gb-branco",
+            59999,
+            "1-2 dias",
+            "1-2 days"),
+        [RetailerProductUrlKey("Radio Popular", "iphone-16e")] = new(
+            "https://www.radiopopular.pt/produto/apple-iphone-16e-128gb-pr",
+            59999,
+            "1-2 dias",
+            "1-2 days"),
+        [RetailerProductUrlKey("Castro Electronica", "iphone-16e")] = new(
+            "https://www.castroelectronica.pt/pt/product/smartphone-apple-iphone-16e-5g-61-128gb-branco",
+            56499,
+            "2-4 dias",
+            "2-4 days"),
+        [RetailerProductUrlKey("Darty", "samsung-galaxy-s24")] = new(
+            "https://darty.pt/products/smartphone-samsung-galaxy-s24-5g-cinzento-6-2-128gb-8gb-ram",
+            39998,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Globaldata", "samsung-galaxy-s24")] = new(
+            "https://www.globaldata.pt/smartphone-samsung-galaxy-s24-62-8-128gb-120hz-preto-onix-sm-s921bzkdeub/SM-S921BZKDEUB.html",
+            50990,
+            "1-2 dias",
+            "1-2 days"),
+        [RetailerProductUrlKey("Castro Electronica", "samsung-galaxy-s24")] = new(
+            "https://www.castroelectronica.pt/pt/product/smartphone-galaxy-s24-62-8gb128gb-dual-sim-preto-onix--samsung",
+            62849,
+            "2-4 dias",
+            "2-4 days"),
+        [RetailerProductUrlKey("Worten", "iphone-17")] = new(
+            "https://www.worten.pt/produtos/iphone-17-apple-6-3-256-gb-preto-8600278",
+            93999,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Darty", "apple-usb-c-20w-power-adapter")] = new(
+            "https://darty.pt/products/adaptador-de-corrente-apple-usb-c-20w-branco",
+            2499,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Radio Popular", "apple-usb-c-20w-power-adapter")] = new(
+            "https://www.radiopopular.pt/produto/carregador-telemovel-apple-20w-usb-c",
+            2499,
+            "1-2 dias",
+            "1-2 days"),
+        [RetailerProductUrlKey("Globaldata", "apple-usb-c-20w-power-adapter")] = new(
+            "https://www.globaldata.pt/carregador-apple-usb-c-20w/MHJE3ZMA.html",
+            1800,
+            "1-2 dias",
+            "1-2 days"),
+        [RetailerProductUrlKey("Castro Electronica", "apple-usb-c-20w-power-adapter")] = new(
+            "https://www.castroelectronica.pt/pt/product/adaptador-de-corrente-usb-c-de-20-w--apple",
+            1689,
+            "2-4 dias",
+            "2-4 days"),
+        [RetailerProductUrlKey("Aquario", "apple-usb-c-20w-power-adapter")] = new(
+            "https://www.aquario.pt/en/product/apple-cargador-apple-20w-usb-c-mhje3zm-a",
+            2290,
+            "2-5 dias",
+            "2-5 days"),
+        [RetailerProductUrlKey("Darty", "logitech-g305-lightspeed")] = new(
+            "https://darty.pt/products/rato-gaming-logitech-lightspeed-g305",
+            5999,
+            "Confirmar entrega",
+            "Confirm delivery"),
         [RetailerProductUrlKey("KuantoKusta", "logitech-g305-lightspeed")] = new(
             "https://www.kuantokusta.pt/p/199266/logitech-g305-lightspeed-wireless-gaming-910-005283",
             4298,
@@ -2708,11 +3469,401 @@ public sealed class ComparisonDataService(AppText text)
             5499,
             "2-3 dias",
             "2-3 days"),
+        [RetailerProductUrlKey("Globaldata", "logitech-g305-lightspeed")] = new(
+            "https://www.globaldata.pt/rato-logitech-g-series-g305-lightspeed-wireless-gaming-preto/910-005283.html",
+            4590,
+            "1-2 dias",
+            "1-2 days"),
+        [RetailerProductUrlKey("Aquario", "logitech-g305-lightspeed")] = new(
+            "https://www.aquario.pt/en/product/logitech-logitech-g305-preto-910-005283",
+            4080,
+            "2-5 dias",
+            "2-5 days"),
+        [RetailerProductUrlKey("Castro Electronica", "logitech-g305-lightspeed")] = new(
+            "https://www.castroelectronica.pt/pt/product/rato-wireless-series-g305-12000dpi-preto--logitech",
+            4569,
+            "2-4 dias",
+            "2-4 days"),
         [RetailerProductUrlKey("Radio Popular", "logitech-m650-signature")] = new(
             "https://www.radiopopular.pt/produto/rato-logitech-m650-graph",
             3599,
             "3 dias",
-            "3 days")
+            "3 days"),
+        [RetailerProductUrlKey("Darty", "nespresso-vertuo-pop")] = new(
+            "https://darty.pt/products/maquina-de-cafe-krups-nespresso-vertuo-pop-xn9201-coconut-3045380022010",
+            10999,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Castro Electronica", "nespresso-vertuo-pop")] = new(
+            "https://www.castroelectronica.pt/pt/product/maquina-de-cafe-nespresso-vertuo-pop-xn9204-verde--krups",
+            6499,
+            "2-4 dias",
+            "2-4 days"),
+        [RetailerProductUrlKey("Worten", "krups-nespresso-essenza-mini")] = new(
+            "https://www.worten.pt/produtos/maquina-de-cafe-krups-nespresso-essenza-mini-xn1108p2-preto-6291613",
+            5999,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "delonghi-stilosa-ec260")] = new(
+            "https://www.worten.pt/produtos/maquina-de-cafe-manual-delonghi-stilosa-ec260-bk-15-bar-preto-7161683",
+            9999,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "delonghi-magnifica-start")] = new(
+            "https://www.worten.pt/produtos/maquina-de-cafe-automatica-delonghi-ecam220-21-b-magnifica-start-15-bar-13-niveis-de-moagem-7740973",
+            33499,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "philips-serie-2200-ep2224")] = new(
+            "https://www.worten.pt/produtos/maquina-de-cafe-automatica-philips-serie-2200-ep2224-10-15-bar-12-nives-de-moagem-8028881",
+            36999,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "delonghi-rivelia-exam440")] = new(
+            "https://www.worten.pt/produtos/maquina-de-cafe-automatica-delonghi-rivelia-exam440-55-bg-19-bar-13-niveis-de-moagem-7832711",
+            63999,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Castro Electronica", "teka-mw-fs20-wh-microondas")] = new(
+            "https://www.castroelectronica.pt/pt/product/microondas-mw-fs20-wh-20l-700w-pretobranco--teka",
+            4939,
+            "2-5 dias",
+            "2-5 days"),
+        [RetailerProductUrlKey("Darty", "teka-mw-fs20-g-wh-microondas")] = new(
+            "https://darty.pt/products/teka-microond-mw-fs20-g-wh-grill-20",
+            6499,
+            "1-2 dias",
+            "1-2 days"),
+        [RetailerProductUrlKey("Aquario", "teka-mw-fs20-g-wh-microondas")] = new(
+            "https://www.aquario.pt/pt/product/teka-micr-teka-mwfs20g-20l-grill-bco-112280008-c77744",
+            8970,
+            "7 dias uteis",
+            "7 business days"),
+        [RetailerProductUrlKey("Worten", "teka-mw-fs20-g-bk-microondas")] = new(
+            "https://www.worten.pt/produtos/microondas-teka-mwfs20gbk-20-l-grill-preto-8471475",
+            8599,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Darty", "playstation-5-slim")] = new(
+            "https://darty.pt/products/consola-playstation-ps5-slim-standard-1tb-0711719577171",
+            64999,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Radio Popular", "playstation-5-slim")] = new(
+            "https://www.radiopopular.pt/produto/consola-ps5-slim-1tb",
+            54999,
+            "1-2 dias",
+            "1-2 days"),
+        [RetailerProductUrlKey("Globaldata", "playstation-5-slim")] = new(
+            "https://www.globaldata.pt/consola-sony-playstation-5-slim-e-chassis-1tb-branca/9021247.html",
+            54990,
+            "1-2 dias",
+            "1-2 days"),
+        [RetailerProductUrlKey("Globaldata", "western-digital-my-passport-1tb")] = new(
+            "https://www.globaldata.pt/disco-externo-western-digital-my-passport-1tb-usb32-wdbyvg0010bbk-wesn",
+            8990,
+            "1-2 dias",
+            "1-2 days"),
+        [RetailerProductUrlKey("Worten", "iphone-16")] = new(
+            "https://www.worten.pt/produtos/iphone-16-apple-6-1-128-gb-preto-8155748",
+            77999,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "iphone-17-pro")] = new(
+            "https://www.worten.pt/produtos/iphone-17-pro-apple-6-3-256-gb-laranja-cosmico-8600341",
+            127900,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "asus-vivobook-go-14-e1404f")] = new(
+            "https://www.worten.pt/produtos/portatil-asus-vivobook-go-14-e1404f-14-amd-ryzen-5-7520u-ram-8-gb-512-gb-ssd-amd-radeon-graphics-8794343",
+            49999,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "lenovo-idea-tab-11")] = new(
+            "https://www.worten.pt/produtos/tablet-lenovo-idea-tab-11-128-gb-ram-8-gb-wifi-luna-grey-pen-8515862",
+            19999,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "hp-deskjet-2921-all-in-one")] = new(
+            "https://www.worten.pt/produtos/impressora-hp-deskjet-2921-all-in-one-jato-de-tinta-instant-ink-8660560",
+            5999,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "hp-305-tricolor-pack")] = new(
+            "https://www.worten.pt/produtos/pack-2-tinteiros-hp-305-tricolor-6zd17ae-7374937",
+            3599,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "logitech-mx-keys-s")] = new(
+            "https://www.worten.pt/produtos/teclado-logitech-mx-keys-s-wireless-idioma-portugues-teclado-numerico-preto-7776469",
+            11999,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "jbl-tune-520-bt")] = new(
+            "https://www.worten.pt/produtos/auscultadores-bluetooth-jbl-tune-520-bt-on-ear-microfone-preto-7746302",
+            3799,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "smart-tech-32hn01k-tv")] = new(
+            "https://www.worten.pt/produtos/tv-smart-tech-32hn01k-led-32-81-cm-hd-8619114",
+            11999,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "canon-eos-r100-kit")] = new(
+            "https://www.worten.pt/produtos/maquina-fotografica-canon-eos-r100-rf-s-18-45mm-is-stm-7788061",
+            45999,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "prixton-delta-drone")] = new(
+            "https://www.worten.pt/produtos/drone-prixton-delta-480p-autonomia-ate-10-min-cinzento-8039888",
+            5499,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "bosch-easyimpact-600")] = new(
+            "https://www.worten.pt/produtos/berbequim-c-percussao-easyimpact-600-bosch-0603133000-7724591",
+            5499,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "lattafa-yara-woman-perfume")] = new(
+            "https://www.worten.pt/produtos/perfume-lattafa-yara-woman-eau-de-parfum-100-ml-7920080",
+            2499,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "rascals-premium-fraldas-t3")] = new(
+            "https://www.worten.pt/produtos/box-fraldas-premium-6-11kg-t3-rascals-mrkean-4897097268255",
+            1599,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "lego-botanical-pequeno-buque-10347")] = new(
+            "https://www.worten.pt/produtos/lego-botanical-collection-pequeno-buque-soalheiro-10347-8400309",
+            2999,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "mitsai-roma-ii-cadeira-escritorio")] = new(
+            "https://www.worten.pt/produtos/cadeira-de-escritorio-executiva-mitsai-roma-ii-preto-bracos-fixos-malha-8070152",
+            4999,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "racingreat-costas-altas-cadeira-gaming")] = new(
+            "https://www.worten.pt/produtos/cadeira-de-escritorio-ergonomica-racingreat-costas-altas-inclinavel-bracos-regulaveis-preto-mrkean-8711544779636",
+            6500,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "otte-kosmo-bicicleta-montanha")] = new(
+            "https://www.worten.pt/produtos/bicicleta-de-montanha-otte-kosmo-l-preto-amarelo-8014517",
+            27900,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "xiaomi-4-lite-2nd-gen-trotinete")] = new(
+            "https://www.worten.pt/produtos/trotinete-eletrica-xiaomi-4-lite-2nd-gen-300-w-autonomia-25-km-cinzento-8037147",
+            19949,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "samsung-galaxy-watch8")] = new(
+            "https://www.worten.pt/produtos/smartwatch-samsung-galaxy-watch-8-bt-40-mm-prateado-8514344",
+            27999,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("KuantoKusta", "samsung-galaxy-watch7")] = new(
+            "https://www.kuantokusta.pt/p/11345402/samsung-galaxy-watch7-40mm-bt-green",
+            15700,
+            "Confirmar loja",
+            "Confirm store"),
+        [RetailerProductUrlKey("Worten", "samsung-galaxy-fit3")] = new(
+            "https://www.worten.pt/produtos/pulseira-desportiva-samsung-galaxy-fit-3-preto-8154987",
+            3999,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "xiaomi-smart-band-9")] = new(
+            "https://www.worten.pt/produtos/pulseira-smartband-9-xiaomi-active-preto-8215677",
+            2499,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "xiaomi-redmi-watch-5-active")] = new(
+            "https://www.worten.pt/produtos/smartwatch-xiaomi-redmi-watch-5-active-2-bluetooth-autonomia-ate-18-dias-preto-8174958",
+            3599,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "bosch-serie-6-frigorifico")] = new(
+            "https://www.worten.pt/produtos/frigorifico-combinado-bosch-serie-6-kgn39aiat-no-frost-203-cm-363-l-inox-7766408",
+            244900,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "lg-instaview-combinado")] = new(
+            "https://www.worten.pt/produtos/frigorifico-americano-lg-instaview-gsxv91mbae-no-frost-179-cm-635-l-inox-7462780",
+            269900,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "becken-bc3901n2-frigorifico-combinado")] = new(
+            "https://www.worten.pt/produtos/frigorifico-combinado-becken-bc3901n2-wh-no-frost-185-cm-291-l-branco-8384463",
+            49999,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "samsung-rb34c600esa-frigorifico-combinado")] = new(
+            "https://www.worten.pt/produtos/frigorifico-combinado-samsung-rb34c600esa-a-no-frost-183-5-cm-344-l-inox-8167387",
+            49999,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "bosch-kgn497ldf-frigorifico-combinado")] = new(
+            "https://www.worten.pt/produtos/frigorifico-combinado-bosch-kgn497ldf-no-frost-203-cm-440-l-inox-7649003",
+            84999,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "lg-gbbs726cmb-frigorifico-combinado")] = new(
+            "https://www.worten.pt/produtos/frigorifico-combinado-lg-gbbs726cmb-c-metal-sorbet-no-frost-203-cm-375-l-inox-8632780",
+            77999,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Castro Electronica", "indesit-in2fe13dt9s-lava-loica")] = new(
+            "https://www.castroelectronica.pt/en/product/maquina-de-lavar-loica-in2fe13dt9s-13-conjuntos-prateado--indesit",
+            23619,
+            "2-5 dias",
+            "2-5 days"),
+        [RetailerProductUrlKey("Worten", "becken-bwm8812n-maquina-lavar")] = new(
+            "https://www.worten.pt/produtos/maquina-de-lavar-roupa-becken-boostwash-bwm8812n-8-kg-1400-rpm-branco-8240636",
+            29999,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "becken-bbvc9255-aspirador")] = new(
+            "https://www.worten.pt/produtos/aspirador-vertical-com-fio-becken-bbvc9255-800-ml-8337806",
+            4499,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "rowenta-vu2640f0-ventoinha-mesa")] = new(
+            "https://www.worten.pt/produtos/ventoinha-de-mesa-rowenta-vu2640f0-5-velocidades-70-w-diametro-40-cm-5822769",
+            7499,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "kenwood-titanium-chef-baker-lite")] = new(
+            "https://www.worten.pt/produtos/robot-de-cozinha-kenwood-titanium-chef-baker-lite-kvl65-001wh-7-l-1200-w-4-acessorios-7462960",
+            47999,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "sofa-cama-homcom-azul")] = new(
+            "https://www.worten.pt/produtos/sofa-cama-individual-linho-sintetico-cor-azul-75x70x75-cm-homcom-mrkean-8435794947156",
+            18299,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Worten", "fitfiu-fitness-mc-90-passadeira")] = new(
+            "https://www.worten.pt/produtos/passadeira-de-corrida-fitfiu-fitness-mc-90-inclinacao-9-dobravel-ate-14km-h-conectividade-app-mrkean-8435574336347",
+            19999,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("KuantoKusta", "lg-ultragear-27gp850-b")] = new(
+            "https://www.kuantokusta.pt/p/10570830/lg-ultragear-27gp850p-b-27-ips-qhd-165hz-g-sync-compatible",
+            48566,
+            "Confirmar loja",
+            "Confirm store"),
+        [RetailerProductUrlKey("KuantoKusta", "royal-canin-medium-adult-15kg")] = new(
+            "https://www.kuantokusta.pt/p/4682519/royal-canin-medium-adult-15kg",
+            7049,
+            "Confirmar loja",
+            "Confirm store"),
+        [RetailerProductUrlKey("KuantoKusta", "advance-cat-adult-frango-arroz-12kg")] = new(
+            "https://www.kuantokusta.pt/p/12017259/advance-cat-adult-frango-e-arroz-12kg",
+            4388,
+            "Confirmar loja",
+            "Confirm store"),
+        [RetailerProductUrlKey("KuantoKusta", "castrol-edge-5w30-5l")] = new(
+            "https://www.kuantokusta.pt/p/10479682/castrol-oleo-motor-5w-30-ll-5l",
+            4680,
+            "Confirmar loja",
+            "Confirm store"),
+        [RetailerProductUrlKey("KuantoKusta", "teka-hcb-6370-forno")] = new(
+            "https://www.kuantokusta.pt/p/11980142/teka-hcb6370ss-hidrolitico-71l-classe-a",
+            21647,
+            "Confirmar loja",
+            "Confirm store"),
+        [RetailerProductUrlKey("KuantoKusta", "teka-mw-fs20-wh-microondas")] = new(
+            "https://www.kuantokusta.pt/p/11812314/teka-mw-fs20-wh-20l",
+            4939,
+            "Confirmar loja",
+            "Confirm store"),
+        [RetailerProductUrlKey("KuantoKusta", "delta-q-mini-qool-cinzento")] = new(
+            "https://www.kuantokusta.pt/p/6885781/delta-q-mini-qool-cinzento",
+            3599,
+            "Confirmar loja",
+            "Confirm store"),
+        [RetailerProductUrlKey("KuantoKusta", "xiaomi-mi-smart-scale-s400")] = new(
+            "https://www.kuantokusta.pt/p/11316267/xiaomi-balanca-inteligente-mi-smart-s400-bhr7793gl",
+            1930,
+            "Confirmar loja",
+            "Confirm store"),
+        [RetailerProductUrlKey("KuantoKusta", "hisense-wf1g7021bw-maquina-lavar")] = new(
+            "https://www.kuantokusta.pt/p/11598750/hisense-wf1g7021bw-7kg-1200rpm-classe-b",
+            21490,
+            "Confirmar loja",
+            "Confirm store"),
+        [RetailerProductUrlKey("KuantoKusta", "beko-bm3t48249w-maquina-secar-roupa")] = new(
+            "https://www.kuantokusta.pt/p/11598597/beko-bm3t48249w-8kg-classe-c",
+            36690,
+            "Confirmar loja",
+            "Confirm store"),
+        [RetailerProductUrlKey("Worten", "beko-bm3t48249w-maquina-secar-roupa")] = new(
+            "https://www.worten.pt/produtos/maquina-de-secar-roupa-beko-bm3t48249w-8-kg-bomba-de-calor-branco-8588010",
+            48499,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("Darty", "beko-bm3t48249w-maquina-secar-roupa")] = new(
+            "https://darty.pt/products/m-quina-secar-roupa-beko-bm3t48249w-8kg-bomba-de-calor-c-branco",
+            46199,
+            "Confirmar entrega",
+            "Confirm delivery"),
+        [RetailerProductUrlKey("KuantoKusta", "apple-ipad-11-a16-128gb")] = new(
+            "https://www.kuantokusta.pt/p/11627407/apple-ipad-2025-11-a16-128gb-wi-fi-prateado",
+            33990,
+            "Confirmar loja",
+            "Confirm store"),
+        [RetailerProductUrlKey("KuantoKusta", "hp-308-preto-tricolor-pack")] = new(
+            "https://www.kuantokusta.pt/p/11788347/hp-308-pretotricolor-pack-2x",
+            3221,
+            "Confirmar loja",
+            "Confirm store"),
+        [RetailerProductUrlKey("KuantoKusta", "samsung-galaxy-a16")] = new(
+            "https://www.kuantokusta.pt/p/11487164/samsung-galaxy-a16-4g-67-dual-sim-4gb128gb-black",
+            10889,
+            "Confirmar loja",
+            "Confirm store"),
+        [RetailerProductUrlKey("KuantoKusta", "karcher-k3-lavadora-alta-pressao")] = new(
+            "https://www.kuantokusta.pt/p/10059678/karcher-k3-lavadora-de-alta-pressao",
+            9199,
+            "Confirmar loja",
+            "Confirm store"),
+        [RetailerProductUrlKey("KuantoKusta", "cecotec-drumfit-indoor-10000-teseo")] = new(
+            "https://www.kuantokusta.pt/p/10289074/cecotec-indoor-10000-teseo-07096",
+            12299,
+            "Confirmar loja",
+            "Confirm store"),
+        [RetailerProductUrlKey("KuantoKusta", "adidas-adizero-evo-sl-sapatilhas")] = new(
+            "https://www.kuantokusta.pt/p/11714404/adidas-running-adizero-evo-sl-jp7149-44-23-preto",
+            12099,
+            "Confirmar loja",
+            "Confirm store"),
+        [RetailerProductUrlKey("KuantoKusta", "weber-compact-kettle-47")] = new(
+            "https://www.kuantokusta.pt/p/4304689/weber-churrasqueira-de-carvao-compact-kettle-47cm",
+            11100,
+            "Confirmar loja",
+            "Confirm store"),
+        [RetailerProductUrlKey("KuantoKusta", "papa-figos-douro-tinto")] = new(
+            "https://www.kuantokusta.pt/p/9811474/papa-figos-2021-douro-tinto-75cl",
+            769,
+            "Confirmar loja",
+            "Confirm store"),
+        [RetailerProductUrlKey("KuantoKusta", "catan-jogo-tabuleiro")] = new(
+            "https://www.kuantokusta.pt/p/3121541/devir-jogo-tabuleiro-catan-descobrir-os-segredos-da-ilha",
+            4699,
+            "Confirmar loja",
+            "Confirm store"),
+        [RetailerProductUrlKey("KuantoKusta", "livro-atomic-habits")] = new(
+            "https://www.kuantokusta.pt/p/6316202/habitos-atomicos-9789897841741",
+            1295,
+            "Confirmar loja",
+            "Confirm store"),
+        [RetailerProductUrlKey("KuantoKusta", "tp-link-tapo-c200")] = new(
+            "https://www.kuantokusta.pt/p/279567/tp-link-tapo-c200-camara-ip-360o-wifi",
+            2799,
+            "Confirmar loja",
+            "Confirm store")
     };
 
     public IReadOnlyList<ProductResult> GetProducts(string? query)
@@ -2755,7 +3906,8 @@ public sealed class ComparisonDataService(AppText text)
         {
             OfficialSource = BuildOfficialSource(product),
             OfficialSpecifications = BuildOfficialSpecifications(product),
-            ReviewLinks = BuildReviewLinks(product, query)
+            ReviewLinks = BuildReviewLinks(product, query),
+            LifecycleInfo = BuildLifecycleInfo(product)
         };
     }
 
@@ -2960,6 +4112,8 @@ public sealed class ComparisonDataService(AppText text)
             AutoCatalog => AutoProducts,
             OfficeCatalog => OfficeProducts,
             CultureFoodCatalog => CultureFoodProducts,
+            FashionCatalog => FashionProducts,
+            GardenCatalog => GardenProducts,
             MarketplaceCatalog => MarketplaceProducts,
             _ => LaptopProducts
         };
@@ -2970,6 +4124,17 @@ public sealed class ComparisonDataService(AppText text)
         string query,
         string catalog)
     {
+        if (catalog == SmartphoneCatalog)
+        {
+            var normalizedSmartphoneQuery = NormalizeCatalogText(query);
+            if (ContainsAnyTerm(normalizedSmartphoneQuery, "premium", "topo", "flagship"))
+            {
+                return products
+                    .Where(product => ProductContainsAny(product, "iphone 17", "iphone 16e", "galaxy s24"))
+                    .ToList();
+            }
+        }
+
         if (catalog == MarketplaceCatalog)
         {
             var normalizedMarketplaceQuery = NormalizeCatalogText(query);
@@ -2977,6 +4142,13 @@ public sealed class ComparisonDataService(AppText text)
             {
                 return products
                     .Where(product => ProductContainsAny(product, "ps5", "playstation"))
+                    .ToList();
+            }
+
+            if (ContainsAnyTerm(normalizedMarketplaceQuery, "gaming", "consola", "consolas", "recondicionado", "recondicionados", "outlet"))
+            {
+                return products
+                    .Where(product => ProductContainsAny(product, "ps5", "playstation", "consola gaming"))
                     .ToList();
             }
 
@@ -3012,6 +4184,19 @@ public sealed class ComparisonDataService(AppText text)
             return products;
         }
 
+        if (catalog == ChairCatalog)
+        {
+            var normalizedChairQuery = NormalizeCatalogText(query);
+            if (ContainsAnyTerm(normalizedChairQuery, "gaming", "gamer", "racing"))
+            {
+                return products
+                    .Where(product => ProductContainsAny(product, "gaming", "gamer", "racing", "racingreat", "costas altas"))
+                    .ToList();
+            }
+
+            return products;
+        }
+
         if (catalog == HealthBeautyCatalog)
         {
             var normalizedHealthQuery = NormalizeCatalogText(query);
@@ -3035,6 +4220,13 @@ public sealed class ComparisonDataService(AppText text)
         if (catalog == CultureFoodCatalog)
         {
             var normalizedCultureQuery = NormalizeCatalogText(query);
+            if (ContainsAnyTerm(normalizedCultureQuery, "livros musica filmes", "livros, musica e filmes", "livros, música e filmes", "musica", "música", "filme", "filmes"))
+            {
+                return products
+                    .Where(product => ProductIdentityContainsAny(product, "livro", "isbn", "manga"))
+                    .ToList();
+            }
+
             if (ContainsAnyTerm(normalizedCultureQuery, "vinho", "vinhos"))
             {
                 return products
@@ -3093,23 +4285,135 @@ public sealed class ComparisonDataService(AppText text)
             return products;
         }
 
+        if (catalog == HomeCatalog)
+        {
+            var normalizedHomeQuery = NormalizeCatalogText(query);
+            if (ContainsAnyTerm(normalizedHomeQuery, "sofa", "sofas", "sofá", "sofás"))
+            {
+                return products
+                    .Where(product => ProductContainsAny(product, "sofa", "sofa cama", "homcom"))
+                    .ToList();
+            }
+
+            if (ContainsAnyTerm(normalizedHomeQuery, "cadeira", "cadeiras"))
+            {
+                return products
+                    .Where(product => ProductContainsAny(product, "cadeira", "escritorio", "mitsai"))
+                    .ToList();
+            }
+
+            return products;
+        }
+
+        if (catalog == SportCatalog)
+        {
+            var normalizedSportQuery = NormalizeCatalogText(query);
+            if (ContainsAnyTerm(normalizedSportQuery, "fitness", "passadeira", "passadeiras"))
+            {
+                return products
+                    .Where(product => ProductContainsAny(product, "fitness", "passadeira", "fitfiu"))
+                    .ToList();
+            }
+
+            if (ContainsAnyTerm(normalizedSportQuery, "mobilidade", "trotinete", "trotinetes"))
+            {
+                return products
+                    .Where(product => ProductContainsAny(product, "trotinete", "bicicleta", "mobilidade"))
+                    .ToList();
+            }
+
+            return products;
+        }
+
         if (catalog != ApplianceCatalog)
         {
             return products;
         }
 
         var normalizedQuery = NormalizeCatalogText(query);
-        if (ContainsAnyTerm(normalizedQuery, "frigorifico", "fridge", "geladeira", "combinado"))
+        if (ContainsAnyTerm(normalizedQuery, "maquina de lavar loica", "maquina lavar loica", "lavar loica", "lava loica", "lava-loica", "loica", "loicas", "louca", "dishwasher"))
+        {
+            return products
+                .Where(product => ProductContainsAny(product, "maquina de lavar loica", "lavar loica", "lava-loica", "loica", "dishwasher"))
+                .ToList();
+        }
+
+        if (ContainsAnyTerm(normalizedQuery, "grandes eletrodomesticos"))
+        {
+            return products
+                .Where(product => ProductContainsAny(product, "frigorifico", "combinado", "lavadora", "lavagem", "secar roupa", "secagem", "lava-loica", "forno"))
+                .ToList();
+        }
+
+        if (ContainsAnyTerm(normalizedQuery, "maquina de secar", "maquina secar", "maquina de secar roupa", "maquinas de secar roupa", "secar roupa", "secador roupa", "secadora", "bomba de calor", "bm3t48249w"))
+        {
+            return products
+                .Where(product => ProductContainsAny(product, "secar roupa", "secagem", "secadora", "bomba de calor", "bm3t48249w"))
+                .ToList();
+        }
+
+        if (ContainsAnyTerm(normalizedQuery, "8kg", "8 kg") && ContainsAnyTerm(normalizedQuery, "roupa"))
+        {
+            return products
+                .Where(product => product.Slug.Equals("becken-bwm8812n-maquina-lavar", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
+        if (ContainsAnyTerm(normalizedQuery, "7kg", "7 kg", "hisense", "wf1g7021bw") && ContainsAnyTerm(normalizedQuery, "roupa", "hisense", "wf1g7021bw"))
+        {
+            return products
+                .Where(product => product.Slug.Equals("hisense-wf1g7021bw-maquina-lavar", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
+        if (ContainsAnyTerm(normalizedQuery, "maquinas de lavar", "máquinas de lavar", "maquina de lavar", "maquina lavar", "roupa"))
+        {
+            return products
+                .Where(product => ProductContainsAny(product, "lavadora", "lavagem", "roupa", "boostwash", "twindos")
+                    && !ProductContainsAny(product, "loica", "lava-loica", "dishwasher"))
+                .ToList();
+        }
+
+        if (ContainsAnyTerm(normalizedQuery, "frigorifico", "frigorificos", "frigoríficos", "fridge", "geladeira", "combinado"))
         {
             return products
                 .Where(product => ProductContainsAny(product, "frigorifico", "combinado", "frost", "frio"))
                 .ToList();
         }
 
+        if (ContainsAnyTerm(normalizedQuery, "ventoinha", "ventoinhas"))
+        {
+            return products
+                .Where(product => ProductContainsAny(product, "ventoinha", "ventilacao", "ventilação", "usb"))
+                .ToList();
+        }
+
+        if (ContainsAnyTerm(normalizedQuery, "pequenos eletrodomesticos"))
+        {
+            return products
+                .Where(product => ProductContainsAny(product, "microondas", "micro-ondas", "cafe", "espresso", "balanca", "fritadeira", "torradeira"))
+                .ToList();
+        }
+
+        if (ContainsAnyTerm(normalizedQuery, "preparacao de alimentos", "preparação de alimentos", "robot de cozinha", "cozinha"))
+        {
+            return products
+                .Where(product => ProductContainsAny(product, "robot de cozinha", "batedeira", "chef", "cozinha"))
+                .ToList();
+        }
+
+        if (ContainsAnyTerm(normalizedQuery, "aspirador", "aspiradores", "limpeza"))
+        {
+            return products
+                .Where(product => ProductContainsAny(product, "aspirador", "limpeza", "po", "pó"))
+                .ToList();
+        }
+
         if (ContainsAnyTerm(normalizedQuery, "lavadora", "lavagem", "maquina de lavar", "maquina lavar", "roupa"))
         {
             return products
-                .Where(product => ProductContainsAny(product, "lavadora", "lavagem", "twindos", "roupa"))
+                .Where(product => ProductContainsAny(product, "lavadora", "lavagem", "twindos", "roupa", "boostwash")
+                    && !ProductContainsAny(product, "loica", "lava-loica", "dishwasher"))
                 .ToList();
         }
 
@@ -3127,10 +4431,17 @@ public sealed class ComparisonDataService(AppText text)
                 .ToList();
         }
 
-        if (ContainsAnyTerm(normalizedQuery, "microondas"))
+        if (ContainsAnyTerm(normalizedQuery, "mw fs20 wh") && !ContainsAnyTerm(normalizedQuery, "mw fs20 g wh", "grill"))
         {
             return products
-                .Where(product => ProductContainsAny(product, "microondas"))
+                .Where(product => product.Slug.Equals("teka-mw-fs20-wh-microondas", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
+        if (ContainsAnyTerm(normalizedQuery, "microondas", "micro-ondas", "micro ondas"))
+        {
+            return products
+                .Where(product => ProductContainsAny(product, "microondas", "micro-ondas", "micro ondas"))
                 .ToList();
         }
 
@@ -3313,7 +4624,7 @@ public sealed class ComparisonDataService(AppText text)
             "televisor" or "televisao" or "tv" => new[] { "tv", "55", "4k", "oled", "qled" },
             "cafe" or "espresso" => new[] { "cafe", "espresso", "maquina", "moinho", "capsulas" },
             "forno" => new[] { "forno", "encastre", "classe" },
-            "microondas" => new[] { "microondas", "litros", "compacto" },
+            "microondas" or "micro" or "ondas" => new[] { "microondas", "micro-ondas", "micro ondas", "litros", "compacto", "grill" },
             "balanca" or "balancas" => new[] { "balanca", "scale", "app" },
             "berbequim" or "drill" or "aparafusadora" => new[] { "berbequim", "drill", "18v", "brushless", "percussao" },
             "serra" or "serras" => new[] { "serra", "ferramenta", "bosch", "makita", "dewalt" },
@@ -3403,8 +4714,20 @@ public sealed class ComparisonDataService(AppText text)
         }
 
         score += ScoreScreenSizePreference(normalizedQuery, name, specs);
+        score += ScoreEnergyClassPreference(normalizedQuery, specs);
 
         return score;
+    }
+
+    private static int ScoreEnergyClassPreference(string normalizedQuery, string specs)
+    {
+        if (!ContainsCatalogTerm(normalizedQuery, "classe")
+            || !ContainsCatalogTerm(normalizedQuery, "a"))
+        {
+            return 0;
+        }
+
+        return specs.Contains("classe a", StringComparison.OrdinalIgnoreCase) ? 30 : -20;
     }
 
     private static int ScoreScreenSizePreference(string normalizedQuery, string name, string specs)
@@ -3743,6 +5066,16 @@ public sealed class ComparisonDataService(AppText text)
             return CultureFoodCatalog;
         }
 
+        if (FashionProducts.Any(item => item.Slug.Equals(product.Slug, StringComparison.OrdinalIgnoreCase)))
+        {
+            return FashionCatalog;
+        }
+
+        if (GardenProducts.Any(item => item.Slug.Equals(product.Slug, StringComparison.OrdinalIgnoreCase)))
+        {
+            return GardenCatalog;
+        }
+
         if (MarketplaceProducts.Any(item => item.Slug.Equals(product.Slug, StringComparison.OrdinalIgnoreCase)))
         {
             return MarketplaceCatalog;
@@ -3836,7 +5169,7 @@ public sealed class ComparisonDataService(AppText text)
         return offer.IsLivePrice && HasDirectProductUrl(offer.Url);
     }
 
-    private static bool HasDirectProductUrl(string url)
+    public static bool HasDirectProductUrl(string url)
     {
         if (!Uri.TryCreate(url, UriKind.Absolute, out var parsed))
         {
@@ -3942,7 +5275,7 @@ public sealed class ComparisonDataService(AppText text)
     {
         var value = NormalizeCatalogText(rawValue);
 
-        if (ContainsAnyTerm(value, "berbequim", "aparafusadora", "serra", "dewalt", "makita", "bosch professional", "rebarbadora", "martelo")
+        if (ContainsAnyTerm(value, "berbequim", "aparafusadora", "serra", "dewalt", "makita", "bosch professional", "rebarbadora", "martelo", "karcher", "karcher k3", "alta pressao", "alta pressão", "lavadora de alta pressao", "lavadora de alta pressão", "hidrolimpiadora")
             && !ContainsAnyTerm(value, "usb-c", "iphone", "magsafe", "lightning", "powerbank", "power bank"))
         {
             catalog = ToolCatalog;
@@ -3953,6 +5286,18 @@ public sealed class ComparisonDataService(AppText text)
             && ContainsAnyTerm(value, "adaptador", "suporte", "copo", "acoplador", "base"))
         {
             catalog = BabyCareCatalog;
+            return true;
+        }
+
+        if (ContainsAnyTerm(value, "cadeira auto", "cadeira bebe", "cadeira baby"))
+        {
+            catalog = BabyCareCatalog;
+            return true;
+        }
+
+        if (ContainsAnyTerm(value, ChairCatalogTerms))
+        {
+            catalog = ChairCatalog;
             return true;
         }
 
@@ -3968,6 +5313,12 @@ public sealed class ComparisonDataService(AppText text)
             return true;
         }
 
+        if (ContainsAnyTerm(value, "computadores e tablets"))
+        {
+            catalog = LaptopCatalog;
+            return true;
+        }
+
         if (ContainsAnyTerm(value, "smartphone", "telemovel", "celular", "iphone", "redmi", "xiaomi smartphone")
             && ContainsAnyTerm(value, "camera", "camara", "lente"))
         {
@@ -3975,7 +5326,7 @@ public sealed class ComparisonDataService(AppText text)
             return true;
         }
 
-        if (ContainsAnyTerm(value, "maquina de cafe", "maquina cafe", "capsulas cafe", "nespresso", "delonghi", "dolce gusto"))
+        if (ContainsAnyTerm(value, "maquina de cafe", "maquina cafe", "capsulas cafe", "nespresso", "delonghi", "dolce gusto", "delta q mini qool", "mini qool"))
         {
             catalog = CoffeeMachineCatalog;
             return true;
@@ -3988,6 +5339,12 @@ public sealed class ComparisonDataService(AppText text)
             return true;
         }
 
+        if (ContainsAnyTerm(value, "fotografia drones video", "fotografia, drones e video", "fotografia, drones e vídeo"))
+        {
+            catalog = CameraCatalog;
+            return true;
+        }
+
         if (ContainsAnyTerm(value, DroneCatalogTerms))
         {
             catalog = DroneCatalog;
@@ -3997,6 +5354,12 @@ public sealed class ComparisonDataService(AppText text)
         if (ContainsAnyTerm(value, "camera digital", "camara digital", "maquina fotografica", "fotografica", "canon eos", "fujifilm", "instax", "gopro", "sony alpha", "xplorer dv"))
         {
             catalog = CameraCatalog;
+            return true;
+        }
+
+        if (ContainsAnyTerm(value, "tv e som", "imagem e som"))
+        {
+            catalog = TvCatalog;
             return true;
         }
 
@@ -4018,7 +5381,7 @@ public sealed class ComparisonDataService(AppText text)
             return true;
         }
 
-        if (ContainsAnyTerm(value, "galaxy tab", "redmi pad", "redmi se", "xiaomi pad", "ipad", "lenovo tab", "idea tab")
+        if (ContainsAnyTerm(value, "galaxy tab", "redmi pad", "redmi se", "xiaomi pad", "ipad", "lenovo tab", "idea tab", "tablets")
             || ContainsCatalogTerm(value, "tablet"))
         {
             catalog = TabletCatalog;
@@ -4052,6 +5415,12 @@ public sealed class ComparisonDataService(AppText text)
         if (ContainsAnyTerm(value, "auscultadores", "auriculares", "headset", "headphones", "earphones"))
         {
             catalog = HeadphonesCatalog;
+            return true;
+        }
+
+        if (ContainsAnyTerm(value, "tvs", "televisores"))
+        {
+            catalog = TvCatalog;
             return true;
         }
 
@@ -4097,13 +5466,31 @@ public sealed class ComparisonDataService(AppText text)
             return true;
         }
 
-        if (ContainsAnyTerm(value, "aspirador", "fritadeira", "air fryer", "maquina limpeza", "limpeza de texteis"))
+        if (ContainsAnyTerm(value, "maquina de secar", "maquina secar", "maquina de secar roupa", "maquinas de secar roupa", "secar roupa", "secador roupa", "secadora", "bomba de calor", "beko", "bm3t48249w", "maquina de lavar", "maquina lavar", "lavar roupa", "lavadora", "lavagem", "maquina de lavar loica", "maquina lavar loica", "lava loica", "lava-loica", "dishwasher"))
         {
             catalog = ApplianceCatalog;
             return true;
         }
 
+        if (ContainsAnyTerm(value, "aspirador", "aspiradores", "fritadeira", "air fryer", "maquina limpeza", "limpeza de texteis", "maquinas de lavar", "máquinas de lavar", "ventoinha", "ventoinhas", "preparacao de alimentos", "preparação de alimentos", "robot de cozinha"))
+        {
+            catalog = ApplianceCatalog;
+            return true;
+        }
+
+        if (ContainsAnyTerm(value, "sofas", "sofás", "sofa", "sofá"))
+        {
+            catalog = HomeCatalog;
+            return true;
+        }
+
         if (ContainsAnyTerm(value, "calculadora"))
+        {
+            catalog = OfficeCatalog;
+            return true;
+        }
+
+        if (ContainsAnyTerm(value, "hp 308", "hp 305", "tinteiro", "tinteiros", "toner", "consumiveis impressao"))
         {
             catalog = OfficeCatalog;
             return true;
@@ -4115,9 +5502,34 @@ public sealed class ComparisonDataService(AppText text)
             return true;
         }
 
+        if (value.Equals("mobilidade", StringComparison.OrdinalIgnoreCase)
+            || ContainsAnyTerm(value, "trotinetes eletricas", "bicicletas eletricas", "scooters eletricas"))
+        {
+            catalog = SportCatalog;
+            return true;
+        }
+
         if (ContainsAnyTerm(value, "cafe em grao", "capsulas cafe", "delta q", "kaffa", "dolce gusto", "nescafe", "kimbo"))
         {
             catalog = CultureFoodCatalog;
+            return true;
+        }
+
+        if (ContainsAnyTerm(value, "recondicionado", "recondicionados", "outlet"))
+        {
+            catalog = MarketplaceCatalog;
+            return true;
+        }
+
+        if (ContainsAnyTerm(value, FashionCatalogTerms))
+        {
+            catalog = FashionCatalog;
+            return true;
+        }
+
+        if (ContainsAnyTerm(value, GardenCatalogTerms))
+        {
+            catalog = GardenCatalog;
             return true;
         }
 
@@ -4283,6 +5695,18 @@ public sealed class ComparisonDataService(AppText text)
             return true;
         }
 
+        if (MatchesKnownProduct(value, rawValue, FashionProducts))
+        {
+            catalog = FashionCatalog;
+            return true;
+        }
+
+        if (MatchesKnownProduct(value, rawValue, GardenProducts))
+        {
+            catalog = GardenCatalog;
+            return true;
+        }
+
         if (MatchesKnownProduct(value, rawValue, MarketplaceProducts))
         {
             catalog = MarketplaceCatalog;
@@ -4324,6 +5748,8 @@ public sealed class ComparisonDataService(AppText text)
             new { Catalog = AutoCatalog, Score = ScoreCatalog(value, AutoCatalogTerms) },
             new { Catalog = OfficeCatalog, Score = ScoreCatalog(value, OfficeCatalogTerms) },
             new { Catalog = CultureFoodCatalog, Score = ScoreCatalog(value, CultureFoodCatalogTerms) },
+            new { Catalog = FashionCatalog, Score = ScoreCatalog(value, FashionCatalogTerms) },
+            new { Catalog = GardenCatalog, Score = ScoreCatalog(value, GardenCatalogTerms) },
             new { Catalog = MarketplaceCatalog, Score = ScoreCatalog(value, MarketplaceCatalogTerms) },
             new { Catalog = LaptopCatalog, Score = ScoreCatalog(value, LaptopCatalogTerms) }
         }
@@ -4506,9 +5932,9 @@ public sealed class ComparisonDataService(AppText text)
         return builder.ToString().Normalize(NormalizationForm.FormC);
     }
 
-    private ProductSourceLink BuildOfficialSource(ProductResult product)
+    private ProductSourceLink? BuildOfficialSource(ProductResult product)
     {
-        var url = product.Slug switch
+        string? url = product.Slug switch
         {
             "iphone-17" => "https://www.apple.com/iphone-17/specs/",
             "iphone-17-pro" => "https://www.apple.com/iphone-17-pro/specs/",
@@ -4517,13 +5943,21 @@ public sealed class ComparisonDataService(AppText text)
             "zebra-et45-10" => "https://www.zebra.com/us/en/products/tablets/et4x-series/et45.html",
             "samsung-galaxy-tab-active4-pro" => "https://www.samsungmobilepress.com/press-releases/introducing-the-galaxy-tab-active4-pro-a-ruggedized-device-designed-for-the-new-mobile-workforce",
             "bosch-serie-6-frigorifico" => "https://www.bosch-home.pt/catalogo/frigorificos-congeladores/frigorificos-com-congelador/combinados-de-instalacao-livre/KGN39AIAT",
+            "beko-bm3t48249w-maquina-secar-roupa" => "https://www.beko.com/pt-pt/produtos/maquinas-de-secar-roupa/maquina-de-secar-roupa-bomba-de-calor-8-kg-bm3t48249w",
+            "teka-mw-fs20-wh-microondas" => "https://www.teka.com/pt-pt/produto/mw-fs20-wh_112280006/",
+            "teka-mw-fs20-g-wh-microondas" => "https://www.teka.com/pt-pt/produto/mw-fs20-g-wh_112280008/",
+            "teka-mw-fs20-g-bk-microondas" => "https://www.teka.com/pt-pt/produto/mw-fs20-g-bk_112280007/",
             "logitech-g305-lightspeed" => "https://www.logitech.com/en-eu/shop/p/g305-lightspeed-wireless-gaming-mouse",
             "logitech-m650-signature" => "https://www.logitech.com/en-eu/shop/p/m650-signature-wireless-mouse",
             "logitech-mx-keys-s" => "https://www.logitech.com/en-eu/shop/p/mx-keys-s",
-            "logitech-k380" => "https://www.logitech.com/en-eu/search?q=Logitech%20K380",
             "razer-deathadder-essential" => "https://www.razer.com/gaming-mice/razer-deathadder-essential",
-            _ => BuildOfficialBrandSearchUrl(product)
+            _ => null
         };
+
+        if (url is null)
+        {
+            return null;
+        }
 
         return new ProductSourceLink(
             text.Pick($"{product.Brand} - página oficial", $"{product.Brand} - official page"),
@@ -4531,6 +5965,33 @@ public sealed class ComparisonDataService(AppText text)
             text.Pick(
                 "Usa a página da marca como fonte principal para validar especificações antes da compra.",
                 "Use the brand page as the primary source to validate specifications before buying."));
+    }
+
+    private ProductLifecycleInfo BuildLifecycleInfo(ProductResult product)
+    {
+        return product.Slug switch
+        {
+            "getac-ux10-g3" => new ProductLifecycleInfo(
+                "2023",
+                text.Pick(
+                    "Não é a geração mais recente: a Getac anunciou uma nova geração UX10/UX10-IP em 16/09/2025.",
+                    "Not the newest generation: Getac announced a new UX10/UX10-IP generation on 2025-09-16."),
+                text.Pick(
+                    "Nova geração Getac UX10/UX10-IP Copilot+ PC (2025).",
+                    "New Getac UX10/UX10-IP Copilot+ PC generation (2025)."),
+                text.Pick(
+                    "Sem previsão pública fiável para a próxima geração depois da versão 2025.",
+                    "No reliable public forecast for the next generation after the 2025 version."),
+                "Getac, 2025-09-16",
+                "https://www.getac.com/content/getactechnology/us/news/getac-launches-ux10-ux10ip-fully-rugged-tablet-copilot-plus-pc.html"),
+            _ => new ProductLifecycleInfo(
+                text["Product.LifecycleUnknown"],
+                text["Product.LifecycleUnknown"],
+                text["Product.LifecycleUnknown"],
+                text["Product.NextReleaseUnknown"],
+                text["Product.LifecycleNoSource"],
+                null)
+        };
     }
 
     private IReadOnlyList<ProductSpecification> BuildOfficialSpecifications(ProductResult product)
@@ -4568,6 +6029,15 @@ public sealed class ComparisonDataService(AppText text)
                 new ProductSpecification(text.Pick("Capacidade", "Capacity"), "260 L frio + 103 L congelação"),
                 new ProductSpecification(text.Pick("Ruído", "Noise"), "29 dB"),
                 new ProductSpecification(text.Pick("Dimensões", "Dimensions"), "203 x 60 cm")
+            },
+            "beko-bm3t48249w-maquina-secar-roupa" => new[]
+            {
+                new ProductSpecification(text.Pick("Modelo", "Model"), "BM3T48249W"),
+                new ProductSpecification(text.Pick("Tipo", "Type"), text.Pick("Maquina de secar roupa", "Tumble dryer")),
+                new ProductSpecification(text.Pick("Capacidade", "Capacity"), "8 kg"),
+                new ProductSpecification(text.Pick("Secagem", "Drying"), text.Pick("Bomba de calor", "Heat pump")),
+                new ProductSpecification(text.Pick("Classe energetica", "Energy class"), "C"),
+                new ProductSpecification(text.Pick("Ruido", "Noise"), "64 dBA")
             },
             "panasonic-toughbook-g2" => new[]
             {
@@ -4676,60 +6146,6 @@ public sealed class ComparisonDataService(AppText text)
         }
 
         return "review teste";
-    }
-
-    private static string BuildOfficialBrandSearchUrl(ProductResult product)
-    {
-        var query = Uri.EscapeDataString(product.Name);
-        return product.Brand.ToLowerInvariant() switch
-        {
-            "apple" => $"https://www.apple.com/pt/search/{query}",
-            "samsung" => $"https://www.samsung.com/pt/search/?searchvalue={query}",
-            "lenovo" => $"https://www.lenovo.com/pt/pt/search?text={query}",
-            "dell" => $"https://www.dell.com/pt-pt/search/{query}",
-            "asus" => $"https://www.asus.com/pt/searchresult?searchType=products&searchKey={query}",
-            "google" => $"https://store.google.com/search?q={query}",
-            "xiaomi" => $"https://www.mi.com/pt/search/{query}",
-            "lg" => $"https://www.lg.com/pt/search/?search={query}",
-            "miele" => $"https://www.miele.pt/search/?q={query}",
-            "logitech" => $"https://www.logitech.com/en-eu/search?q={query}",
-            "microsoft" => $"https://www.microsoft.com/pt-pt/search?q={query}",
-            "razer" => $"https://www.razer.com/search/{query}",
-            "anker" => $"https://www.anker.com/eu-en/search?q={query}",
-            "ugreen" => $"https://eu.ugreen.com/search?q={query}",
-            "belkin" => $"https://www.belkin.com/search/?q={query}",
-            "getac" => $"https://www.getac.com/pt/search/?q={query}",
-            "panasonic" => $"https://eu.connect.panasonic.com/pt/pt/search?search={query}",
-            "zebra" => $"https://www.zebra.com/us/en/search.html?q={query}",
-            "western digital" => $"https://www.westerndigital.com/search?q={query}",
-            "seagate" => $"https://www.seagate.com/search/?keyword={query}",
-            "keychron" => $"https://www.keychron.com/search?q={query}",
-            "sony" => $"https://www.sony.pt/search?query={query}",
-            "jbl" => $"https://www.jbl.com/search?q={query}",
-            "tcl" => $"https://www.tcl.com/global/en/search?keyword={query}",
-            "de'longhi" => $"https://www.delonghi.com/pt-pt/search?q={query}",
-            "nespresso" => $"https://www.nespresso.com/pt/pt/search?q={query}",
-            "sage" => $"https://www.sageappliances.com/eu/pt/search.html?q={query}",
-            "bosch" => $"https://www.bosch-professional.com/pt/pt/search/?text={query}",
-            "makita" => $"https://www.makita.pt/search/?q={query}",
-            "dewalt" => $"https://www.dewalt.pt/search?query={query}",
-            "ikea" => $"https://www.ikea.com/pt/pt/search/?q={query}",
-            "sihoo" => $"https://www.sihoooffice.com/search?q={query}",
-            "songmics" => $"https://www.songmics.com/search?q={query}",
-            "michelin" => $"https://www.michelin.pt/auto/search?q={query}",
-            "continental" => $"https://www.continental-tires.com/pt/pt/search/?query={query}",
-            "bridgestone" => $"https://www.bridgestone.pt/search?q={query}",
-            "hp" => $"https://www.hp.com/pt-pt/shop/list.aspx?search={query}",
-            "epson" => $"https://www.epson.pt/pt_PT/search?q={query}",
-            "brother" => $"https://www.brother.pt/search?keyword={query}",
-            "royal canin" => $"https://www.royalcanin.com/pt/search?q={query}",
-            "purina" => $"https://www.purina.pt/search?search={query}",
-            "libra" => $"https://www.google.com/search?q={Uri.EscapeDataString(product.Brand + " " + product.Name + " official")}",
-            "pampers" => $"https://www.pampers.pt/search?q={query}",
-            "dodot" => $"https://www.dodot.pt/search?q={query}",
-            "chicco" => $"https://www.chicco.pt/search?q={query}",
-            _ => $"https://www.google.com/search?q={Uri.EscapeDataString(product.Brand + " " + product.Name + " official specifications")}"
-        };
     }
 
     private IReadOnlyList<ProductResult> LocalizeProducts(IReadOnlyList<ProductResult> products)

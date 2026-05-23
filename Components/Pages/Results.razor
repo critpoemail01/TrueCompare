@@ -1,6 +1,7 @@
 @page "/results"
 @inject IProductDiscoveryService DiscoveryService
 @inject IProductSuggestionService SuggestionService
+@inject IStoreOfferValidationService StoreOfferValidator
 @inject AppText T
 
 <PageTitle>@T["Results.PageTitle"]</PageTitle>
@@ -10,13 +11,6 @@
         <h1>@T["Results.Title"]</h1>
         <p>@T.Format("Results.Subtitle", Products.Count)</p>
     </div>
-    <div class="results-header-actions">
-        @if (Products.Count > 0)
-        {
-            <a class="primary-button compact" href="@ProductUrl(Products[0])">@T["Results.NextStep"]</a>
-        }
-        <a class="secondary-button compact" href="@CriteriaUrl">@T["Results.AddProduct"]</a>
-    </div>
 </section>
 
 @if (Products.Count == 0)
@@ -24,7 +18,7 @@
     <section class="empty-state results-empty-state">
         <h2>@T["Results.EmptyTitle"]</h2>
         <p>@T["Results.EmptyLead"]</p>
-        <a class="primary-button" href="@CriteriaUrl">@T["Results.AddProduct"]</a>
+        <a class="primary-button" href="/">@T["Nav.NewChat"]</a>
     </section>
 }
 else
@@ -117,10 +111,6 @@ else
         ? T["Results.DefaultQuery"]
         : Query;
 
-    private string CriteriaUrl => string.IsNullOrWhiteSpace(Query)
-        ? "/criteria"
-        : $"/criteria?query={Uri.EscapeDataString(Query)}";
-
     private static IReadOnlyList<string> CardSpecs(ProductResult product)
     {
         var specs = product.Specs;
@@ -161,10 +151,43 @@ else
     {
         IsLoadingSuggestions = true;
         var discovery = await DiscoveryService.DiscoverAsync(ActiveQuery);
-        Products = discovery.Products;
-        Offers = discovery.Offers;
+        var validatedProducts = await ValidateResultProductsAsync(discovery.Products);
+        Products = validatedProducts
+            .Select((item, index) => ApplyResultOfferPrice(item.Product, item.Offers) with { Rank = index + 1 })
+            .ToList();
+        Offers = validatedProducts
+            .SelectMany(item => item.Offers)
+            .ToList();
         AiSuggestions = await SuggestionService.GetSuggestionsAsync(ActiveQuery, Products, Offers);
         IsLoadingSuggestions = false;
+    }
+
+    private async Task<IReadOnlyList<ResultProductOffers>> ValidateResultProductsAsync(IReadOnlyList<ProductResult> products)
+    {
+        var validations = await Task.WhenAll(products.Select(async product =>
+        {
+            var candidateOffers = await DiscoveryService.GetSellerOffersAsync(product.Slug, ActiveQuery);
+            var directOffers = candidateOffers
+                .Where(ComparisonDataService.IsConfirmedStoreOffer)
+                .ToList();
+            var validatedOffers = await StoreOfferValidator.ValidateConfirmedOffersAsync(product, directOffers);
+            return new ResultProductOffers(product, validatedOffers);
+        }));
+
+        return validations
+            .Where(item => item.Offers.Count > 0)
+            .ToList();
+    }
+
+    private static ProductResult ApplyResultOfferPrice(ProductResult product, IReadOnlyList<SellerOffer> offers)
+    {
+        var bestOffer = offers
+            .OrderByDescending(offer => offer.Preferred)
+            .ThenBy(offer => offer.PriceCents)
+            .ThenByDescending(offer => offer.ReliabilityScore)
+            .FirstOrDefault();
+
+        return bestOffer is null ? product : product with { Price = bestOffer.Price };
     }
 
     private string ProductUrl(ProductResult product)
@@ -173,5 +196,7 @@ else
             ? $"/product/{product.Slug}"
             : $"/product/{product.Slug}?query={Uri.EscapeDataString(Query)}";
     }
+
+    private sealed record ResultProductOffers(ProductResult Product, IReadOnlyList<SellerOffer> Offers);
 
 }

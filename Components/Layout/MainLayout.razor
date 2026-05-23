@@ -11,6 +11,8 @@
             <AuthorizeView>
                 <Authorized>
                     <div class="topbar-actions">
+                        <SearchMarketIndicator CssClass="topbar-market-indicator" />
+                        <LlmRuntimeIndicator />
                         <AccountCreditSummary />
                         <form method="post" action="/auth/logout">
                             <AntiforgeryToken />
@@ -21,6 +23,8 @@
                 </Authorized>
                 <NotAuthorized>
                     <div class="topbar-actions">
+                        <SearchMarketIndicator CssClass="topbar-market-indicator" />
+                        <LlmRuntimeIndicator />
                         <a class="ghost-button" href="login">@T["Layout.Login"]</a>
                         <a class="primary-button compact" href="register">@T["Layout.CreateAccount"]</a>
                     </div>

@@ -13,9 +13,6 @@ internal static class TestDbContextFactory
             .ConfigureWarnings(warnings => warnings.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
 
-        var dbContext = new ApplicationDbContext(options);
-        dbContext.Database.EnsureDeleted();
-        dbContext.Database.EnsureCreated();
-        return dbContext;
+        return new ApplicationDbContext(options);
     }
 }

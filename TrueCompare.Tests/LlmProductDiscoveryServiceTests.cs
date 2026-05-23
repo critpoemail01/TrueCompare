@@ -56,7 +56,7 @@ public sealed class LlmProductDiscoveryServiceTests
         Assert.Contains("Provider A", result.SourceLabel);
         Assert.Contains(result.Products, product => product.Name == "Blue Snowball iCE");
         Assert.DoesNotContain(result.Products, product => product.Name == "MacBook Air M3");
-        Assert.Equal("Worten", result.Offers[0].Seller);
+        Assert.Empty(result.Offers);
     }
 
     [Fact]
@@ -245,6 +245,7 @@ public sealed class LlmProductDiscoveryServiceTests
     [InlineData("preciso de fraldas bebe tamanho 4", "Fralda", "Ração")]
     [InlineData("teclado sem fios ate 80 euros", "Logitech", "Rato")]
     [InlineData("procurar carregador de iphone", "Carregador", "iPhone 17")]
+    [InlineData("cadeira gaming", "Cadeira", "PlayStation")]
     public async Task DiscoverAsync_ReturnsProductsThatMatchDifferentUserQuestions(string query, string expectedTerm, string rejectedTerm)
     {
         var service = CreateService(new FakeHttpMessageHandler(_ => throw new InvalidOperationException("Local catalog or validated fallback should answer.")));

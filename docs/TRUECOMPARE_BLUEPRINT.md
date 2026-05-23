@@ -173,8 +173,19 @@ Portugal deve considerar, entre outras fontes:
 - PCDIGA
 - MediaMarkt
 - Amazon.es
+- Darty
+- Globaldata
+- Castro Electronica
+- Aquario
 - Lojas oficiais das marcas
 - Outras lojas portuguesas relevantes por categoria
+
+Categorias PT obrigatorias a cobrir no catalogo e nos testes:
+
+- KuantoKusta: Electrodomesticos; Saude e Beleza; Informatica; Smartphones e Acessorios; Imagem e Som; Gaming; Animais de Estimacao; Puericultura e Brinquedos; Bricolagem e Construcao; Casa e Decoracao; Desporto; Moda e Acessorios; Auto e Moto; Escritorio e Papelaria; Cultura e Lazer; Gastronomia e Vinhos.
+- Worten: Recondicionados e Outlet; Eletrodomesticos; Grandes eletrodomesticos; Pequenos eletrodomesticos; Maquinas de lavar; Frigorificos; Ventoinhas; Preparacao de alimentos; Aspiradores; Telemoveis e Smartwatches; Informatica; Computadores e tablets; TV e Som; Gaming; Jogos e Brinquedos; Fotografia, Drones e Video; Beleza e Saude; Cuidado Pessoal e Saude; Perfumaria e Cosmetica; Bebe; Casa e Decoracao; Sofas; Jardim; Bricolage; Bricolage e Jardim; Desporto, Outdoor e Viagem; Fitness; Mobilidade; Mobilidade, Auto e Moto; Livros, Musica e Filmes; Escritorio e Papelaria.
+
+Cada categoria oficial deve mapear para uma familia de produto coerente e para pelo menos um produto com oferta validada. Se uma categoria ainda nao tiver conector ou pagina direta confirmada, a app nao deve inventar produtos, lojas ou precos para a tornar visivel.
 
 EUA deve considerar fontes proprias desse mercado, por exemplo:
 
@@ -223,7 +234,7 @@ Cada conector deve declarar capacidades:
 | `SupportsCountryFiltering` | Consegue limitar ao mercado do utilizador. |
 | `RequiresManualConfirmation` | So consegue abrir a loja para confirmacao manual. |
 
-Uma loja sem `SupportsDirectProductUrl` e `SupportsPriceValidation` nao pode ser usada como loja recomendada principal.
+Uma loja sem `SupportsDirectProductUrl` e `SupportsPriceValidation` nao pode ser usada como loja recomendada principal. A lista apresentada no checkout deve resultar de validacao HTTP da pagina direta do produto sempre que a app declarar o preco como confirmado.
 
 ## 7. Validacao de ofertas
 
@@ -316,7 +327,7 @@ O ranking deve ser explicavel. Cada recomendacao deve ter motivos curtos e concr
 - "Vendedor autorizado"
 - "Entrega mais rapida"
 - "Melhor garantia"
-- "Boa correspondencia com os criterios"
+- "Boa correspondencia com o pedido"
 
 Regra especifica para marketplaces:
 
@@ -351,6 +362,24 @@ Prioridade de modelos:
 1. Ollama local, quando disponivel.
 2. Modelos cloud do Ollama, escolhidos conforme a tarefa.
 3. Fallbacks gratuitos ou outros providers apenas quando o local/cloud configurado falhar.
+
+Perfis de inteligencia do LLM:
+
+| Perfil | Objetivo | Quando usar | Regras |
+| --- | --- | --- | --- |
+| `FAST` | Baixo custo e baixa latencia | Classificar categoria, extrair marca/modelo, extrair preco maximo, normalizar texto, detectar idioma | Usar preferencialmente modelo local rapido; nao fazer validacao cruzada salvo erro evidente; resposta curta e estruturada |
+| `BALANCED` | Boa qualidade com custo controlado | Gerar candidatos iniciais, comparar especificacoes, explicar diferencas, resumir reviews | Usar modelo local forte ou cloud medio; pode validar com segundo modelo em casos ambiguos |
+| `HIGH_CONFIDENCE` | Maxima confianca antes de recomendar | Recomendacao final, validacao de categoria, validacao de compatibilidade, decisao de melhor produto/loja, merge de respostas | Pode chamar varios modelos em paralelo; deve validar resposta contra regras deterministicas e fontes reais; nao pode publicar resultado com incoerencias |
+
+Regras de selecao do perfil:
+
+- Usar `FAST` para tarefas internas simples que nao decidem a recomendacao final.
+- Usar `BALANCED` para gerar hipoteses e explicar resultados.
+- Usar `HIGH_CONFIDENCE` sempre que a resposta influencia produto recomendado, loja recomendada, preco, alerta ou checkout.
+- Se a query tiver preco maximo, compatibilidade critica, uso profissional/industrial, produto medico, seguranca, energia, criancas ou alto valor de compra, subir automaticamente para `HIGH_CONFIDENCE`.
+- Se os modelos discordarem na categoria, produto ou elegibilidade da oferta, nao mostrar recomendacao final sem validacao adicional.
+- `temperature`, `top_p` e parametros equivalentes controlam variacao da resposta; nao devem ser tratados como substitutos da escolha correta de modelo/perfil.
+- Cada chamada LLM deve registar perfil usado, modelo usado, tempo de resposta, estado de validacao e motivo de fallback, sem guardar prompts com dados sensiveis desnecessarios.
 
 Quando existirem varios modelos disponiveis, a aplicacao pode chamar mais do que um em paralelo para interpretar ou validar a resposta. O resultado final deve ser combinado e depois confirmado contra dados factuais antes de ser mostrado ao utilizador.
 

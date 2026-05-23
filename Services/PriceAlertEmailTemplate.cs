@@ -1,5 +1,4 @@
 using System.Net;
-using TrueCompare.Data;
 using TrueCompare.Models;
 
 namespace TrueCompare.Services;
@@ -18,7 +17,7 @@ public static class PriceAlertEmailTemplate
             : $"TrueCompare - {cleanProductName} baixou de preço";
     }
 
-    public static string Build(TargetPriceAlert alert, SellerOffer offer, bool isExample = false)
+    public static string Build(PriceAlertEmailModel alert, SellerOffer offer, bool isExample = false)
     {
         var productName = Html(alert.ProductName);
         var sellerName = Html(offer.Seller);
@@ -158,3 +157,7 @@ public static class PriceAlertEmailTemplate
         return WebUtility.HtmlEncode(value);
     }
 }
+
+public sealed record PriceAlertEmailModel(
+    string ProductName,
+    long TargetPriceCents);

@@ -13,7 +13,7 @@
 }
 else
 {
-    <section class="page-header compact-header">
+    <section class="page-header compact-header product-detail-header">
         <div>
             <h1>@T["Product.Title"]</h1>
         </div>
@@ -23,7 +23,7 @@ else
         </div>
     </section>
 
-    <div class="detail-grid">
+    <div class="detail-grid product-detail-grid">
         <section class="product-summary">
             <h2>@Product.Name · @Product.Specs.FirstOrDefault()</h2>
             <p class="brand">@Product.Brand</p>
@@ -46,6 +46,45 @@ else
             <h2>@T["Product.AiAnalysis"]</h2>
             <p>@Product.AiSummary</p>
         </section>
+
+        @if (Product.LifecycleInfo is not null)
+        {
+            <section class="analysis-panel flat product-lifecycle-panel">
+                <div>
+                    <h2>@T["Product.LifecycleTitle"]</h2>
+                </div>
+
+                <dl class="official-spec-list product-lifecycle-list">
+                    <div>
+                        <dt>@T["Product.ReleaseYear"]</dt>
+                        <dd>@Product.LifecycleInfo.ReleaseYear</dd>
+                    </div>
+                    <div>
+                        <dt>@T["Product.VersionStatus"]</dt>
+                        <dd>@Product.LifecycleInfo.VersionStatus</dd>
+                    </div>
+                    <div>
+                        <dt>@T["Product.NewerVersion"]</dt>
+                        <dd>@Product.LifecycleInfo.NewerVersion</dd>
+                    </div>
+                    <div>
+                        <dt>@T["Product.NextRelease"]</dt>
+                        <dd>@Product.LifecycleInfo.NextReleaseForecast</dd>
+                    </div>
+                </dl>
+
+                @if (!string.IsNullOrWhiteSpace(Product.LifecycleInfo.SourceUrl))
+                {
+                    <a class="secondary-button compact evidence-link" href="@Product.LifecycleInfo.SourceUrl" target="_blank" rel="noopener noreferrer">
+                        @T["Product.LifecycleSource"]: @Product.LifecycleInfo.SourceLabel
+                    </a>
+                }
+                else
+                {
+                    <p class="product-lifecycle-source">@T["Product.LifecycleSource"]: @Product.LifecycleInfo.SourceLabel</p>
+                }
+            </section>
+        }
 
         @if (Product.OfficialSource is not null && Product.OfficialSpecifications.Count > 0)
         {

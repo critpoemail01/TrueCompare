@@ -1,20 +1,18 @@
 @page "/history"
 @attribute [Authorize]
-@using Microsoft.EntityFrameworkCore
-@using TrueCompare.Data
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@inject ApplicationDbContext DbContext
+@inject SearchHistoryService SearchHistory
 @inject AppText T
 
 <PageTitle>@T["History.PageTitle"]</PageTitle>
 
-<section class="page-header compact-header">
+<section class="page-header history-header">
     <div>
         <p class="eyebrow">@T["History.Eyebrow"]</p>
         <h1>@T["History.Title"]</h1>
         <p>@T["History.Lead"]</p>
     </div>
-    <a class="secondary-button" href="/">@T["Credits.NewSearch"]</a>
+    <a class="primary-button compact history-new-search" href="/">@T["Credits.NewSearch"]</a>
 </section>
 
 @if (Searches is null)
@@ -46,7 +44,7 @@ else
 }
 
 @code {
-    private IReadOnlyList<SearchRequest>? Searches { get; set; }
+    private IReadOnlyList<SearchHistoryItem>? Searches { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -54,12 +52,7 @@ else
         var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         Searches = string.IsNullOrWhiteSpace(userId)
             ? []
-            : await DbContext.SearchRequests
-                .AsNoTracking()
-                .Where(search => search.UserId == userId)
-                .OrderByDescending(search => search.CreatedUtc)
-                .Take(30)
-                .ToListAsync();
+            : await SearchHistory.GetRecentForUserAsync(userId);
     }
 
     private static string ResultsUrl(string query)

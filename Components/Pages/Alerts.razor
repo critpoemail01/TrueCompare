@@ -1,6 +1,5 @@
 @page "/alerts"
 @attribute [Authorize]
-@using TrueCompare.Data
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject TargetPriceAlertService AlertService
 @inject AppText T
@@ -81,7 +80,7 @@ else
 }
 
 @code {
-    private IReadOnlyList<TargetPriceAlert>? ActiveAlerts { get; set; }
+    private IReadOnlyList<PriceAlertListItem>? ActiveAlerts { get; set; }
 
     private string AlertCountText => ActiveAlerts?.Count == 1
         ? T["Alerts.ActiveCountSingle"]
@@ -106,7 +105,7 @@ else
         return value.ToLocalTime().ToString("dd/MM/yyyy HH:mm", System.Globalization.CultureInfo.CurrentCulture);
     }
 
-    private string DifferenceText(TargetPriceAlert alert)
+    private string DifferenceText(PriceAlertListItem alert)
     {
         var difference = alert.LastSeenPriceCents - alert.TargetPriceCents;
         return difference <= 0
@@ -114,7 +113,7 @@ else
             : T.Format("Alerts.Remaining", TargetPriceAlertService.FormatCents(difference));
     }
 
-    private static string DifferenceAmount(TargetPriceAlert alert)
+    private static string DifferenceAmount(PriceAlertListItem alert)
     {
         var difference = alert.LastSeenPriceCents - alert.TargetPriceCents;
         return difference <= 0
@@ -122,7 +121,7 @@ else
             : TargetPriceAlertService.FormatCents(difference);
     }
 
-    private static string ProgressStyle(TargetPriceAlert alert)
+    private static string ProgressStyle(PriceAlertListItem alert)
     {
         if (alert.LastSeenPriceCents <= 0)
         {

@@ -50,6 +50,26 @@ export function disconnect(elementId) {
     connections.delete(elementId);
 }
 
+export function scrollToEnd(elementId) {
+    const element = document.getElementById(elementId);
+    if (!element) {
+        return false;
+    }
+
+    element.scrollTop = element.scrollHeight;
+    return true;
+}
+
+export function focusElement(elementId) {
+    const element = document.getElementById(elementId);
+    if (!element || typeof element.focus !== "function") {
+        return false;
+    }
+
+    element.focus({ preventScroll: true });
+    return true;
+}
+
 function findImageFile(clipboardData) {
     if (!clipboardData) {
         return null;

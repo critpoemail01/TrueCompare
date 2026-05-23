@@ -66,6 +66,7 @@ Ofertas e lojas:
 - toda loja recomendada tem URL direta da pagina do produto;
 - ofertas marketplace identificam vendedor real quando aplicavel;
 - preco mostrado bate certo com a fonte quando a app apresenta preco confirmado;
+- resultados de compra nao sugerem produtos sem pelo menos uma oferta validada;
 - lojas pertencem ao mercado correto.
 
 Fluxos criticos:
@@ -133,6 +134,7 @@ Separar os testes que dependem de internet e sites de terceiros:
 - paginas oficiais de marcas;
 - comparadores;
 - validacao de preco em tempo real.
+- lojas PT/EU adicionais como Darty, Globaldata, Castro Electronica e Aquario,etc, quando houver pagina direta e preco confirmavel.
 
 Estes testes devem ter timeout, retry limitado e possibilidade de skip quando a rede ou o site externo falhar. Nao devem bloquear a suite deterministica.
 
@@ -144,7 +146,6 @@ Paginas envolvidas:
 
 - `/`
 - `/results`
-- `/criteria`
 - `/product/{slug}`
 - `/checkout`
 - `/alerts`
@@ -188,7 +189,8 @@ Validar:
 - clicar no campo permite escrever;
 - carregar Enter inicia o fluxo;
 - clicar no botao inicia o fluxo;
-- query e enviada para `/criteria`;
+- query validavel e enviada para `/results`;
+- se o utilizador anonimo precisar de login, o `returnUrl` aponta para `/results?query=...`;
 - categorias sugeridas nao ficam selecionadas ao carregar a pagina;
 - colar texto normal funciona;
 - estado sem creditos ou nao autenticado e tratado corretamente;
@@ -256,26 +258,25 @@ Playwright:
 - `home_invalid_image_file.spec`
 - `home_image_no_vision_model_fallback.spec`
 
-## 4. Criterios de ponderacao
+## 4. Ranking automatico e restricoes de pesquisa
 
-Pagina:
+Paginas e servicos:
 
-- `/criteria`
+- `/results`
+- servicos de descoberta, ranking e validacao de ofertas
 
 Validar:
 
 - query aparece claramente;
-- sliders correspondem ao tipo de produto;
-- criterios mudam por categoria;
-- Enter ou botao "Comparar produtos" avanca;
-- pesos alterados influenciam ranking quando aplicavel;
+- o utilizador nao passa por ecra manual de ponderacao;
+- a rota antiga `/criteria` redireciona para `/results`;
+- os pesos internos mudam por categoria quando aplicavel;
 - formula base do ranking respeita os pesos do blueprint: 35% adequacao, 25% preco, 15% confianca, 10% garantia, 10% entrega/stock e 5% historico de preco;
 - produtos fora de restricoes obrigatorias, como preco maximo ou categoria, nao vencem o ranking;
 - ofertas sem preco confirmado ou sem URL direta de produto nao vencem o ranking de compra;
 - desempates seguem a ordem: confianca, menor preco, entrega e garantia;
-- tabs/segmentos nao quebram layout;
 - estado sem query e tratado;
-- acessivel por teclado.
+- o resultado fica acessivel por teclado e sem scroll horizontal.
 
 Exemplos:
 
@@ -286,9 +287,9 @@ Exemplos:
 
 Playwright:
 
-- `criteria_product_specific_weights.spec`
-- `criteria_enter_submits.spec`
-- `criteria_slider_keyboard_access.spec`
+- `results_direct_search_flow.spec`
+- `results_category_specific_ranking.spec`
+- `results_keyboard_access.spec`
 
 .NET:
 
@@ -311,9 +312,8 @@ Validar:
 - nao ha duplicacao entre sugestao IA e cards;
 - apenas uma sugestao principal;
 - cards mostram nome, preco, score, specs e badge;
-- botao `Continuar com recomendado` funciona;
+- o cabecalho nao mostra botoes redundantes como `Continuar com recomendado` ou `Adicionar produto`;
 - botao `Ver detalhes` abre o produto correto;
-- botao `Adicionar produto` funciona ou mostra comportamento definido;
 - sem caracteres corrompidos;
 - sem scroll horizontal;
 - cards adaptam em mobile.
@@ -436,6 +436,73 @@ Playwright:
 - mercado US nao recebe lojas PT;
 - melhor oferta preferida por preco e confianca.
 
+## 7.1 Cobertura de categorias KuantoKusta e Worten
+
+Validar que cada categoria oficial usada como sugestao ou consulta devolve artigos coerentes e chega a checkout com loja validada.
+
+KuantoKusta:
+
+- Electrodomesticos;
+- Saude e Beleza;
+- Informatica;
+- Smartphones e Acessorios;
+- Imagem e Som;
+- Gaming;
+- Animais de Estimacao;
+- Puericultura e Brinquedos;
+- Bricolagem e Construcao;
+- Casa e Decoracao;
+- Desporto;
+- Moda e Acessorios;
+- Auto e Moto;
+- Escritorio e Papelaria;
+- Cultura e Lazer;
+- Gastronomia e Vinhos.
+
+Worten:
+
+- Recondicionados e Outlet;
+- Eletrodomesticos;
+- Grandes eletrodomesticos;
+- Pequenos eletrodomesticos;
+- Maquinas de lavar;
+- Frigorificos;
+- Ventoinhas;
+- Preparacao de alimentos;
+- Aspiradores;
+- Telemoveis e Smartwatches;
+- Informatica;
+- Computadores e tablets;
+- TV e Som;
+- Gaming;
+- Jogos e Brinquedos;
+- Fotografia, Drones e Video;
+- Beleza e Saude;
+- Cuidado Pessoal e Saude;
+- Perfumaria e Cosmetica;
+- Bebe;
+- Casa e Decoracao;
+- Sofas;
+- Jardim;
+- Bricolage;
+- Bricolage e Jardim;
+- Desporto, Outdoor e Viagem;
+- Fitness;
+- Mobilidade;
+- Mobilidade, Auto e Moto;
+- Livros, Musica e Filmes;
+- Escritorio e Papelaria.
+
+Regras de teste:
+
+- a categoria nao pode devolver artigo fora da familia;
+- a lista de resultados nao pode conter produto sem checkout validado;
+- `Ver detalhes` e `Ver condicoes` devem manter o mesmo produto;
+- checkout deve ter pelo menos uma loja validada ou mostrar claramente `Sem loja validada`;
+- lojas validas exigem URL direta, preco confirmado e mercado correto;
+- Playwright deve percorrer todas as sugestoes da home;
+- testes .NET devem cobrir as categorias oficiais de ambas as fontes.
+
 ## 8. Lojas externas e preco
 
 Validar lojas:
@@ -542,6 +609,11 @@ Validar:
 - endpoint local configurado e usado;
 - modelos cloud disponiveis podem ser descobertos;
 - modelos locais/cloud podem ser chamados em paralelo quando configurado;
+- perfil `FAST` e usado para extracao simples, classificacao inicial e normalizacao de texto;
+- perfil `BALANCED` e usado para gerar candidatos, comparar especificacoes e explicar diferencas;
+- perfil `HIGH_CONFIDENCE` e usado antes de recomendacoes finais, checkout, lojas, precos e alertas;
+- queries com preco maximo, compatibilidade critica, uso profissional/industrial, alto valor ou risco elevado sobem automaticamente para `HIGH_CONFIDENCE`;
+- divergencia entre modelos em categoria, produto ou elegibilidade bloqueia recomendacao final ate validacao adicional;
 - respostas sao validadas antes de ir para UI;
 - respostas de categorias erradas sao rejeitadas;
 - resultados de varios modelos sao comparados/mesclados quando aplicavel;
@@ -891,7 +963,7 @@ Esta matriz deve crescer com novos catalogos.
 | frigorifico Bosch Serie 6 | frigorifico | nao devolver tablet/portatil |
 | monitor 27 polegadas 144hz | monitor | specs coerentes |
 | teclado mecanico | teclado | nao devolver rato |
-| cadeira escritorio ergonomica | cadeira | criterios ergonomicos |
+| cadeira escritorio ergonomica | cadeira | ergonomia e apoio lombar coerentes |
 | maquina de cafe automatica | maquina de cafe | categoria correta |
 | pneu 205/55 R16 | pneus | medida respeitada |
 | impressora wifi barata | impressora | categoria correta |
@@ -904,7 +976,6 @@ Estrutura sugerida:
 tests/e2e/
   home-search.spec.ts
   home-image.spec.ts
-  criteria.spec.ts
   results-quality.spec.ts
   product-detail.spec.ts
   checkout-store-validation.spec.ts

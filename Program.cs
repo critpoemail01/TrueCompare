@@ -12,6 +12,11 @@ using TrueCompare.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 var isDevelopment = builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Testing");
+if (isDevelopment)
+{
+    builder.WebHost.UseStaticWebAssets();
+}
+
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? string.Empty;
 if (string.IsNullOrWhiteSpace(connectionString))
@@ -28,7 +33,16 @@ if (string.IsNullOrWhiteSpace(connectionString))
 
 // Add services to the container.
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(connectionString));
+{
+    if (builder.Environment.IsEnvironment("Testing"))
+    {
+        options.UseInMemoryDatabase("TrueCompareTesting");
+    }
+    else
+    {
+        options.UseSqlServer(connectionString);
+    }
+});
 builder.Services
     .AddIdentity<ApplicationUser, IdentityRole>(options =>
     {
@@ -104,7 +118,10 @@ builder.Services.Configure<StripeOptions>(builder.Configuration.GetSection("Stri
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Email"));
 builder.Services.Configure<LlmOptions>(builder.Configuration.GetSection("Llm"));
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+    .AddInteractiveServerComponents(options =>
+    {
+        options.DetailedErrors = isDevelopment;
+    });
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpContextAccessor();
 builder.Services.Configure<RequestLocalizationOptions>(options =>
@@ -124,15 +141,31 @@ builder.Services.Configure<RequestLocalizationOptions>(options =>
 });
 builder.Services.AddSingleton<AppText>();
 builder.Services.AddSingleton<ComparisonDataService>();
+builder.Services.AddScoped<ProductConversationService>();
+builder.Services.AddScoped<SearchMarketContextService>();
 builder.Services.AddScoped<SearchQuotaService>();
 builder.Services.AddScoped<TargetPriceAlertService>();
+builder.Services.AddScoped<BillingService>();
 builder.Services.AddSingleton<LlmProviderQuotaService>();
 builder.Services.AddHttpClient<LlmProviderRouter>();
 builder.Services.AddScoped<IProductDiscoveryService, LlmProductDiscoveryService>();
 builder.Services.AddScoped<IProductSuggestionService, LlmSuggestionService>();
 builder.Services.AddScoped<IProductImageSuggestionService, LlmProductImageSuggestionService>();
+if (builder.Environment.IsEnvironment("Testing"))
+{
+    builder.Services.AddSingleton<IStoreOfferValidationService, TestingStoreOfferValidationService>();
+}
+else
+{
+    builder.Services.AddHttpClient<IStoreOfferValidationService, StoreOfferValidationService>();
+}
 builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
-builder.Services.AddHostedService<TargetPriceMonitorService>();
+builder.Services.AddScoped<SearchHistoryService>();
+builder.Services.AddScoped<UserSettingsService>();
+if (!builder.Environment.IsEnvironment("Testing"))
+{
+    builder.Services.AddHostedService<TargetPriceMonitorService>();
+}
 
 var app = builder.Build();
 

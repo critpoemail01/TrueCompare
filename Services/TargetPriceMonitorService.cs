@@ -24,7 +24,7 @@ public sealed class TargetPriceMonitorService(
         {
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            var comparisonData = scope.ServiceProvider.GetRequiredService<ComparisonDataService>();
+            var alertService = scope.ServiceProvider.GetRequiredService<TargetPriceAlertService>();
             var emailSender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
 
             var alerts = await dbContext.TargetPriceAlerts
@@ -34,7 +34,12 @@ public sealed class TargetPriceMonitorService(
 
             foreach (var alert in alerts)
             {
-                var bestOffer = comparisonData.GetBestOffer(alert.ProductSlug);
+                var bestOffer = alertService.GetBestConfirmedOffer(alert.ProductSlug);
+                if (bestOffer is null)
+                {
+                    continue;
+                }
+
                 alert.LastSeenPriceCents = bestOffer.PriceCents;
                 alert.LastSeenSeller = bestOffer.Seller;
                 alert.ProductUrl = bestOffer.Url;
@@ -49,7 +54,9 @@ public sealed class TargetPriceMonitorService(
                 var sent = await emailSender.SendAsync(
                     alert.User.Email,
                     PriceAlertEmailTemplate.BuildSubject(alert.ProductName),
-                    PriceAlertEmailTemplate.Build(alert, bestOffer),
+                    PriceAlertEmailTemplate.Build(
+                        new PriceAlertEmailModel(alert.ProductName, alert.TargetPriceCents),
+                        bestOffer),
                     cancellationToken);
 
                 if (sent)

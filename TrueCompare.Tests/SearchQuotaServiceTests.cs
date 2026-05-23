@@ -111,6 +111,30 @@ public sealed class SearchQuotaServiceTests
     }
 
     [Fact]
+    public async Task TryConsumeAsync_AllowsLocalhostSearch_WhenAuthenticatedCookieUserIsNotInDatabase()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var httpContextAccessor = new HttpContextAccessor
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                Request =
+                {
+                    Host = new HostString("localhost:5190")
+                }
+            }
+        };
+        var service = new SearchQuotaService(dbContext, httpContextAccessor);
+
+        var result = await service.TryConsumeAsync("stale-cookie-user", "smartphones premium");
+
+        Assert.True(result.Allowed);
+        Assert.True(result.Status.HasUnlimitedCredits);
+        Assert.Equal(SearchQuotaUnlimitedSource.Localhost, result.Status.UnlimitedSource);
+        Assert.Empty(await dbContext.SearchRequests.ToListAsync());
+    }
+
+    [Fact]
     public async Task TryConsumeAsync_DoesNotConsumeCredits_WhenUserHasActiveUnlimitedSubscription()
     {
         await using var dbContext = TestDbContextFactory.Create();

@@ -1,12 +1,17 @@
 @page "/checkout"
 @using System.Globalization
 @inject IProductDiscoveryService DiscoveryService
+@inject IStoreOfferValidationService StoreOfferValidator
+@inject SearchMarketContextService SearchMarket
 @inject AppText T
 
 <PageTitle>@T["Checkout.PageTitle"]</PageTitle>
 
-<section class="page-header">
-    <h1>@T["Checkout.Title"]</h1>
+<section class="page-header checkout-header">
+    <div class="checkout-header-top">
+        <h1>@T["Checkout.Title"]</h1>
+        <a class="secondary-button compact checkout-back-link" href="@ProductUrl">@T["Checkout.BackToProduct"]</a>
+    </div>
     <p class="checkout-product-context">
         <span>@T["Checkout.ProductLabel"]</span>
         <strong>@ProductDisplayName</strong>
@@ -24,7 +29,18 @@
     <section class="empty-state checkout-empty-state">
         <h2>@T["Checkout.NoConfirmedOfferTitle"]</h2>
         <p>@T["Checkout.NoConfirmedOfferLead"]</p>
-        <a class="secondary-button compact" href="@ResultsUrl">@T["Checkout.BackToResults"]</a>
+        @if (CanShowKuantoKustaFallback)
+        {
+            <div class="checkout-fallback-search">
+                <p>@T["Checkout.KuantoKustaFallbackLead"]</p>
+                <a class="primary-button compact" href="@KuantoKustaSearchUrl" target="_blank" rel="noopener noreferrer">
+                    @T["Checkout.SearchKuantoKusta"]
+                </a>
+            </div>
+        }
+        <div class="checkout-empty-actions">
+            <a class="secondary-button compact" href="@ResultsUrl">@T["Checkout.BackToResults"]</a>
+        </div>
     </section>
 }
 else if (SelectedOffer is not null)
@@ -40,6 +56,7 @@ else if (SelectedOffer is not null)
                         <th>@T["Checkout.Warranty"]</th>
                         <th>@T["Checkout.Trust"]</th>
                         <th>@T["Checkout.Status"]</th>
+                        <th>@T["Checkout.StoreAction"]</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -58,6 +75,11 @@ else if (SelectedOffer is not null)
                             <td data-label="@T["Checkout.Warranty"]">@offer.Warranty</td>
                             <td data-label="@T["Checkout.Trust"]">@TrustLabel(offer)</td>
                             <td data-label="@T["Checkout.Status"]"><span class="status-pill">&#10003; @offer.Status</span></td>
+                            <td data-label="@T["Checkout.StoreAction"]">
+                                <a class="secondary-button compact" href="@offer.Url" target="_blank" rel="noopener noreferrer" @onclick:stopPropagation="true">
+                                    @T["Checkout.OpenStoreShort"]
+                                </a>
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -83,7 +105,7 @@ else if (SelectedOffer is not null)
                     </div>
                     <div>
                         <dt>@T["Checkout.Shipping"]</dt>
-                        <dd>@T["Checkout.FreeShipping"]</dd>
+                        <dd>@DisplayShipping</dd>
                     </div>
                     <div>
                         <dt>@T["Checkout.TrueCompareInsurance"]</dt>
@@ -167,6 +189,14 @@ else if (SelectedOffer is not null)
         ? $"/results?query={Uri.EscapeDataString(ProductDisplayName)}"
         : $"/results?query={Uri.EscapeDataString(Query)}";
 
+    private string ProductUrl => string.IsNullOrWhiteSpace(Query)
+        ? $"/product/{Uri.EscapeDataString(Product?.Slug ?? ResolvedProductSlug)}"
+        : $"/product/{Uri.EscapeDataString(Product?.Slug ?? ResolvedProductSlug)}?query={Uri.EscapeDataString(Query)}";
+
+    private bool CanShowKuantoKustaFallback => SearchMarket.Current().MarketCode.Equals("PT", StringComparison.OrdinalIgnoreCase);
+
+    private string KuantoKustaSearchUrl => $"https://www.kuantokusta.pt/search?q={Uri.EscapeDataString(ProductDisplayName)}";
+
     private string DefaultTargetPrice => (SelectedOffer?.PriceCents ?? 0) <= 90000 ? "49.00" : "1199.00";
 
     private SellerOffer? SelectedOffer { get; set; }
@@ -178,6 +208,10 @@ else if (SelectedOffer is not null)
     private string DisplayTotal => SelectedOffer?.IsLivePrice == true ? FormattedTotal : T["Checkout.PriceToConfirm"];
 
     private string DisplayVat => SelectedOffer?.IsLivePrice == true ? VatValue : T["Checkout.PriceToConfirm"];
+
+    private string DisplayShipping => SelectedOffer is null
+        ? T["Checkout.PriceToConfirm"]
+        : ShippingDisplay(SelectedOffer);
 
     private string PrimaryActionText => SelectedOffer?.IsLivePrice == true
         ? T["Checkout.OpenStore"]
@@ -191,9 +225,10 @@ else if (SelectedOffer is not null)
     {
         Product = await DiscoveryService.FindProductAsync(ResolvedProductSlug, Query);
         var candidateOffers = await DiscoveryService.GetSellerOffersAsync(CatalogKey, Query);
-        Offers = candidateOffers
+        var syntacticallyConfirmedOffers = candidateOffers
             .Where(ComparisonDataService.IsConfirmedStoreOffer)
             .ToList();
+        Offers = await StoreOfferValidator.ValidateConfirmedOffersAsync(Product, syntacticallyConfirmedOffers);
         SelectedOffer = Offers
             .OrderByDescending(offer => offer.Preferred)
             .ThenBy(offer => offer.PriceCents)
@@ -221,6 +256,21 @@ else if (SelectedOffer is not null)
     private string PriceConfidenceLine(SellerOffer offer)
     {
         return offer.IsLivePrice ? T["Checkout.LivePriceVerified"] : T["Checkout.EstimatedPriceWarning"];
+    }
+
+    private string ShippingDisplay(SellerOffer offer)
+    {
+        var delivery = offer.Delivery ?? string.Empty;
+        if (delivery.Contains("grátis", StringComparison.OrdinalIgnoreCase)
+            || delivery.Contains("gratis", StringComparison.OrdinalIgnoreCase)
+            || delivery.Contains("free", StringComparison.OrdinalIgnoreCase))
+        {
+            return T["Checkout.FreeShipping"];
+        }
+
+        return string.IsNullOrWhiteSpace(offer.Delivery)
+            ? T["Checkout.PriceToConfirm"]
+            : offer.Delivery;
     }
 
     private static string OfferTrustLine(SellerOffer offer)

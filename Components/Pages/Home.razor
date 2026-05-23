@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.Web
 @inject ComparisonDataService Data
+@inject ProductConversationService Conversation
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SearchQuotaService QuotaService
@@ -12,7 +13,7 @@
 
 <PageTitle>TrueCompare</PageTitle>
 
-<section class="home-screen">
+<section class="home-screen @(ChatMessages.Count > 0 ? "has-chat" : null)">
     <div class="hero-copy">
         <h1>@T["Home.Title"]</h1>
         <p class="lead">@T["Home.Lead"]</p>
@@ -22,7 +23,7 @@
                 <span class="prompt-plus" aria-hidden="true">+</span>
                 <InputFile id="product-image" class="image-file-input" accept="image/*" OnChange="HandleImageSelected" aria-label='@T["Home.ImageUploadAria"]' disabled="@IsAnalyzingImage" />
             </div>
-            <input id="prompt" aria-label='@T["Home.ProductAria"]' placeholder="@PromptPlaceholder" @bind="Prompt" @bind:event="oninput" @onclick="HidePromptPlaceholder" @onfocusin="HidePromptPlaceholder" @onfocusout="ShowPromptPlaceholder" @onkeydown="HandlePromptKeyDown" />
+            <input id="@PromptInputId" aria-label='@T["Home.ProductAria"]' placeholder="@PromptPlaceholder" @bind="Prompt" @bind:event="oninput" @onclick="HidePromptPlaceholder" @onfocusin="HidePromptPlaceholder" @onfocusout="ShowPromptPlaceholder" @onkeydown="HandlePromptKeyDown" />
             <button class="search-send" type="button" @onclick="StartComparison" disabled="@IsSubmitting" aria-label='@T["Home.CompareAria"]'>
                 @if (IsSubmitting)
                 {
@@ -50,12 +51,62 @@
                         <p>@ImageSuggestion.Summary</p>
                     }
                 </div>
+                @if (!string.IsNullOrWhiteSpace(SelectedImagePreviewDataUrl))
+                {
+                    <button type="button" class="image-remove-button" @onclick="ClearImageSuggestion" aria-label='@T["Home.RemoveImage"]'>
+                        @T["Home.RemoveImage"]
+                    </button>
+                }
             </section>
         }
 
         @if (!string.IsNullOrWhiteSpace(QuotaMessage))
         {
             <p class="quota-message">@QuotaMessage</p>
+        }
+
+        @if (ChatMessages.Count > 0)
+        {
+            <section id="@ChatLogId" class="home-chat" aria-live="polite" aria-label='@T["Home.ChatAria"]'>
+                @foreach (var message in ChatMessages)
+                {
+                    <article class="home-chat-message home-chat-message-@message.Role">
+                        <span>@(message.Role == ChatRole.Assistant ? T["Home.ChatAssistant"] : T["Home.ChatUser"])</span>
+                        @foreach (var paragraph in SplitMessageText(message.Text))
+                        {
+                            <p>@paragraph</p>
+                        }
+                        @if (message.Options.Count > 0)
+                        {
+                            <div class="home-chat-products" aria-label='@T["Home.ChatProductOptions"]'>
+                                @foreach (var option in message.Options)
+                                {
+                                    <article class="home-chat-product" style="--accent:@option.Accent">
+                                        <small>@option.Badge</small>
+                                        <strong>@option.Name</strong>
+                                        <span>@option.Price · @option.Brand</span>
+                                        <p>@option.Summary</p>
+                                        <ul>
+                                            @foreach (var spec in option.Specs)
+                                            {
+                                                <li>@spec</li>
+                                            }
+                                        </ul>
+                                        <button
+                                            type="button"
+                                            class="home-chat-product-action"
+                                            @onclick="() => SelectSuggestedProduct(option)"
+                                            disabled="@IsSubmitting"
+                                            aria-label='@T.Format("Home.SelectSuggestionAria", option.Name)'>
+                                            @T["Home.SelectSuggestion"]
+                                        </button>
+                                    </article>
+                                }
+                            </div>
+                        }
+                    </article>
+                }
+            </section>
         }
 
         <div class="category-menu" id="categories">
@@ -78,10 +129,6 @@
         <strong>@T["Home.Verify"]</strong>
         <span>@T["Home.Authenticity"]</span>
     </a>
-    <a href="criteria" style="--accent:#B49CFF">
-        <strong>@T["Home.Weigh"]</strong>
-        <span>@T["Home.Criteria"]</span>
-    </a>
     <a href="checkout" style="--accent:#E97B7B">
         <strong>@T["Home.Choose"]</strong>
         <span>@T["Home.Seller"]</span>
@@ -99,6 +146,22 @@
 @code {
     private const long MaxImageBytes = 5 * 1024 * 1024;
     private const string PromptPanelId = "home-prompt-panel";
+    private const string ChatLogId = "home-chat-log";
+    private const string PromptInputId = "prompt";
+    private static readonly HashSet<string> AllowedImageContentTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "image/png",
+        "image/jpeg",
+        "image/webp"
+    };
+
+    private static readonly HashSet<string> AllowedImageExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".webp"
+    };
 
     private string Prompt { get; set; } = string.Empty;
     private string ActiveCategory { get; set; } = string.Empty;
@@ -109,6 +172,9 @@
     private string? SelectedImageName { get; set; }
     private string? SelectedImagePreviewDataUrl { get; set; }
     private ImageProductSuggestionResult? ImageSuggestion { get; set; }
+    private List<HomeChatMessage> ChatMessages { get; } = new();
+    private bool ShouldRestorePromptFocus { get; set; }
+    private bool ShouldScrollChatToEnd { get; set; }
     private IJSObjectReference? pasteImagesModule;
     private DotNetObjectReference<Home>? dotNetReference;
     private string PromptPlaceholder => IsPromptFocused ? string.Empty : T["Home.DefaultPrompt"];
@@ -139,14 +205,29 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender)
+        if (firstRender)
+        {
+            dotNetReference = DotNetObjectReference.Create(this);
+            pasteImagesModule = await JS.InvokeAsync<IJSObjectReference>("import", "./truecompare-paste-images.js?v=2");
+            await pasteImagesModule.InvokeVoidAsync("connect", PromptPanelId, dotNetReference, MaxImageBytes);
+        }
+
+        if (pasteImagesModule is null)
         {
             return;
         }
 
-        dotNetReference = DotNetObjectReference.Create(this);
-        pasteImagesModule = await JS.InvokeAsync<IJSObjectReference>("import", "./truecompare-paste-images.js?v=1");
-        await pasteImagesModule.InvokeVoidAsync("connect", PromptPanelId, dotNetReference, MaxImageBytes);
+        if (ShouldScrollChatToEnd)
+        {
+            ShouldScrollChatToEnd = false;
+            await pasteImagesModule.InvokeVoidAsync("scrollToEnd", ChatLogId);
+        }
+
+        if (ShouldRestorePromptFocus)
+        {
+            ShouldRestorePromptFocus = false;
+            await pasteImagesModule.InvokeVoidAsync("focusElement", PromptInputId);
+        }
     }
 
     private async Task HandleImageSelected(InputFileChangeEventArgs args)
@@ -223,7 +304,7 @@
         ImageSuggestion = null;
         SelectedImageName = string.IsNullOrWhiteSpace(fileName) ? T["Home.ImageSuggestion"] : fileName;
 
-        if (!contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) || imageBytes.Length == 0)
+        if (!IsAllowedImage(fileName, contentType) || imageBytes.Length == 0)
         {
             SelectedImagePreviewDataUrl = null;
             QuotaMessage = T["Home.ImageInvalid"];
@@ -255,6 +336,25 @@
         }
     }
 
+    private void ClearImageSuggestion()
+    {
+        SelectedImageName = null;
+        SelectedImagePreviewDataUrl = null;
+        ImageSuggestion = null;
+        QuotaMessage = null;
+    }
+
+    private static bool IsAllowedImage(string fileName, string contentType)
+    {
+        if (!AllowedImageContentTypes.Contains(contentType))
+        {
+            return false;
+        }
+
+        var extension = Path.GetExtension(fileName);
+        return string.IsNullOrWhiteSpace(extension) || AllowedImageExtensions.Contains(extension);
+    }
+
     private async Task StartComparison()
     {
         if (IsSubmitting)
@@ -275,31 +375,100 @@
 
         if (string.IsNullOrWhiteSpace(Prompt))
         {
-            QuotaMessage = T["Home.MissingProduct"];
+            QuotaMessage = null;
+            AddAssistantMessage(T["Home.ChatEmpty"]);
             return;
         }
 
-        IsSubmitting = true;
+        var userPrompt = Prompt.Trim();
+        var decision = Conversation.Evaluate(userPrompt);
+        AddUserMessage(userPrompt);
+        Prompt = string.Empty;
         QuotaMessage = null;
 
-        var criteriaUrl = $"/criteria?query={Uri.EscapeDataString(Prompt)}";
+        if (!decision.CanProceed)
+        {
+            AddAssistantMessage(decision.AssistantMessage, decision.Options);
+            return;
+        }
+
+        AddAssistantMessage(decision.AssistantMessage, decision.Options);
+        await ProceedToResultsAsync(decision.ResolvedQuery);
+    }
+
+    private async Task SelectSuggestedProduct(ProductConversationOption option)
+    {
+        if (IsSubmitting)
+        {
+            return;
+        }
+
+        if (!option.HasConfirmedStore)
+        {
+            Navigation.NavigateTo($"/product/{Uri.EscapeDataString(option.Slug)}?query={Uri.EscapeDataString(option.Name)}");
+            return;
+        }
+
+        AddUserMessage(T.Format("Home.ChatSuggestionSelected", option.Name));
+        AddAssistantMessage(T.Format("Home.ChatProductReady", option.Name));
+        await ProceedToResultsAsync(option.Name);
+    }
+
+    private async Task ProceedToResultsAsync(string query)
+    {
+        IsSubmitting = true;
+
+        var resultsUrl = $"/results?query={Uri.EscapeDataString(query)}";
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
         if (string.IsNullOrWhiteSpace(userId))
         {
-            Navigation.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(criteriaUrl)}", forceLoad: true);
+            Navigation.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(resultsUrl)}", forceLoad: true);
             return;
         }
 
-        var result = await QuotaService.TryConsumeAsync(userId, Prompt);
+        var result = await QuotaService.TryConsumeAsync(userId, query);
         if (!result.Allowed)
         {
-            Navigation.NavigateTo($"/credits?returnUrl={Uri.EscapeDataString(criteriaUrl)}&message={Uri.EscapeDataString(T["Home.NoCredits"])}", forceLoad: true);
+            Navigation.NavigateTo($"/credits?returnUrl={Uri.EscapeDataString(resultsUrl)}&message={Uri.EscapeDataString(T["Home.NoCredits"])}", forceLoad: true);
             return;
         }
 
-        Navigation.NavigateTo(criteriaUrl);
+        Navigation.NavigateTo(resultsUrl);
+    }
+
+    private void AddUserMessage(string text)
+    {
+        AddChatMessage(ChatRole.User, text);
+    }
+
+    private void AddAssistantMessage(string text, IReadOnlyList<ProductConversationOption>? options = null)
+    {
+        AddChatMessage(ChatRole.Assistant, text, options);
+    }
+
+    private void AddChatMessage(string role, string text, IReadOnlyList<ProductConversationOption>? options = null)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return;
+        }
+
+        ChatMessages.Add(new HomeChatMessage(role, text, options ?? Array.Empty<ProductConversationOption>()));
+        ShouldScrollChatToEnd = true;
+        ShouldRestorePromptFocus = true;
+        if (ChatMessages.Count > 12)
+        {
+            ChatMessages.RemoveAt(0);
+        }
+    }
+
+    private static IEnumerable<string> SplitMessageText(string text)
+    {
+        return text
+            .Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .DefaultIfEmpty(text);
     }
 
     public async ValueTask DisposeAsync()
@@ -318,4 +487,15 @@
 
         dotNetReference?.Dispose();
     }
+
+    private static class ChatRole
+    {
+        public const string Assistant = "assistant";
+        public const string User = "user";
+    }
+
+    private sealed record HomeChatMessage(
+        string Role,
+        string Text,
+        IReadOnlyList<ProductConversationOption> Options);
 }
