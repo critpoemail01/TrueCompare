@@ -1,0 +1,197 @@
+{
+  "catalog": {
+    "categories": [
+      {
+        "name": "Eletrodomésticos",
+        "url": "https://www.kuantokusta.pt/c/126/eletrodomesticos",
+        "subcategories": [
+          {
+            "category": "Eletrodomésticos",
+            "name": "Frigoríficos",
+            "url": "https://www.kuantokusta.pt/c/133/frigorificos",
+            "status": "validated",
+            "products": [
+              {
+                "name": "Becken BC3901N2 WH Frigorifico Combinado",
+                "brand": "Becken",
+                "model": "BC3901N2 WH",
+                "minPriceCents": 49999,
+                "maxPriceCents": 54999,
+                "url": "https://www.kuantokusta.pt/p/fixture/becken-bc3901n2-wh-frigorifico-combinado",
+                "stores": ["Worten"],
+                "badges": ["preço baixo", "No Frost"],
+                "rating": "4.5",
+                "availability": "Disponível"
+              },
+              {
+                "name": "Samsung RB34C600ESA A Frigorifico Combinado",
+                "brand": "Samsung",
+                "model": "RB34C600ESA",
+                "minPriceCents": 49999,
+                "maxPriceCents": 62999,
+                "url": "https://www.kuantokusta.pt/p/fixture/samsung-rb34c600esa-frigorifico-combinado",
+                "stores": ["Worten"],
+                "badges": ["boa compra", "classe A"],
+                "rating": "4.8",
+                "availability": "Disponível"
+              },
+              {
+                "name": "Bosch KGN497LDF Frigorifico Combinado",
+                "brand": "Bosch",
+                "model": "KGN497LDF",
+                "minPriceCents": 84999,
+                "maxPriceCents": 99999,
+                "url": "https://www.kuantokusta.pt/p/fixture/bosch-kgn497ldf-frigorifico-combinado",
+                "stores": ["Worten"],
+                "badges": ["grande capacidade"],
+                "rating": "4.7",
+                "availability": "Disponível"
+              },
+              {
+                "name": "LG GBBS726CMB Frigorifico Combinado",
+                "brand": "LG",
+                "model": "GBBS726CMB",
+                "minPriceCents": 77999,
+                "maxPriceCents": 89999,
+                "url": "https://www.kuantokusta.pt/p/fixture/lg-gbbs726cmb-frigorifico-combinado",
+                "stores": ["Worten"],
+                "badges": ["topo equilibrado"],
+                "rating": "4.6",
+                "availability": "Disponível"
+              }
+            ]
+          },
+          {
+            "category": "Eletrodomésticos",
+            "name": "Máquinas de Secar Roupa",
+            "url": "https://www.kuantokusta.pt/c/176/maquinas-de-secar-roupa",
+            "status": "validated",
+            "products": [
+              {
+                "name": "Beko BM3T48249W Maquina de Secar Roupa 8Kg",
+                "brand": "Beko",
+                "model": "BM3T48249W",
+                "minPriceCents": 36690,
+                "maxPriceCents": 48499,
+                "url": "https://www.kuantokusta.pt/p/11598597/beko-bm3t48249w-8kg-classe-c",
+                "stores": ["KuantoKusta", "Worten", "Darty"],
+                "badges": ["boa compra", "8 kg", "bomba de calor"],
+                "rating": "4.6",
+                "availability": "Disponível"
+              },
+              {
+                "name": "Candy CSOE H9A2TE-S Maquina de Secar Roupa 9Kg",
+                "brand": "Candy",
+                "model": "CSOE H9A2TE-S",
+                "minPriceCents": 39990,
+                "maxPriceCents": 49990,
+                "url": "https://www.kuantokusta.pt/p/fixture/candy-csoe-h9a2te-s-maquina-secar-roupa",
+                "stores": ["KuantoKusta"],
+                "badges": ["9 kg"],
+                "rating": "4.4",
+                "availability": "Disponível"
+              },
+              {
+                "name": "Bosch WQG245D0ES Maquina de Secar Roupa 9Kg",
+                "brand": "Bosch",
+                "model": "WQG245D0ES",
+                "minPriceCents": 69900,
+                "maxPriceCents": 79900,
+                "url": "https://www.kuantokusta.pt/p/fixture/bosch-wqg245d0es-maquina-secar-roupa",
+                "stores": ["KuantoKusta"],
+                "badges": ["topo", "baixo consumo"],
+                "rating": "4.7",
+                "availability": "Disponível"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Informática",
+        "url": "https://www.kuantokusta.pt/c/109/informatica",
+        "subcategories": [
+          {
+            "category": "Informática",
+            "name": "Monitores",
+            "url": "https://www.kuantokusta.pt/c/118/monitores",
+            "status": "validated",
+            "products": [
+              {
+                "name": "LG UltraGear 27GP850-B",
+                "brand": "LG",
+                "model": "27GP850-B",
+                "minPriceCents": 48566,
+                "maxPriceCents": 52900,
+                "url": "https://www.kuantokusta.pt/p/fixture/lg-ultragear-27gp850-b",
+                "stores": ["Worten", "PCDIGA", "KuantoKusta"],
+                "badges": ["boa compra", "QHD", "165 Hz"],
+                "rating": "4.8",
+                "availability": "Disponível"
+              },
+              {
+                "name": "Samsung Odyssey G5 27\"",
+                "brand": "Samsung",
+                "model": "Odyssey G5 27",
+                "minPriceCents": 22900,
+                "maxPriceCents": 27900,
+                "url": "https://www.kuantokusta.pt/p/fixture/samsung-odyssey-g5-27",
+                "stores": ["KuantoKusta", "PCDIGA"],
+                "badges": ["preço competitivo", "curvo"],
+                "rating": "4.4",
+                "availability": "Disponível"
+              },
+              {
+                "name": "Dell P2723D",
+                "brand": "Dell",
+                "model": "P2723D",
+                "minPriceCents": 23900,
+                "maxPriceCents": 29900,
+                "url": "https://www.kuantokusta.pt/p/fixture/dell-p2723d",
+                "stores": ["KuantoKusta"],
+                "badges": ["produtividade", "ergonómico"],
+                "rating": "4.5",
+                "availability": "Disponível"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "status": "validated",
+    "capturedAt": "2026-05-23T09:00:00Z"
+  },
+  "chatGptReferences": {
+    "eletrodomesticos-frigorificos-001": {
+      "responseText": "{\"status\":\"validado\",\"mais_barata_aceitavel\":\"Becken BC3901N2 WH Frigorifico Combinado\",\"melhor_custo_beneficio\":\"Samsung RB34C600ESA A Frigorifico Combinado\",\"intermedia\":\"LG GBBS726CMB Frigorifico Combinado\",\"topo\":\"Bosch KGN497LDF Frigorifico Combinado\",\"evitar\":null,\"criterios\":[\"preço mínimo\",\"capacidade\",\"eficiência\",\"disponibilidade\"],\"justificacao_curta\":\"A Samsung é a melhor opção custo/benefício porque tem preço de entrada semelhante à Becken, classe A e melhor capacidade. A Bosch fica para quem precisa de mais litros.\",\"dados_insuficientes\":null}",
+      "modelUsed": "Fixture ChatGPT Pro",
+      "reasoningMode": "Alta fixture",
+      "recommendedProductNames": [
+        "Becken BC3901N2 WH Frigorifico Combinado",
+        "Samsung RB34C600ESA A Frigorifico Combinado",
+        "LG GBBS726CMB Frigorifico Combinado",
+        "Bosch KGN497LDF Frigorifico Combinado"
+      ]
+    },
+    "eletrodomesticos-secar-roupa-002": {
+      "responseText": "{\"status\":\"validado\",\"mais_barata_aceitavel\":\"Beko BM3T48249W Maquina de Secar Roupa 8Kg\",\"melhor_custo_beneficio\":\"Beko BM3T48249W Maquina de Secar Roupa 8Kg\",\"intermedia\":\"Candy CSOE H9A2TE-S Maquina de Secar Roupa 9Kg\",\"topo\":\"Bosch WQG245D0ES Maquina de Secar Roupa 9Kg\",\"evitar\":null,\"criterios\":[\"preço mínimo\",\"capacidade\",\"bomba de calor\",\"número de lojas\"],\"justificacao_curta\":\"A Beko é a melhor escolha de entrada e custo/benefício porque é a mais barata com 8 kg, bomba de calor e várias lojas.\",\"dados_insuficientes\":null}",
+      "modelUsed": "Fixture ChatGPT Pro",
+      "reasoningMode": "Alta fixture",
+      "recommendedProductNames": [
+        "Beko BM3T48249W Maquina de Secar Roupa 8Kg",
+        "Candy CSOE H9A2TE-S Maquina de Secar Roupa 9Kg",
+        "Bosch WQG245D0ES Maquina de Secar Roupa 9Kg"
+      ]
+    },
+    "informatica-monitores-003": {
+      "responseText": "{\"status\":\"validado\",\"mais_barata_aceitavel\":\"Samsung Odyssey G5 27\\\"\",\"melhor_custo_beneficio\":\"LG UltraGear 27GP850-B\",\"intermedia\":\"Dell P2723D\",\"topo\":\"LG UltraGear 27GP850-B\",\"evitar\":null,\"criterios\":[\"resolução QHD\",\"taxa de atualização\",\"ergonomia\",\"preço\"],\"justificacao_curta\":\"A LG é a melhor compra geral porque combina QHD, painel rápido e 165 Hz por um preço ainda equilibrado. A Dell é melhor para escritório.\",\"dados_insuficientes\":null}",
+      "modelUsed": "Fixture ChatGPT Pro",
+      "reasoningMode": "Alta fixture",
+      "recommendedProductNames": [
+        "Samsung Odyssey G5 27\"",
+        "LG UltraGear 27GP850-B",
+        "Dell P2723D"
+      ]
+    }
+  }
+}

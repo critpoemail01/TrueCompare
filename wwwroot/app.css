@@ -114,6 +114,13 @@ button {
     transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
 }
 
+.app-sidebar button.nav-link {
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+    width: 100%;
+}
+
 .app-sidebar .nav-link.active {
     background: rgba(255, 255, 255, 0.025);
     border-color: rgba(186, 192, 200, 0.16);

@@ -7,6 +7,172 @@ namespace TrueCompare.Services;
 
 public sealed class ProductConversationService(ComparisonDataService data, AppText text)
 {
+    private static readonly string[] BroadProductCategoryTerms =
+    [
+        "smartphone",
+        "smartphones",
+        "telemovel",
+        "telemoveis",
+        "smartwatch",
+        "smartwatches",
+        "carregador",
+        "carregadores",
+        "cabo",
+        "cabos",
+        "portatil",
+        "portateis",
+        "computador",
+        "computadores",
+        "tablet",
+        "tablets",
+        "rato",
+        "ratos",
+        "periferico",
+        "perifericos",
+        "disco externo",
+        "armazenamento",
+        "monitor",
+        "monitores",
+        "impressora",
+        "impressoras",
+        "tv",
+        "televisor",
+        "televisores",
+        "auscultadores",
+        "gaming",
+        "consola",
+        "consolas",
+        "brinquedo",
+        "brinquedos",
+        "drone",
+        "drones",
+        "eletrodomestico",
+        "eletrodomesticos",
+        "electrodomestico",
+        "electrodomesticos",
+        "maquina de lavar",
+        "maquinas de lavar",
+        "lavar roupa",
+        "lavar loica",
+        "lavar louca",
+        "lavar loiça",
+        "maquina de secar",
+        "maquinas de secar",
+        "frigorifico",
+        "frigorificos",
+        "fogao",
+        "fogoes",
+        "cooker",
+        "stove",
+        "microondas",
+        "micro-ondas",
+        "robot de cozinha",
+        "preparacao de alimentos",
+        "aspirador",
+        "aspiradores",
+        "perfume",
+        "perfumaria",
+        "racao",
+        "animais",
+        "fraldas",
+        "bebe",
+        "berbequim",
+        "bricolage",
+        "cadeira",
+        "cadeiras",
+        "sofa",
+        "sofas",
+        "jardim",
+        "bicicleta",
+        "trotinete",
+        "fitness",
+        "sapatilhas",
+        "pneu",
+        "pneus",
+        "oleo",
+        "tinteiro",
+        "tinteiros",
+        "livro",
+        "livros",
+        "vinho",
+        "vinhos",
+        "cafeteira",
+        "cafeteiras"
+    ];
+
+    private static readonly HashSet<string> GenericProductIdentityTokens = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "a",
+        "as",
+        "ate",
+        "best",
+        "boa",
+        "bom",
+        "barata",
+        "barato",
+        "cabos",
+        "cadeira",
+        "cadeiras",
+        "cafe",
+        "carregador",
+        "carregadores",
+        "classe",
+        "com",
+        "comprar",
+        "conjuntos",
+        "de",
+        "da",
+        "das",
+        "do",
+        "dos",
+        "e",
+        "em",
+        "escritorio",
+        "externo",
+        "fitness",
+        "frigorifico",
+        "frigorificos",
+        "fogao",
+        "fogoes",
+        "gaming",
+        "gb",
+        "kg",
+        "l",
+        "lavar",
+        "loica",
+        "loiça",
+        "louca",
+        "maquina",
+        "maquinas",
+        "melhor",
+        "microondas",
+        "monitor",
+        "monitores",
+        "para",
+        "passadeira",
+        "passadeiras",
+        "perifericos",
+        "portatil",
+        "portateis",
+        "preco",
+        "premium",
+        "produto",
+        "rato",
+        "ratos",
+        "roupa",
+        "secar",
+        "sem",
+        "smartphone",
+        "smartphones",
+        "tablet",
+        "tablets",
+        "tv",
+        "usb",
+        "vendedores",
+        "verificados",
+        "wireless"
+    };
+
     public ProductConversationDecision Evaluate(string? userMessage)
     {
         var query = NormalizeUserMessage(userMessage);
@@ -59,12 +225,21 @@ public sealed class ProductConversationService(ComparisonDataService data, AppTe
             }
         }
 
-        if (productsWithConfirmedOffers.Count == 0 || LooksLikeProductAdviceQuestion(query))
+        if (productsWithConfirmedOffers.Count == 0
+            || LooksLikeProductAdviceQuestion(query)
+            || LooksLikeBroadCategoryRequest(query, products))
         {
-            var recommendationProducts = products.Take(4).ToList();
             var confirmedProductSlugs = productsWithConfirmedOffers
                 .Select(product => product.Slug)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var candidateProducts = productsWithConfirmedOffers.Count > 0
+                ? productsWithConfirmedOffers
+                : products;
+            var recommendationProducts = candidateProducts
+                .OrderByDescending(product => confirmedProductSlugs.Contains(product.Slug))
+                .ThenBy(product => product.Rank)
+                .Take(4)
+                .ToList();
 
             return ProductConversationDecision.ProductAdvice(
                 query,
@@ -158,6 +333,108 @@ public sealed class ProductConversationService(ComparisonDataService data, AppTe
 
         return !MentionsSpecificProductName(query, products.Select(product => product.Name))
             || asksForFridgeOptions;
+    }
+
+    private bool LooksLikeBroadCategoryRequest(string query, IReadOnlyList<ProductResult> products)
+    {
+        if (products.Count == 0)
+        {
+            return false;
+        }
+
+        var normalized = NormalizeForMatching(query);
+        if (data.Categories.Any(category => LooksLikeCategoryPrompt(normalized, NormalizeForMatching(category))))
+        {
+            return true;
+        }
+
+        if (MentionsSpecificProductIdentity(normalized, products))
+        {
+            return false;
+        }
+
+        return ContainsAny(normalized, BroadProductCategoryTerms)
+            || ContainsAny(
+                normalized,
+                "baixo risco",
+                "best value",
+                "custo beneficio",
+                "intermedio",
+                "intermedia",
+                "mais barato",
+                "mais barata",
+                "melhor preco",
+                "preco qualidade",
+                "topo",
+                "vendedores verificados");
+    }
+
+    private static bool LooksLikeCategoryPrompt(string normalizedQuery, string normalizedCategory)
+    {
+        return string.Equals(normalizedQuery, normalizedCategory, StringComparison.Ordinal)
+            || normalizedQuery.StartsWith(normalizedCategory + ":", StringComparison.Ordinal)
+            || normalizedQuery.StartsWith(normalizedCategory + " ", StringComparison.Ordinal);
+    }
+
+    private static bool MentionsSpecificProductIdentity(string normalizedQuery, IEnumerable<ProductResult> products)
+    {
+        var queryTokens = ExtractTokens(normalizedQuery).ToHashSet(StringComparer.Ordinal);
+
+        foreach (var product in products)
+        {
+            var normalizedName = NormalizeForMatching(product.Name);
+            if (normalizedName.Length > 5 && normalizedQuery.Contains(normalizedName, StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            var identityTokens = ExtractProductIdentityTokens(product).ToList();
+            if (identityTokens.Count == 0)
+            {
+                continue;
+            }
+
+            var matchingTokens = identityTokens
+                .Where(queryTokens.Contains)
+                .ToList();
+            if (matchingTokens.Count >= 2)
+            {
+                return true;
+            }
+
+            if (matchingTokens.Any(ContainsDigit))
+            {
+                return true;
+            }
+
+            var brand = NormalizeForMatching(product.Brand);
+            if (brand.Length >= 3 && queryTokens.Contains(brand) && matchingTokens.Count >= 1)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static IEnumerable<string> ExtractProductIdentityTokens(ProductResult product)
+    {
+        return ExtractTokens($"{product.Name} {product.Slug}")
+            .Where(token => token.Length >= 2)
+            .Where(token => !GenericProductIdentityTokens.Contains(token));
+    }
+
+    private static IEnumerable<string> ExtractTokens(string value)
+    {
+        foreach (Match match in Regex.Matches(value, @"[a-z0-9]+", RegexOptions.IgnoreCase))
+        {
+            yield return match.Value.ToLowerInvariant();
+        }
+    }
+
+    private static bool ContainsDigit(string value)
+    {
+        return value.Any(char.IsDigit);
     }
 
     private static bool MentionsSpecificProductName(string query, IEnumerable<string> productNames)

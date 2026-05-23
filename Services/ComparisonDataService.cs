@@ -108,6 +108,12 @@ public sealed class ComparisonDataService(AppText text)
         "fridge",
         "geladeira",
         "combinado",
+        "fogao",
+        "fogoes",
+        "cooker",
+        "cookers",
+        "stove",
+        "stoves",
         "maquina de lavar",
         "maquina lavar",
         "maquinas de lavar",
@@ -802,6 +808,7 @@ public sealed class ComparisonDataService(AppText text)
             "Small appliances",
             "Washing machines",
             "Fridges",
+            "Cookers",
             "Fans",
             "Coffee machines",
             "Compact microwaves",
@@ -853,6 +860,7 @@ public sealed class ComparisonDataService(AppText text)
             "Pequenos eletrodomésticos",
             "Máquinas de lavar",
             "Frigoríficos",
+            "Fog\u00f5es",
             "Ventoinhas",
             "Máquinas de café",
             "Microondas compactos",
@@ -1078,7 +1086,7 @@ public sealed class ComparisonDataService(AppText text)
             96,
             "iPhone 17",
             "Apple",
-            "989 \u20AC",
+            "804,99 EUR",
             "#5EE9A8",
             "Recomendado",
             new[] { "6.3\"", "177 g", "30h video", "A19", "256GB", "Garantia 3 anos" },
@@ -1097,7 +1105,7 @@ public sealed class ComparisonDataService(AppText text)
             95,
             "iPhone 17 Pro",
             "Apple",
-            "1.249 \u20AC",
+            "1.170,00 EUR",
             "#7BE8E0",
             "Melhor camara",
             new[] { "6.3\"", "206 g", "33h video", "A19 Pro", "256GB", "Garantia 3 anos" },
@@ -1467,6 +1475,66 @@ public sealed class ComparisonDataService(AppText text)
             ["Forno", "70 L", "Encastre", "Multifuncoes", "Classe A", "Garantia 3 anos"],
             ["Categoria correta", "Marca comum em PT", "Confirmar dimensoes"],
             "Boa referencia quando o pedido e forno de encastre."),
+        CatalogProduct(
+            "flama-8171fl-fogao-gas",
+            6,
+            86,
+            "Flama 8171FL Fog\u00e3o a G\u00e1s 58L",
+            "Flama",
+            "298,88 EUR",
+            "#5EE9A8",
+            "Mais barato gas",
+            ["Fog\u00e3o", "G\u00e1s butano/propano", "58 L", "4 queimadores", "50 cm", "Garantia loja"],
+            ["KuantoKusta direto", "Preco validavel", "Subcategoria fogoes"],
+            "Opcao economica para quem procura fogao a gas independente com forno integrado e preco baixo."),
+        CatalogProduct(
+            "flama-8253fl-fogao-gas",
+            7,
+            83,
+            "Flama 8253FL Fog\u00e3o a G\u00e1s 58L",
+            "Flama",
+            "349,13 EUR",
+            "#7BE8E0",
+            "Gas inox",
+            ["Fog\u00e3o", "G\u00e1s butano/propano", "Forno eletrico", "54 L", "4 bocas", "Classe A"],
+            ["KuantoKusta direto", "Preco validavel", "Categoria fogoes"],
+            "Alternativa a gas com pagina KuantoKusta direta e informacao de placa, forno e garantia."),
+        CatalogProduct(
+            "vox-cht5105s-fogao-eletrico",
+            8,
+            82,
+            "VOX CHT5105S Fog\u00e3o El\u00e9trico 50L",
+            "VOX",
+            "419,99 EUR",
+            "#B49CFF",
+            "Eletrico compacto",
+            ["Fog\u00e3o", "El\u00e9trico", "Vitroceramica", "50 L", "4 zonas", "Classe A"],
+            ["KuantoKusta direto", "Preco validavel", "Boa opcao compacta"],
+            "Boa opcao quando queres fogao eletrico compacto com placa vitroceramica e forno de 50 L."),
+        CatalogProduct(
+            "beko-fbe67310gx-fogao-eletrico",
+            9,
+            84,
+            "Beko FBE67310GX Fog\u00e3o El\u00e9trico 66L",
+            "Beko",
+            "504,90 EUR",
+            "#5EE9A8",
+            "Preco/qualidade eletrico",
+            ["Fog\u00e3o", "El\u00e9trico", "Vitroceramica", "66 L", "4 zonas", "Classe A"],
+            ["KuantoKusta direto", "Preco validavel", "Marca conhecida"],
+            "Escolha equilibrada para quem procura fogao eletrico vitroceramico de 60 cm com forno maior."),
+        CatalogProduct(
+            "flama-8460fl-fogao-vitroceramica",
+            10,
+            81,
+            "Flama 8460FL Fog\u00e3o Vitrocer\u00e2mica 65L",
+            "Flama",
+            "699,00 EUR",
+            "#E9D67B",
+            "Topo Flama",
+            ["Fog\u00e3o", "Vitroceramica", "65 L", "60 cm", "4 zonas", "Classe A"],
+            ["KuantoKusta direto", "Boa compra", "Preco validavel"],
+            "Opcao superior dentro da Flama para quem quer placa vitroceramica, 60 cm e forno maior."),
         CatalogProduct(
             "teka-mw-fs20-wh-microondas",
             6,
@@ -2826,8 +2894,8 @@ public sealed class ComparisonDataService(AppText text)
             "Cecotec",
             "122,99 EUR",
             "#7BE8E0",
-            "Bicicleta estatica",
-            ["Bicicleta estatica", "Indoor", "Volante 10 kg", "Monitor LCD", "Fitness", "Garantia loja"],
+            "Fitness bicicleta",
+            ["Fitness", "Bicicleta estatica", "Indoor", "Volante 10 kg", "Monitor LCD", "Garantia loja"],
             ["Produto popular KuantoKusta", "Categoria bicicletas estaticas", "Preco validavel"],
             "Correspondencia direta para pedidos de bicicleta estatica Cecotec DrumFit Indoor 10000 Teseo."),
         CatalogProduct(
@@ -3424,6 +3492,11 @@ public sealed class ComparisonDataService(AppText text)
             93999,
             "Confirmar entrega",
             "Confirm delivery"),
+        [RetailerProductUrlKey("KuantoKusta", "iphone-17")] = new(
+            "https://www.kuantokusta.pt/p/11928760/apple-iphone-17-63-256gb-black",
+            80499,
+            "Confirmar loja",
+            "Confirm store"),
         [RetailerProductUrlKey("Darty", "apple-usb-c-20w-power-adapter")] = new(
             "https://darty.pt/products/adaptador-de-corrente-apple-usb-c-20w-branco",
             2499,
@@ -3574,6 +3647,11 @@ public sealed class ComparisonDataService(AppText text)
             127900,
             "Confirmar entrega",
             "Confirm delivery"),
+        [RetailerProductUrlKey("KuantoKusta", "iphone-17-pro")] = new(
+            "https://www.kuantokusta.pt/p/11928769/apple-iphone-17-pro-63-256gb-silver",
+            117000,
+            "Confirmar loja",
+            "Confirm store"),
         [RetailerProductUrlKey("Worten", "asus-vivobook-go-14-e1404f")] = new(
             "https://www.worten.pt/produtos/portatil-asus-vivobook-go-14-e1404f-14-amd-ryzen-5-7520u-ram-8-gb-512-gb-ssd-amd-radeon-graphics-8794343",
             49999,
@@ -3772,6 +3850,31 @@ public sealed class ComparisonDataService(AppText text)
         [RetailerProductUrlKey("KuantoKusta", "teka-hcb-6370-forno")] = new(
             "https://www.kuantokusta.pt/p/11980142/teka-hcb6370ss-hidrolitico-71l-classe-a",
             21647,
+            "Confirmar loja",
+            "Confirm store"),
+        [RetailerProductUrlKey("KuantoKusta", "flama-8171fl-fogao-gas")] = new(
+            "https://www.kuantokusta.pt/p/1924186/flama-8171fl-inox-58l-gas-butano-propano",
+            29888,
+            "Confirmar loja",
+            "Confirm store"),
+        [RetailerProductUrlKey("KuantoKusta", "flama-8253fl-fogao-gas")] = new(
+            "https://www.kuantokusta.pt/p/1924191/flama-8253fl-inox-58l-gas-butano-propano",
+            34913,
+            "Confirmar loja",
+            "Confirm store"),
+        [RetailerProductUrlKey("KuantoKusta", "vox-cht5105s-fogao-eletrico")] = new(
+            "https://www.kuantokusta.pt/p/11485046/vox-eletrico-cht5105s-50l",
+            41999,
+            "Confirmar loja",
+            "Confirm store"),
+        [RetailerProductUrlKey("KuantoKusta", "beko-fbe67310gx-fogao-eletrico")] = new(
+            "https://www.kuantokusta.pt/p/12069060/beko-fbe67310gx",
+            50490,
+            "Confirmar loja",
+            "Confirm store"),
+        [RetailerProductUrlKey("KuantoKusta", "flama-8460fl-fogao-vitroceramica")] = new(
+            "https://www.kuantokusta.pt/p/7552835/flama-eletrico-vitroceramica-8460fl-inox-65l",
+            69900,
             "Confirmar loja",
             "Confirm store"),
         [RetailerProductUrlKey("KuantoKusta", "teka-mw-fs20-wh-microondas")] = new(
@@ -4341,7 +4444,14 @@ public sealed class ComparisonDataService(AppText text)
         if (ContainsAnyTerm(normalizedQuery, "grandes eletrodomesticos"))
         {
             return products
-                .Where(product => ProductContainsAny(product, "frigorifico", "combinado", "lavadora", "lavagem", "secar roupa", "secagem", "lava-loica", "forno"))
+                .Where(product => ProductContainsAny(product, "frigorifico", "combinado", "lavadora", "lavagem", "secar roupa", "secagem", "lava-loica", "forno", "fogao"))
+                .ToList();
+        }
+
+        if (ContainsAnyTerm(normalizedQuery, "fogao", "fogoes", "cooker", "cookers", "stove", "stoves"))
+        {
+            return products
+                .Where(product => ProductContainsAny(product, "fogao", "gas", "eletrico", "vitroceramica"))
                 .ToList();
         }
 
@@ -4624,6 +4734,7 @@ public sealed class ComparisonDataService(AppText text)
             "televisor" or "televisao" or "tv" => new[] { "tv", "55", "4k", "oled", "qled" },
             "cafe" or "espresso" => new[] { "cafe", "espresso", "maquina", "moinho", "capsulas" },
             "forno" => new[] { "forno", "encastre", "classe" },
+            "fogao" or "fogoes" or "cooker" or "stove" => new[] { "fogao", "gas", "eletrico", "vitroceramica", "forno" },
             "microondas" or "micro" or "ondas" => new[] { "microondas", "micro-ondas", "micro ondas", "litros", "compacto", "grill" },
             "balanca" or "balancas" => new[] { "balanca", "scale", "app" },
             "berbequim" or "drill" or "aparafusadora" => new[] { "berbequim", "drill", "18v", "brushless", "percussao" },
@@ -5406,6 +5517,12 @@ public sealed class ComparisonDataService(AppText text)
             return true;
         }
 
+        if (ContainsAnyTerm(value, MonitorCatalogTerms))
+        {
+            catalog = MonitorCatalog;
+            return true;
+        }
+
         if (ContainsAnyTerm(value, "rato", "mouse", "tapete de rato"))
         {
             catalog = MouseCatalog;
@@ -5466,7 +5583,13 @@ public sealed class ComparisonDataService(AppText text)
             return true;
         }
 
-        if (ContainsAnyTerm(value, "maquina de secar", "maquina secar", "maquina de secar roupa", "maquinas de secar roupa", "secar roupa", "secador roupa", "secadora", "bomba de calor", "beko", "bm3t48249w", "maquina de lavar", "maquina lavar", "lavar roupa", "lavadora", "lavagem", "maquina de lavar loica", "maquina lavar loica", "lava loica", "lava-loica", "dishwasher"))
+        if (ContainsAnyTerm(value, "maquina de secar", "maquina secar", "maquina de secar roupa", "maquinas de secar roupa", "secar roupa", "secador roupa", "secadora", "bomba de calor", "beko", "bm3t48249w", "maquina de lavar", "maquina lavar", "lavar roupa", "lavadora", "lavagem", "maquina de lavar loica", "maquina lavar loica", "lava loica", "lava-loica", "dishwasher", "fogao", "fogoes", "cooker", "stove"))
+        {
+            catalog = ApplianceCatalog;
+            return true;
+        }
+
+        if (ContainsAnyTerm(value, "frigorifico", "frigorificos", "frigoríficos", "combinado", "geladeira"))
         {
             catalog = ApplianceCatalog;
             return true;
@@ -5913,7 +6036,7 @@ public sealed class ComparisonDataService(AppText text)
     private static IEnumerable<string> GetCatalogTokens(string normalizedQuery)
     {
         return normalizedQuery
-            .Split([' ', '-', '/', ',', '.', ';', ':', '(', ')', '[', ']', '{', '}', '"', '\''], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            .Split([' ', '-', '/', ',', '.', ';', ':', '?', '!', '(', ')', '[', ']', '{', '}', '"', '\''], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     }
 
     private static string NormalizeCatalogText(string value)

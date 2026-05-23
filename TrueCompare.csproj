@@ -29,6 +29,9 @@
     <Compile Remove="TrueCompare.Tests\**\*.cs" />
     <Content Remove="TrueCompare.Tests\**\*" />
     <None Remove="TrueCompare.Tests\**\*" />
+    <Compile Remove="tools\**\*.cs" />
+    <Content Remove="tools\**\*" />
+    <None Remove="tools\**\*" />
   </ItemGroup>
 
   <ItemGroup>

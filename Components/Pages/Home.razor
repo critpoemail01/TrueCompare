@@ -165,6 +165,11 @@
 
     private string Prompt { get; set; } = string.Empty;
     private string ActiveCategory { get; set; } = string.Empty;
+
+    [SupplyParameterFromQuery(Name = "newChat")]
+    public string? NewChatToken { get; set; }
+
+    private string? AppliedNewChatToken { get; set; }
     private bool IsSubmitting { get; set; }
     private bool IsAnalyzingImage { get; set; }
     private bool IsPromptFocused { get; set; }
@@ -178,6 +183,34 @@
     private IJSObjectReference? pasteImagesModule;
     private DotNetObjectReference<Home>? dotNetReference;
     private string PromptPlaceholder => IsPromptFocused ? string.Empty : T["Home.DefaultPrompt"];
+
+    protected override void OnParametersSet()
+    {
+        if (string.IsNullOrWhiteSpace(NewChatToken)
+            || string.Equals(NewChatToken, AppliedNewChatToken, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        AppliedNewChatToken = NewChatToken;
+        ResetConversation();
+    }
+
+    private void ResetConversation()
+    {
+        Prompt = string.Empty;
+        ActiveCategory = string.Empty;
+        IsSubmitting = false;
+        IsAnalyzingImage = false;
+        IsPromptFocused = false;
+        QuotaMessage = null;
+        SelectedImageName = null;
+        SelectedImagePreviewDataUrl = null;
+        ImageSuggestion = null;
+        ChatMessages.Clear();
+        ShouldScrollChatToEnd = false;
+        ShouldRestorePromptFocus = true;
+    }
 
     private void HidePromptPlaceholder()
     {
@@ -396,22 +429,16 @@
         await ProceedToResultsAsync(decision.ResolvedQuery);
     }
 
-    private async Task SelectSuggestedProduct(ProductConversationOption option)
+    private Task SelectSuggestedProduct(ProductConversationOption option)
     {
         if (IsSubmitting)
         {
-            return;
+            return Task.CompletedTask;
         }
 
-        if (!option.HasConfirmedStore)
-        {
-            Navigation.NavigateTo($"/product/{Uri.EscapeDataString(option.Slug)}?query={Uri.EscapeDataString(option.Name)}");
-            return;
-        }
-
-        AddUserMessage(T.Format("Home.ChatSuggestionSelected", option.Name));
-        AddAssistantMessage(T.Format("Home.ChatProductReady", option.Name));
-        await ProceedToResultsAsync(option.Name);
+        IsSubmitting = true;
+        Navigation.NavigateTo($"/product/{Uri.EscapeDataString(option.Slug)}?query={Uri.EscapeDataString(option.Slug)}");
+        return Task.CompletedTask;
     }
 
     private async Task ProceedToResultsAsync(string query)

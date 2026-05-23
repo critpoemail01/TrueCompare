@@ -29,7 +29,7 @@ public static class PriceAlertEmailTemplate
         var savings = TargetPriceAlertService.FormatCents(savingsCents);
         var eyebrow = isExample ? "Exemplo de alerta" : "Alerta ativo";
         var footerNote = isExample
-            ? "Este email &eacute; um exemplo de valida&ccedil;&atilde;o do formato do alerta. Em produ&ccedil;&atilde;o, s&oacute; &eacute; enviado quando existir pre&ccedil;o confirmado em tempo real."
+            ? "Este email &eacute; um exemplo de valida&ccedil;&atilde;o do formato do alerta. Em produ&ccedil;&atilde;o, s&oacute; &eacute; enviado quando existir pre&ccedil;o confirmado numa p&aacute;gina direta validada."
             : "Recebeste este email porque criaste um alerta de pre&ccedil;o no TrueCompare.";
 
         return $"""

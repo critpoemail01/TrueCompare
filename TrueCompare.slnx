@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="TrueCompare.csproj" />
   <Project Path="TrueCompare.Tests/TrueCompare.Tests.csproj" />
+  <Project Path="tools/TrueCompare.ReliabilityGate/TrueCompare.ReliabilityGate.csproj" />
 </Solution>

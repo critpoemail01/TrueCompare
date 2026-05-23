@@ -197,7 +197,7 @@ else if (SelectedOffer is not null)
 
     private string KuantoKustaSearchUrl => $"https://www.kuantokusta.pt/search?q={Uri.EscapeDataString(ProductDisplayName)}";
 
-    private string DefaultTargetPrice => (SelectedOffer?.PriceCents ?? 0) <= 90000 ? "49.00" : "1199.00";
+    private string DefaultTargetPrice => FormatPriceInputValue(CalculateDefaultTargetPriceCents(SelectedOffer));
 
     private SellerOffer? SelectedOffer { get; set; }
 
@@ -239,6 +239,21 @@ else if (SelectedOffer is not null)
     private static string FormatCurrency(long cents)
     {
         return $"{(cents / 100m).ToString("N2", CultureInfo.CurrentCulture)} \u20AC";
+    }
+
+    private static long CalculateDefaultTargetPriceCents(SellerOffer? offer)
+    {
+        if (offer is null || offer.PriceCents <= 0)
+        {
+            return 100;
+        }
+
+        return Math.Max(100, (long)Math.Round(offer.PriceCents * 0.9m, MidpointRounding.ToZero));
+    }
+
+    private static string FormatPriceInputValue(long cents)
+    {
+        return (cents / 100m).ToString("0.00", CultureInfo.InvariantCulture);
     }
 
     private static string TrustLabel(SellerOffer offer)

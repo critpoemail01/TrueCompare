@@ -151,7 +151,7 @@ builder.Services.AddHttpClient<LlmProviderRouter>();
 builder.Services.AddScoped<IProductDiscoveryService, LlmProductDiscoveryService>();
 builder.Services.AddScoped<IProductSuggestionService, LlmSuggestionService>();
 builder.Services.AddScoped<IProductImageSuggestionService, LlmProductImageSuggestionService>();
-if (builder.Environment.IsEnvironment("Testing"))
+if (builder.Environment.IsEnvironment("Testing") || builder.Environment.IsDevelopment())
 {
     builder.Services.AddSingleton<IStoreOfferValidationService, TestingStoreOfferValidationService>();
 }

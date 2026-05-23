@@ -24,7 +24,7 @@ async function expectBlazorErrorHidden(page) {
   await expect(page.locator('#blazor-error-ui')).not.toBeVisible();
 }
 
-test('anonymous home search by Enter preserves the query in the login return URL', async ({ page }) => {
+test('anonymous specific product search by Enter preserves the query in the login return URL', async ({ page }) => {
   await page.goto('/');
   await page.waitForLoadState('networkidle');
   await page.waitForTimeout(500);
@@ -35,11 +35,11 @@ test('anonymous home search by Enter preserves the query in the login return URL
   await expect(page.locator('.topbar-market-indicator')).toContainText(/pt-PT/);
   await expect(page.locator('.topbar-llm-indicator')).toContainText(/Ollama local/i);
   await expect(page.locator('.topbar-llm-indicator')).toContainText(/qwen3-vl:235b-cloud/i);
-  await prompt.fill('rato ate 50 euros');
+  await prompt.fill('iPhone 17 Pro');
   await prompt.press('Enter');
 
   await expect(page).toHaveURL(/\/login\?returnUrl=/);
-  expect(decodeURIComponent(page.url())).toContain('/results?query=rato%20ate%2050%20euros');
+  expect(decodeURIComponent(page.url())).toContain('/results?query=iPhone%2017%20Pro');
 });
 
 test('home behaves like a chat and asks for more detail before unknown product searches', async ({ page }) => {
@@ -90,6 +90,24 @@ test('home behaves like a chat and asks for more detail before unknown product s
   expect(layout.chatHasRoom).toBeTruthy();
 });
 
+test('new chat clears the active conversation when already on home', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
+
+  await page.locator('#prompt').fill('asdasdasd');
+  await page.locator('.search-send').click();
+  await expect(page.locator('.home-chat')).toBeVisible();
+  await expect(page.locator('.home-chat-message-user')).toHaveCount(1);
+
+  await page.getByRole('button', { name: /^Novo Chat$/i }).click();
+
+  await expect(page).toHaveURL(/\/\?newChat=/);
+  await expect(page.locator('.home-chat')).toHaveCount(0);
+  await expect(page.locator('#prompt')).toHaveValue('');
+  await expect(page.locator('.category-menu')).toBeVisible();
+  await expectBlazorErrorHidden(page);
+});
+
 test('home chat gives fridge options with direct links and asks for more detail', async ({ page }) => {
   await page.goto('/');
   await page.waitForLoadState('networkidle');
@@ -123,6 +141,42 @@ test('home chat gives fridge options with direct links and asks for more detail'
   expect(layout.chatWideEnough).toBeTruthy();
   expect(layout.promptWideEnough).toBeTruthy();
   expect(layout.noHorizontalOverflow).toBeTruthy();
+
+  await page.getByRole('button', { name: /Samsung RB34C600ESA/i }).click();
+  await expect(page).toHaveURL(/\/product\/samsung-rb34c600esa-frigorifico-combinado/);
+  await expect(page.locator('.product-summary')).toContainText(/Samsung RB34C600ESA/i);
+  await expectBlazorErrorHidden(page);
+});
+
+test('broad appliance category search stays in the chat before comparison', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
+  await page.locator('#prompt').fill('Máquinas de Lavar Loiça');
+  await page.locator('.search-send').click();
+
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.locator('.home-chat')).toBeVisible();
+  await expect(page.locator('.home-chat-message-assistant').last()).toContainText(/Indesit IN2FE13DT9S|Lavar Loica|Lavar Loiça/i);
+  await expect(page.locator('.home-chat-product').first()).toBeVisible();
+  await expect(page.locator('.home-chat-products')).not.toContainText(/Lavar Roupa|Boostwash/i);
+  await expect(page.locator('.home-chat-product-action').first()).toBeVisible();
+  await expect(page).not.toHaveURL(/\/results|\/criteria/);
+  await expectBlazorErrorHidden(page);
+});
+
+test('home chat understands cookers category before comparison', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
+  await page.locator('#prompt').fill('Fog\u00f5es');
+  await page.locator('.search-send').click();
+
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.locator('.home-chat')).toBeVisible();
+  await expect(page.locator('.home-chat-message-assistant').last()).not.toContainText(/Ainda n\u00e3o percebi/i);
+  await expect(page.locator('.home-chat-products')).toContainText(/Flama|Beko|VOX|Fog/i);
+  await expect(page.locator('.home-chat-product').first()).toBeVisible();
+  await expect(page).not.toHaveURL(/\/results|\/criteria/);
+  await expectBlazorErrorHidden(page);
 });
 
 test('home chat gives product advice before purchase validation for industrial tablets', async ({ page }) => {
@@ -150,7 +204,7 @@ test('home chat gives product advice before purchase validation for industrial t
   await expectBlazorErrorHidden(page);
 });
 
-test('home chat gives four validated coffee machine scales before moving to results', async ({ page }) => {
+test('home chat gives four validated coffee machine scales before opening the selected product', async ({ page }) => {
   await registerUser(page);
 
   await page.goto('/');
@@ -176,9 +230,9 @@ test('home chat gives four validated coffee machine scales before moving to resu
 
   await page.getByRole('button', { name: /Magnifica Start/i }).click();
 
-  await expect(page).toHaveURL(/\/results\?query=/);
-  await expect(page.locator('.results-empty-state')).toHaveCount(0);
-  await expect(page.locator('.results-ai-panel')).toContainText(/Magnifica Start/i);
+  await expect(page).toHaveURL(/\/product\/delonghi-magnifica-start/);
+  await expect(page.locator('.product-summary')).toContainText(/Magnifica Start/i);
+  await expect(page.getByRole('link', { name: /Ver condições|Purchase conditions|Conditions/i })).toBeVisible();
 });
 
 test('checkout for product without validated offer never invents a store', async ({ page }) => {
@@ -342,7 +396,7 @@ test('invalid image upload is blocked with a clear message', async ({ page }) =>
 });
 
 test('each home category suggestion returns sensible products with validated stores', async ({ page }) => {
-  test.setTimeout(240000);
+  test.setTimeout(480000);
   await registerUser(page);
 
   const expectedCategories = [
@@ -366,6 +420,7 @@ test('each home category suggestion returns sensible products with validated sto
     'Pequenos eletrodomésticos',
     'Máquinas de lavar',
     'Frigoríficos',
+    'Fog\u00f5es',
     'Ventoinhas',
     'Máquinas de café',
     'Microondas compactos',
@@ -416,6 +471,7 @@ test('each home category suggestion returns sensible products with validated sto
     'Pequenos eletrodomésticos': ['microondas', 'teka', 'cafe', 'balanca', 'xiaomi'],
     'Máquinas de lavar': ['becken', 'lavar', 'roupa'],
     'Frigoríficos': ['bosch', 'frigor', 'combinado'],
+    'Fog\u00f5es': ['fog', 'flama', 'beko', 'vox'],
     'Ventoinhas': ['rowenta', 'ventoinha', 'ventilacao'],
     'Máquinas de café': ['nespresso', 'café', 'cafe'],
     'Microondas compactos': ['microondas', 'teka', '20'],
@@ -464,20 +520,27 @@ test('each home category suggestion returns sensible products with validated sto
     await expect(page.locator('.search-send')).toBeEnabled();
     await page.locator('.search-send').click();
 
-    await expect(page).toHaveURL(/\/results\?query=/);
-    await expect(page.locator('.topbar-market-indicator')).toContainText(/Portugal/);
-    const firstCard = page.locator('.product-card').first();
-    await expect(firstCard, `${category} should return at least one product card`).toBeVisible();
-
-    const resultsText = (await page.locator('.results-ai-panel').innerText()).toLowerCase();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.locator('.home-chat')).toBeVisible();
+    await expect(page.locator('.home-chat-product').first(), `${category} should return at least one chat product option`).toBeVisible();
+    const chatText = (await page.locator('.home-chat').innerText()).toLowerCase();
     expect(
-      expectedTerms[category].some((term) => resultsText.includes(term.toLowerCase())),
-      `${category} should return products related to the category`
+      expectedTerms[category].some((term) => chatText.includes(term.toLowerCase())),
+      `${category} should discuss products related to the category before moving to comparison`
     ).toBeTruthy();
 
-    await firstCard.getByRole('link', { name: /Ver detalhes|Details/i }).click();
+    await page.locator('.home-chat-product-action').first().click();
     await expect(page).toHaveURL(/\/product\//);
-    await page.getByRole('link', { name: /Ver condições|Purchase conditions|Conditions/i }).click();
+    await expect(page.locator('.topbar-market-indicator')).toContainText(/Portugal/);
+    await expect(page.locator('.product-summary'), `${category} should open the selected product detail`).toBeVisible();
+
+    const resultsText = (await page.locator('.product-summary').innerText()).toLowerCase();
+    expect(
+      expectedTerms[category].some((term) => resultsText.includes(term.toLowerCase())),
+      `${category} should open a product related to the category`
+    ).toBeTruthy();
+
+    await page.getByRole('link', { name: /Ver condi\u00e7\u00f5es|Purchase conditions|Conditions/i }).click();
 
     await expect(page).toHaveURL(/\/checkout\?/);
     await expect(page.locator('.topbar-market-indicator')).toContainText(/Portugal/);

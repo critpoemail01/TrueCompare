@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TrueCompare.csproj" />
+    <ProjectReference Include="..\tools\TrueCompare.ReliabilityGate\TrueCompare.ReliabilityGate.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -11,7 +11,7 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
     : IClassFixture<TrueCompareWebApplicationFactory>
 {
     [Theory]
-    [InlineData("/", "O que queres comparar hoje?")]
+    [InlineData("/", "O que queres comprar hoje?")]
     [InlineData("/results?query=comprar%20smartphones", "iPhone 16e")]
     [InlineData("/product/iphone-15-pro?query=comprar%20smartphones", "Score IA")]
     [InlineData("/checkout?product=iphone-15-pro", "Sem loja validada")]
@@ -102,9 +102,10 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
         var html = await client.GetStringAsync("/checkout?product=iphone-17");
         var decoded = WebUtility.HtmlDecode(html);
 
-        Assert.Contains("Worten", decoded);
-        Assert.Matches(@"(?<!\d)939,99\s*\u20AC", decoded);
-        Assert.Contains("https://www.worten.pt/produtos/iphone-17-apple-6-3-256-gb-preto-8600278", html);
+        Assert.Contains("KuantoKusta", decoded);
+        Assert.Matches(@"(?<!\d)804,99\s*\u20AC", decoded);
+        Assert.Contains("https://www.kuantokusta.pt/p/11928760/apple-iphone-17-63-256gb-black", html);
+        Assert.Contains("value=\"724.49\"", html);
         Assert.DoesNotContain("worten.pt/search", html);
         Assert.DoesNotContain("amazon.es/s?k=", html);
         Assert.DoesNotContain("Confirmar na loja", decoded);
@@ -178,6 +179,7 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
         Assert.Contains("Beko BM3T48249W", decoded);
         Assert.Contains("KuantoKusta", decoded);
         Assert.Contains("366,90", decoded);
+        Assert.Contains("value=\"330.21\"", html);
         Assert.Contains("https://www.kuantokusta.pt/p/11598597/beko-bm3t48249w-8kg-classe-c", html);
         Assert.DoesNotContain("/search?", html);
         Assert.DoesNotContain("/pesquisa", html);
@@ -194,6 +196,7 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
         Assert.Contains("Teka MW FS20 G WH", decoded);
         Assert.Contains("Darty", decoded);
         Assert.Contains("64,99", decoded);
+        Assert.Contains("value=\"58.49\"", html);
         Assert.Contains("https://darty.pt/products/teka-microond-mw-fs20-g-wh-grill-20", html);
         Assert.DoesNotContain("/search?", html);
         Assert.DoesNotContain("/pesquisa", html);
@@ -210,6 +213,7 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
         Assert.Contains("RACINGREAT Costas Altas Cadeira Gaming", decoded);
         Assert.Contains("Worten", decoded);
         Assert.Contains("65,00", decoded);
+        Assert.Contains("value=\"58.50\"", html);
         Assert.Contains("https://www.worten.pt/produtos/cadeira-de-escritorio-ergonomica-racingreat-costas-altas-inclinavel-bracos-regulaveis-preto-mrkean-8711544779636", html);
         Assert.DoesNotContain("Sem loja validada", decoded);
         Assert.DoesNotContain("/search?", html);
@@ -460,13 +464,13 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
         var html = await response.Content.ReadAsStringAsync();
 
         Assert.Contains("en-US", response.Content.Headers.ContentLanguage);
-        Assert.Contains("What do you want to compare today?", html);
+        Assert.Contains("What do you want to buy today?", html);
         Assert.Contains("Searching in the United States", html);
         Assert.Contains("Language en-US", html);
         Assert.Contains("currency USD", html);
         Assert.Contains("Best Buy, Walmart, Amazon.com", html);
         Assert.Contains("Create account", html);
-        Assert.DoesNotContain("O que queres comparar hoje?", html);
+        Assert.DoesNotContain("O que queres comprar hoje?", html);
     }
 
     [Fact]

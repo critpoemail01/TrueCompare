@@ -42,11 +42,12 @@ public sealed class ComparisonDataServiceTests
             ["Gaming"] = ["playstation", "ps5", "consola"],
             ["Jogos e brinquedos"] = ["lego", "brinquedo", "jogo"],
             ["Fotografia, drones e vídeo"] = ["canon", "drone", "fotografia", "video"],
-            ["Eletrodomésticos"] = ["frigorifico", "bosch", "microondas", "balanca", "xiaomi", "secar", "beko"],
-            ["Grandes eletrodomésticos"] = ["frigorifico", "bosch", "combinado", "lavar", "becken", "secar", "beko"],
+            ["Eletrodomésticos"] = ["frigorifico", "bosch", "microondas", "balanca", "xiaomi", "secar", "beko", "fogao", "flama"],
+            ["Grandes eletrodomésticos"] = ["frigorifico", "bosch", "combinado", "lavar", "becken", "secar", "beko", "fogao", "flama"],
             ["Pequenos eletrodomésticos"] = ["microondas", "teka", "cafe", "nespresso", "balanca", "xiaomi"],
             ["Máquinas de lavar"] = ["maquina de lavar", "lavar", "becken", "roupa"],
             ["Frigoríficos"] = ["frigorifico", "bosch", "combinado"],
+            ["Fog\u00f5es"] = ["fogao", "flama", "beko", "vox"],
             ["Ventoinhas"] = ["ventoinha", "rowenta", "ventilacao"],
             ["Máquinas de café"] = ["nespresso", "cafe", "café"],
             ["Microondas compactos"] = ["microondas", "teka", "20"],
@@ -129,6 +130,7 @@ public sealed class ComparisonDataServiceTests
     [InlineData("Worten", "Pequenos eletrodomésticos", "microondas")]
     [InlineData("Worten", "Máquinas de lavar", "becken")]
     [InlineData("Worten", "Frigoríficos", "bosch")]
+    [InlineData("KuantoKusta", "Fog\u00f5es", "fogao")]
     [InlineData("Worten", "Ventoinhas", "rowenta")]
     [InlineData("Worten", "Preparação de alimentos", "kenwood")]
     [InlineData("Worten", "Aspiradores", "aspirador")]
@@ -180,6 +182,7 @@ public sealed class ComparisonDataServiceTests
     [InlineData("Electrodomésticos", "Delta Q Mini Qool Cinzento", "Delta Q Mini Qool Cinzento", "delta-q-mini-qool-cinzento", 3599, "Delta Q Qalidus")]
     [InlineData("Máquinas de Lavar Roupa", "Hisense WF1G7021BW 7Kg 1200RPM Classe B", "Hisense WF1G7021BW Maquina de Lavar Roupa", "hisense-wf1g7021bw-maquina-lavar", 21490, "Lavar Loica")]
     [InlineData("Máquinas de Secar Roupa", "Beko BM3T48249W 8Kg Classe C", "Beko BM3T48249W Maquina de Secar Roupa 8Kg", "beko-bm3t48249w-maquina-secar-roupa", 36690, "Adidas")]
+    [InlineData("Fog\u00f5es", "Flama 8171FL Fogao a gas", "Flama 8171FL Fog\u00e3o a G\u00e1s 58L", "flama-8171fl-fogao-gas", 29888, "Microondas")]
     [InlineData("Informática", "Apple iPad 2025 11 A16 128GB Wi-Fi Prateado", "Apple iPad 11 A16 128GB Wi-Fi", "apple-ipad-11-a16-128gb", 33990, "MacBook")]
     [InlineData("Escritório e Papelaria", "Tinteiro HP 308 Preto Tricolor Pack 2x", "Tinteiro HP 308 Preto/Tricolor Pack 2x", "hp-308-preto-tricolor-pack", 3221, "HP DeskJet")]
     [InlineData("Smartphones e Acessórios", "Samsung Galaxy A16 4G 6.7 Dual SIM 4GB 128GB Black", "Samsung Galaxy A16", "samsung-galaxy-a16", 10889, "iPhone")]
@@ -417,6 +420,51 @@ public sealed class ComparisonDataServiceTests
         Assert.True(worten.IsLivePrice);
         Assert.Equal(8599, worten.PriceCents);
         Assert.Equal("https://www.worten.pt/produtos/microondas-teka-mwfs20gbk-20-l-grill-preto-8471475", worten.Url);
+    }
+
+    [Theory]
+    [InlineData("Fog\u00f5es")]
+    [InlineData("fogoes")]
+    [InlineData("fogao a gas barato")]
+    public void GetProducts_ReturnsCookerCatalogWithConfirmedStoreOffers(string query)
+    {
+        var service = new ComparisonDataService(new AppText());
+
+        var products = service.GetProducts(query);
+
+        Assert.NotEmpty(products);
+        Assert.All(products, product =>
+        {
+            var productText = string.Join(' ', product.Name, product.Brand, product.Badge, product.AiSummary, string.Join(' ', product.Specs));
+            Assert.Contains("Fog", productText, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("Microondas", productText, StringComparison.OrdinalIgnoreCase);
+        });
+        Assert.Contains(products, product => product.Slug == "flama-8171fl-fogao-gas");
+        Assert.All(products, product =>
+            Assert.Contains(
+                service.BuildSellerOffersForProduct(product, query),
+                ComparisonDataService.IsConfirmedStoreOffer));
+    }
+
+    [Fact]
+    public void GetSellerOffers_ReturnsDirectKuantoKustaPagesForCookers()
+    {
+        var service = new ComparisonDataService(new AppText());
+
+        var cheapestOffers = service.GetSellerOffers("flama-8171fl-fogao-gas");
+        var electricOffers = service.GetSellerOffers("beko-fbe67310gx-fogao-eletrico");
+
+        var flama = Assert.Single(cheapestOffers.Where(offer => offer.Seller == "KuantoKusta"));
+        Assert.True(flama.IsLivePrice);
+        Assert.Equal(29888, flama.PriceCents);
+        Assert.Equal("https://www.kuantokusta.pt/p/1924186/flama-8171fl-inox-58l-gas-butano-propano", flama.Url);
+        Assert.DoesNotContain("/search", flama.Url);
+
+        var beko = Assert.Single(electricOffers.Where(offer => offer.Seller == "KuantoKusta"));
+        Assert.True(beko.IsLivePrice);
+        Assert.Equal(50490, beko.PriceCents);
+        Assert.Equal("https://www.kuantokusta.pt/p/12069060/beko-fbe67310gx", beko.Url);
+        Assert.DoesNotContain("/search", beko.Url);
     }
 
     [Fact]

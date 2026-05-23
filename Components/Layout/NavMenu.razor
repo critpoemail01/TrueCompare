@@ -1,4 +1,5 @@
 @inject AppText T
+@inject NavigationManager Navigation
 
 <div class="brand-block">
     <NavLink class="brand-mark" href="" Match="NavLinkMatch.All">
@@ -12,10 +13,10 @@
 
 <div class="nav-scrollable">
     <nav class="nav-list">
-        <NavLink class="nav-link primary-nav" href="" Match="NavLinkMatch.All">
+        <button type="button" class="nav-link primary-nav" @onclick="StartNewChat" aria-label='@T["Nav.NewChat"]'>
             <span>@T["Nav.NewChat"]</span>
             <span>+</span>
-        </NavLink>
+        </button>
 
         <NavLink class="nav-link" href="alerts">
             <span>@T["Nav.ActiveAlerts"]</span>
@@ -37,3 +38,10 @@
         </Authorized>
     </AuthorizeView>
 </div>
+
+@code {
+    private void StartNewChat()
+    {
+        Navigation.NavigateTo($"/?newChat={Guid.NewGuid():N}");
+    }
+}

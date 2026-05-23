@@ -77,16 +77,15 @@ public sealed class ProductConversationServiceTests
     }
 
     [Fact]
-    public void Evaluate_AllowsNextStep_WhenCoffeeCategoryPromptAsksForComparison()
+    public void Evaluate_ReturnsAdvice_WhenCoffeeCategoryPromptAsksForComparison()
     {
         var service = CreateService();
 
         var decision = service.Evaluate("Maquinas de cafe: melhor preco, vendedores verificados, baixo risco.");
 
-        Assert.True(decision.CanProceed);
-        Assert.NotNull(decision.ProductName);
-        Assert.Contains("valid", decision.AssistantMessage, StringComparison.OrdinalIgnoreCase);
-        Assert.Empty(decision.Options);
+        Assert.False(decision.CanProceed);
+        Assert.NotEmpty(decision.Options);
+        Assert.Contains("opcoes", RemoveDiacritics(decision.AssistantMessage), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -130,10 +129,10 @@ public sealed class ProductConversationServiceTests
     }
 
     [Theory]
-    [InlineData("microondas", "Teka MW FS20")]
+    [InlineData("Teka MW FS20 WH Microondas 20L", "Teka MW FS20")]
     [InlineData("rato gaming logitech g305 lightspeed", "Logitech G305 Lightspeed")]
-    [InlineData("Smartphones premium: melhor preco, vendedores verificados, baixo risco.", "iPhone 17 Pro")]
-    public void Evaluate_AllowsNextStep_WhenPromptHasProductWithConfirmedStore(string prompt, string expectedProduct)
+    [InlineData("iPhone 17 Pro", "iPhone 17 Pro")]
+    public void Evaluate_AllowsNextStep_WhenPromptHasSpecificProductWithConfirmedStore(string prompt, string expectedProduct)
     {
         var service = CreateService();
 
@@ -144,6 +143,51 @@ public sealed class ProductConversationServiceTests
         Assert.Contains(expectedProduct, decision.ProductName, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("valid", decision.AssistantMessage, StringComparison.OrdinalIgnoreCase);
         Assert.Empty(decision.Options);
+    }
+
+    [Theory]
+    [InlineData("microondas")]
+    [InlineData("Fog\u00f5es")]
+    [InlineData("cadeira gaming")]
+    [InlineData("Máquinas de Lavar Loiça")]
+    [InlineData("Smartphones premium: melhor preco, vendedores verificados, baixo risco.")]
+    [InlineData("Fitness: melhor preco, vendedores verificados, baixo risco.")]
+    public void Evaluate_ReturnsAdvice_WhenPromptIsBroadProductCategory(string prompt)
+    {
+        var service = CreateService();
+
+        var decision = service.Evaluate(prompt);
+
+        Assert.False(decision.CanProceed);
+        Assert.NotEmpty(decision.Options);
+        Assert.Contains("escolha", RemoveDiacritics(decision.AssistantMessage), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Evaluate_ReturnsFitnessOptions_WhenCategoryButtonPromptIsFitness()
+    {
+        var service = CreateService();
+
+        var decision = service.Evaluate("Fitness: melhor preco, vendedores verificados, baixo risco.");
+
+        Assert.False(decision.CanProceed);
+        Assert.NotEmpty(decision.Options);
+        Assert.All(decision.Options, option => Assert.True(option.HasConfirmedStore));
+        Assert.Contains(decision.Options, option => option.Name.Contains("FITFIU", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain("PlayStation", decision.AssistantMessage, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Evaluate_ReturnsCookerOptions_WhenPromptIsFogoes()
+    {
+        var service = CreateService();
+
+        var decision = service.Evaluate("Fog\u00f5es");
+
+        Assert.False(decision.CanProceed);
+        Assert.NotEmpty(decision.Options);
+        Assert.Contains(decision.Options, option => option.Name.Contains("Fog", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain("Ainda nao percebi", RemoveDiacritics(decision.AssistantMessage), StringComparison.OrdinalIgnoreCase);
     }
 
     private static ProductConversationService CreateService()
