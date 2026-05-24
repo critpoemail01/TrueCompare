@@ -24,7 +24,11 @@ public sealed class TrueCompareWebApplicationFactory : WebApplicationFactory<Pro
             {
                 ["ConnectionStrings:DefaultConnection"] = "Server=(localdb)\\mssqllocaldb;Database=TrueCompareTests;Trusted_Connection=True;TrustServerCertificate=True",
                 ["Database:ApplyMigrationsOnStartup"] = "false",
-                ["Llm:Enabled"] = "false"
+                ["Llm:Enabled"] = "false",
+                ["SearchQuota:LocalUnlimitedEnabled"] = "true",
+                ["Security:RequireConfirmedEmail"] = "false",
+                ["Security:AutoConfirmLocalAccounts"] = "true",
+                ["Security:AutoConfirmEmailChanges"] = "true"
             });
         });
 
@@ -54,8 +58,15 @@ public sealed class TrueCompareWebApplicationFactory : WebApplicationFactory<Pro
             IReadOnlyList<SellerOffer> offers,
             CancellationToken cancellationToken = default)
         {
+            var validatedUtc = DateTime.UtcNow;
             return Task.FromResult((IReadOnlyList<SellerOffer>)offers
                 .Where(ComparisonDataService.IsConfirmedStoreOffer)
+                .Select(offer => offer with
+                {
+                    IsLivePrice = true,
+                    ValidationState = OfferPriceValidationState.LiveValidated,
+                    ValidatedUtc = validatedUtc
+                })
                 .ToList());
         }
     }

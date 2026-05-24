@@ -1,8 +1,13 @@
 @page "/results"
-@inject IProductDiscoveryService DiscoveryService
-@inject IProductSuggestionService SuggestionService
-@inject IStoreOfferValidationService StoreOfferValidator
+@using System.Security.Claims
+@using Microsoft.AspNetCore.RateLimiting
+@attribute [Authorize]
+@attribute [EnableRateLimiting("search")]
+@inject SearchOrchestratorService SearchOrchestrator
 @inject AppText T
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+@inject ILogger<Results> Logger
 
 <PageTitle>@T["Results.PageTitle"]</PageTitle>
 
@@ -18,6 +23,10 @@
     <section class="empty-state results-empty-state">
         <h2>@T["Results.EmptyTitle"]</h2>
         <p>@T["Results.EmptyLead"]</p>
+        @if (!string.IsNullOrWhiteSpace(SearchMessage))
+        {
+            <p class="quota-message">@SearchMessage</p>
+        }
         <a class="primary-button" href="/">@T["Nav.NewChat"]</a>
     </section>
 }
@@ -49,6 +58,31 @@ else
                     <span>@signal</span>
                 }
             </div>
+
+            @if (AiSuggestions.SuggestedQueries.Count > 0)
+            {
+                <div class="suggested-query-row" aria-label='@T.Pick("Pesquisas sugeridas", "Suggested searches")'>
+                    @foreach (var suggestedQuery in AiSuggestions.SuggestedQueries.Take(4))
+                    {
+                        <a class="suggested-query-chip" href="@SuggestedQueryUrl(suggestedQuery)">@suggestedQuery</a>
+                    }
+                </div>
+            }
+
+            @if (AiSuggestions.ProductLeads.Count > 0)
+            {
+                <div class="product-lead-row">
+                    @foreach (var lead in AiSuggestions.ProductLeads.Take(3))
+                    {
+                        <article class="product-lead-card">
+                            <span>@lead.Source</span>
+                            <strong>@lead.Name</strong>
+                            <p>@lead.Reason</p>
+                            <a href="@SuggestedQueryUrl(lead.SearchHint)">@T.Pick("Pesquisar esta alternativa", "Search this alternative")</a>
+                        </article>
+                    }
+                </div>
+            }
         }
 
         <section class="results-grid suggestion-products-grid">
@@ -73,7 +107,8 @@ else
                         }
                     </dl>
 
-                    <p class="verified-line">@T["Results.Verified"]</p>
+                    <p class="verified-line">@OfferValidationText(product)</p>
+                    <p class="store-suggestion-line">@StoreSuggestionText(product)</p>
                     <span class="badge">@product.Badge</span>
 
                     <a class="card-action" href="@ProductUrl(product)">@T["Results.Details"]</a>
@@ -99,17 +134,25 @@ else
     [SupplyParameterFromQuery]
     public string? Query { get; set; }
 
+    [SupplyParameterFromQuery(Name = "requestId")]
+    public string? RequestId { get; set; }
+
     private IReadOnlyList<ProductResult> Products { get; set; } = Array.Empty<ProductResult>();
 
     private IReadOnlyList<SellerOffer> Offers { get; set; } = Array.Empty<SellerOffer>();
+
+    private IReadOnlyDictionary<string, SearchProductOfferSummary> ProductOfferSummaries { get; set; } =
+        new Dictionary<string, SearchProductOfferSummary>(StringComparer.OrdinalIgnoreCase);
 
     private LlmSuggestionResult? AiSuggestions { get; set; }
 
     private bool IsLoadingSuggestions { get; set; }
 
-    private string ActiveQuery => string.IsNullOrWhiteSpace(Query)
-        ? T["Results.DefaultQuery"]
-        : Query;
+    private string? SearchMessage { get; set; }
+
+    private string? loadedRequestSignature;
+
+    private string ActiveQuery => Query?.Trim() ?? string.Empty;
 
     private static IReadOnlyList<string> CardSpecs(ProductResult product)
     {
@@ -149,54 +192,164 @@ else
 
     protected override async Task OnParametersSetAsync()
     {
-        IsLoadingSuggestions = true;
-        var discovery = await DiscoveryService.DiscoverAsync(ActiveQuery);
-        var validatedProducts = await ValidateResultProductsAsync(discovery.Products);
-        Products = validatedProducts
-            .Select((item, index) => ApplyResultOfferPrice(item.Product, item.Offers) with { Rank = index + 1 })
-            .ToList();
-        Offers = validatedProducts
-            .SelectMany(item => item.Offers)
-            .ToList();
-        AiSuggestions = await SuggestionService.GetSuggestionsAsync(ActiveQuery, Products, Offers);
-        IsLoadingSuggestions = false;
-    }
+        var query = ActiveQuery.Trim();
 
-    private async Task<IReadOnlyList<ResultProductOffers>> ValidateResultProductsAsync(IReadOnlyList<ProductResult> products)
-    {
-        var validations = await Task.WhenAll(products.Select(async product =>
+        if (string.IsNullOrWhiteSpace(query))
         {
-            var candidateOffers = await DiscoveryService.GetSellerOffersAsync(product.Slug, ActiveQuery);
-            var directOffers = candidateOffers
-                .Where(ComparisonDataService.IsConfirmedStoreOffer)
-                .ToList();
-            var validatedOffers = await StoreOfferValidator.ValidateConfirmedOffersAsync(product, directOffers);
-            return new ResultProductOffers(product, validatedOffers);
-        }));
+            loadedRequestSignature = null;
+            Products = Array.Empty<ProductResult>();
+            Offers = Array.Empty<SellerOffer>();
+            ProductOfferSummaries = new Dictionary<string, SearchProductOfferSummary>(StringComparer.OrdinalIgnoreCase);
+            AiSuggestions = null;
+            SearchMessage = T.Pick(
+                "Escreve uma pesquisa para veres resultados. Esta página não consome créditos sem uma pesquisa explícita.",
+                "Enter a search query to see results. This page does not use credits without an explicit query.");
+            IsLoadingSuggestions = false;
+            return;
+        }
 
-        return validations
-            .Where(item => item.Offers.Count > 0)
-            .ToList();
+        if (string.IsNullOrWhiteSpace(RequestId))
+        {
+            var redirectedUrl = $"/results?query={Uri.EscapeDataString(query)}&requestId={Guid.NewGuid():N}";
+            Navigation.NavigateTo(redirectedUrl, replace: true);
+            return;
+        }
+
+        var requestSignature = $"{query}|{RequestId}";
+        if (string.Equals(loadedRequestSignature, requestSignature, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        loadedRequestSignature = requestSignature;
+        await LoadResultsAsync(query);
     }
 
-    private static ProductResult ApplyResultOfferPrice(ProductResult product, IReadOnlyList<SellerOffer> offers)
+    private async Task LoadResultsAsync(string query)
     {
-        var bestOffer = offers
-            .OrderByDescending(offer => offer.Preferred)
-            .ThenBy(offer => offer.PriceCents)
-            .ThenByDescending(offer => offer.ReliabilityScore)
-            .FirstOrDefault();
+        IsLoadingSuggestions = true;
+        SearchMessage = null;
+        Products = Array.Empty<ProductResult>();
+        Offers = Array.Empty<SellerOffer>();
+        ProductOfferSummaries = new Dictionary<string, SearchProductOfferSummary>(StringComparer.OrdinalIgnoreCase);
+        AiSuggestions = null;
 
-        return bestOffer is null ? product : product with { Price = bestOffer.Price };
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var resultsUrl = BuildResultsUrl(query);
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                Navigation.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(resultsUrl)}", forceLoad: true);
+                return;
+            }
+
+            var result = await SearchOrchestrator.ExecuteAsync(userId, query, RequestId, CancellationToken.None);
+            if (!result.Allowed)
+            {
+                Navigation.NavigateTo($"/credits?returnUrl={Uri.EscapeDataString(resultsUrl)}&message={Uri.EscapeDataString(T["Home.NoCredits"])}", forceLoad: true);
+                return;
+            }
+
+            Products = result.Products;
+            Offers = result.Offers;
+            ProductOfferSummaries = result.ProductOfferSummaries;
+            AiSuggestions = result.AiSuggestions;
+            SearchMessage = result.Message;
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load results for query {Query}.", query);
+            SearchMessage = T.Pick(
+                "Esta pesquisa falhou antes de gerar resultados úteis e não foi debitada.",
+                "This search failed before useful results were produced and was not charged.");
+        }
+        finally
+        {
+            IsLoadingSuggestions = false;
+        }
+    }
+
+    private string BuildResultsUrl(string query)
+    {
+        var resultsUrl = $"/results?query={Uri.EscapeDataString(query)}";
+        if (!string.IsNullOrWhiteSpace(RequestId))
+        {
+            resultsUrl += $"&requestId={Uri.EscapeDataString(RequestId)}";
+        }
+
+        return resultsUrl;
+    }
+
+    private string OfferValidationText(ProductResult product)
+    {
+        if (ProductOfferSummaries.TryGetValue(product.Slug, out var summary))
+        {
+            var bestLiveOffer = summary.Offers
+                .Where(offer => offer.IsLiveValidated)
+                .OrderByDescending(offer => offer.Preferred)
+                .ThenBy(offer => offer.PriceCents)
+                .ThenByDescending(offer => offer.ReliabilityScore)
+                .FirstOrDefault();
+            if (bestLiveOffer is not null)
+            {
+                var validatedAt = bestLiveOffer.ValidatedUtc is null
+                    ? T["Results.LiveOfferValidatedNow"]
+                    : T.Format("Results.LiveOfferValidatedAt", bestLiveOffer.ValidatedUtc.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm", System.Globalization.CultureInfo.CurrentCulture));
+                return T.Format("Results.LiveOfferValidated", bestLiveOffer.Seller, validatedAt);
+            }
+
+            if (summary.CandidateOffers.Count > 0)
+            {
+                return T.Format("Results.KnownStoresPending", summary.CandidateOffers.Count);
+            }
+        }
+
+        return T["Results.ProductFoundPricePending"];
+    }
+
+
+    private string StoreSuggestionText(ProductResult product)
+    {
+        if (!ProductOfferSummaries.TryGetValue(product.Slug, out var summary))
+        {
+            return T.Pick("Lojas sugeridas a confirmar no detalhe.", "Suggested stores to confirm in detail.");
+        }
+
+        var sellers = summary.CandidateOffers
+            .OrderByDescending(offer => offer.IsLiveValidated)
+            .ThenByDescending(offer => offer.Preferred)
+            .ThenByDescending(offer => offer.IsLivePrice)
+            .ThenByDescending(offer => offer.ReliabilityScore)
+            .Select(offer => offer.Seller)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(3)
+            .ToList();
+
+        return sellers.Count == 0
+            ? T.Pick("Ainda sem lojas úteis para esta pesquisa.", "No useful stores for this search yet.")
+            : T.Pick($"Lojas sugeridas: {string.Join(", ", sellers)}", $"Suggested stores: {string.Join(", ", sellers)}");
+    }
+
+    private static string SuggestedQueryUrl(string query)
+    {
+        return $"/results?query={Uri.EscapeDataString(query)}";
     }
 
     private string ProductUrl(ProductResult product)
     {
-        return string.IsNullOrWhiteSpace(Query)
+        var url = string.IsNullOrWhiteSpace(Query)
             ? $"/product/{product.Slug}"
             : $"/product/{product.Slug}?query={Uri.EscapeDataString(Query)}";
+
+        if (!string.IsNullOrWhiteSpace(RequestId))
+        {
+            url += url.Contains('?') ? "&" : "?";
+            url += $"requestId={Uri.EscapeDataString(RequestId)}";
+        }
+
+        return url;
     }
-
-    private sealed record ResultProductOffers(ProductResult Product, IReadOnlyList<SellerOffer> Offers);
-
 }

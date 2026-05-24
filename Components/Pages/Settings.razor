@@ -45,6 +45,15 @@ else if (CurrentUser is not null)
                     <input name="Email" type="email" value="@CurrentUser.Email" autocomplete="email" maxlength="256" required />
                 </label>
 
+                @if (CurrentUser.HasPassword)
+                {
+                    <label>
+                        @T["Settings.CurrentPassword"]
+                        <input name="CurrentPassword" type="password" autocomplete="current-password" />
+                    </label>
+                    <small class="muted-label">@T["Settings.EmailChangePasswordHint"]</small>
+                }
+
                 <button class="primary-button wide" type="submit">@T["Settings.SaveProfile"]</button>
             </form>
         </article>

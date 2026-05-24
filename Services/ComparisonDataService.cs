@@ -491,7 +491,15 @@ public sealed class ComparisonDataService(AppText text)
         "adult chicken",
         "cao",
         "cão",
-        "gato"
+        "gato",
+        "gatos",
+        "caes",
+        "cães",
+        "areia gato",
+        "trela",
+        "coleira",
+        "brinquedo cao",
+        "brinquedo cão"
     ];
 
     private static readonly string[] BabyCareCatalogTerms =
@@ -506,7 +514,13 @@ public sealed class ComparisonDataService(AppText text)
         "baby",
         "chicco",
         "carrinho bebe",
-        "berco bebe"
+        "berco bebe",
+        "berço bebe",
+        "toalhitas bebe",
+        "leite bebe",
+        "papas bebe",
+        "biberon",
+        "biberão"
     ];
 
     private static readonly string[] ToyCatalogTerms =
@@ -552,7 +566,14 @@ public sealed class ComparisonDataService(AppText text)
         "eau de toilette",
         "shampoo",
         "protetor solar",
-        "hidratante"
+        "hidratante",
+        "solar",
+        "protetor solar",
+        "optica",
+        "ótica",
+        "higiene oral",
+        "termometro",
+        "termómetro"
     ];
 
     private static readonly string[] HomeCatalogTerms =
@@ -585,7 +606,17 @@ public sealed class ComparisonDataService(AppText text)
         "trem cozinha",
         "silampos",
         "loica de cozinha",
-        "louca de cozinha"
+        "louca de cozinha",
+        "mobiliario",
+        "mobiliário",
+        "arrumacao",
+        "arrumação",
+        "comoda",
+        "cómoda",
+        "roupeiro",
+        "estantes",
+        "moveis escritorio",
+        "móveis escritório"
     ];
 
     private static readonly string[] SportCatalogTerms =
@@ -640,7 +671,12 @@ public sealed class ComparisonDataService(AppText text)
         "liqui moly",
         "castrol",
         "elf",
-        "klima refresh"
+        "klima refresh",
+        "bateria carro",
+        "bateria automovel",
+        "pneus carro",
+        "limpa para brisas",
+        "limpa-para-brisas"
     ];
 
     private static readonly string[] OfficeCatalogTerms =
@@ -654,7 +690,15 @@ public sealed class ComparisonDataService(AppText text)
         "agrafador",
         "calculadora",
         "arquivo",
-        "etiquetas"
+        "etiquetas",
+        "material escritorio",
+        "material escritório",
+        "toners",
+        "tinteiros",
+        "impressao",
+        "impressão",
+        "cadeira escritorio",
+        "secretaria escritorio"
     ];
 
     private static readonly string[] CultureFoodCatalogTerms =
@@ -3427,22 +3471,33 @@ public sealed class ComparisonDataService(AppText text)
 
     private static IReadOnlyList<RetailerProfile> RetailerProfiles { get; } = new List<RetailerProfile>
     {
-        new("PT", "Portugal", "Portugal", "Apple Store PT", [LaptopCatalog, SmartphoneCatalog, ChargerCatalog, HeadphonesCatalog], ["Apple"], 98, 1.00m, "2 dias", "2 days", "2 anos oficial", "2-year official", "Verificado", "Verified", "https://www.apple.com/pt/search/{0}", true),
-        new("PT", "Portugal", "Portugal", "Samsung Store PT", [SmartphoneCatalog, ApplianceCatalog, StorageCatalog, MonitorCatalog, HeadphonesCatalog, TvCatalog], ["Samsung"], 96, 1.01m, "2 dias", "2 days", "3 anos oficial", "3-year official", "Verificado", "Verified", "https://www.samsung.com/pt/search/?searchvalue={0}", true),
-        new("PT", "Portugal", "Portugal", "Worten", [], [], 93, 1.02m, "2 dias", "2 days", "3 anos PT", "3-year PT", "Verificado", "Verified", "https://www.worten.pt/search?query={0}", true),
-        new("PT", "Portugal", "Portugal", "FNAC", [LaptopCatalog, SmartphoneCatalog, ChargerCatalog, MouseCatalog, RuggedTabletCatalog, StorageCatalog, MonitorCatalog, KeyboardCatalog, HeadphonesCatalog, TvCatalog, PrinterCatalog, BabyCareCatalog, GeneralCatalog], [], 90, 1.03m, "3 dias", "3 days", "3 anos PT", "3-year PT", "Verificado", "Verified", "https://www.fnac.pt/SearchResult/ResultList.aspx?Search={0}", true),
-        new("PT", "Portugal", "Portugal", "MediaMarkt", [], [], 91, 1.01m, "2-3 dias", "2-3 days", "3 anos PT", "3-year PT", "Verificado", "Verified", "https://www.mediamarkt.pt/pt/search.html?query={0}", true),
-        new("PT", "Portugal", "Portugal", "Darty", [], [], 91, 1.00m, "1-2 dias", "1-2 days", "3 anos PT", "3-year PT", "Verificado", "Verified", "https://www.darty.pt/search?q={0}", true),
-        new("PT", "Portugal", "Portugal", "Globaldata", [LaptopCatalog, SmartphoneCatalog, ChargerCatalog, MouseCatalog, StorageCatalog, MonitorCatalog, KeyboardCatalog, HeadphonesCatalog, TvCatalog, PrinterCatalog, GeneralCatalog], [], 92, 0.99m, "1-2 dias", "1-2 days", "3 anos PT", "3-year PT", "Verificado", "Verified", "https://www.globaldata.pt/catalogsearch/result/?q={0}", true),
-        new("PT", "Portugal", "Portugal", "PCDIGA", [LaptopCatalog, ChargerCatalog, MouseCatalog, RuggedTabletCatalog, StorageCatalog, MonitorCatalog, KeyboardCatalog, HeadphonesCatalog, PrinterCatalog, GeneralCatalog], [], 92, 0.99m, "1-2 dias", "1-2 days", "3 anos PT", "3-year PT", "Verificado", "Verified", "https://www.pcdiga.com/pesquisa/{0}", true),
-        new("PT", "Portugal", "Portugal", "Radio Popular", [ApplianceCatalog, SmartphoneCatalog, ChargerCatalog, MouseCatalog, HeadphonesCatalog, TvCatalog, CoffeeMachineCatalog, GeneralCatalog], [], 89, 1.00m, "3 dias", "3 days", "3 anos PT", "3-year PT", "Verificado", "Verified", "https://www.radiopopular.pt/pesquisa/{0}", true),
+        new("PT", "Portugal", "Portugal", "Apple Store PT", [LaptopCatalog, SmartphoneCatalog, ChargerCatalog, TabletCatalog, HeadphonesCatalog], ["Apple"], 98, 1.00m, "2 dias", "2 days", "2 anos oficial", "2-year official", "Verificado", "Verified", "https://www.apple.com/pt/search/{0}", true),
+        new("PT", "Portugal", "Portugal", "Samsung Store PT", [SmartphoneCatalog, ApplianceCatalog, StorageCatalog, MonitorCatalog, HeadphonesCatalog, TvCatalog, TabletCatalog], ["Samsung"], 96, 1.01m, "2 dias", "2 days", "3 anos oficial", "3-year official", "Verificado", "Verified", "https://www.samsung.com/pt/search/?searchvalue={0}", true),
+        new("PT", "Portugal", "Portugal", "Worten", [LaptopCatalog, SmartphoneCatalog, ChargerCatalog, ApplianceCatalog, MouseCatalog, TabletCatalog, StorageCatalog, MonitorCatalog, KeyboardCatalog, HeadphonesCatalog, TvCatalog, CameraCatalog, DroneCatalog, CoffeeMachineCatalog, ToolCatalog, ChairCatalog, PrinterCatalog, BabyCareCatalog, ToyCatalog, HealthBeautyCatalog, HomeCatalog, SportCatalog, AutoCatalog, OfficeCatalog, GardenCatalog, MarketplaceCatalog, GeneralCatalog], [], 93, 1.02m, "2 dias", "2 days", "3 anos PT", "3-year PT", "Verificado", "Verified", "https://www.worten.pt/search?query={0}", true),
+        new("PT", "Portugal", "Portugal", "FNAC", [LaptopCatalog, SmartphoneCatalog, ChargerCatalog, MouseCatalog, RuggedTabletCatalog, TabletCatalog, StorageCatalog, MonitorCatalog, KeyboardCatalog, HeadphonesCatalog, TvCatalog, CameraCatalog, PrinterCatalog, ToyCatalog, OfficeCatalog, CultureFoodCatalog, GeneralCatalog], [], 90, 1.03m, "3 dias", "3 days", "3 anos PT", "3-year PT", "Verificado", "Verified", "https://www.fnac.pt/SearchResult/ResultList.aspx?Search={0}", true),
+        new("PT", "Portugal", "Portugal", "MediaMarkt", [LaptopCatalog, SmartphoneCatalog, ChargerCatalog, ApplianceCatalog, MouseCatalog, TabletCatalog, StorageCatalog, MonitorCatalog, KeyboardCatalog, HeadphonesCatalog, TvCatalog, CameraCatalog, CoffeeMachineCatalog, PrinterCatalog, ToyCatalog, GeneralCatalog], [], 91, 1.01m, "2-3 dias", "2-3 days", "3 anos PT", "3-year PT", "Verificado", "Verified", "https://www.mediamarkt.pt/pt/search.html?query={0}", true),
+        new("PT", "Portugal", "Portugal", "Darty", [LaptopCatalog, SmartphoneCatalog, ChargerCatalog, ApplianceCatalog, MouseCatalog, TabletCatalog, StorageCatalog, MonitorCatalog, KeyboardCatalog, HeadphonesCatalog, TvCatalog, CameraCatalog, CoffeeMachineCatalog, PrinterCatalog, ToyCatalog, GeneralCatalog], [], 91, 1.00m, "1-2 dias", "1-2 days", "3 anos PT", "3-year PT", "Verificado", "Verified", "https://www.darty.pt/search?q={0}", true),
+        new("PT", "Portugal", "Portugal", "Globaldata", [LaptopCatalog, SmartphoneCatalog, ChargerCatalog, MouseCatalog, RuggedTabletCatalog, TabletCatalog, StorageCatalog, MonitorCatalog, KeyboardCatalog, HeadphonesCatalog, TvCatalog, CameraCatalog, PrinterCatalog, GeneralCatalog], [], 92, 0.99m, "1-2 dias", "1-2 days", "3 anos PT", "3-year PT", "Verificado", "Verified", "https://www.globaldata.pt/catalogsearch/result/?q={0}", true),
+        new("PT", "Portugal", "Portugal", "PCDIGA", [LaptopCatalog, ChargerCatalog, MouseCatalog, RuggedTabletCatalog, TabletCatalog, StorageCatalog, MonitorCatalog, KeyboardCatalog, HeadphonesCatalog, PrinterCatalog, GeneralCatalog], [], 92, 0.99m, "1-2 dias", "1-2 days", "3 anos PT", "3-year PT", "Verificado", "Verified", "https://www.pcdiga.com/pesquisa/{0}", true),
+        new("PT", "Portugal", "Portugal", "PcComponentes", [LaptopCatalog, SmartphoneCatalog, ChargerCatalog, MouseCatalog, RuggedTabletCatalog, TabletCatalog, StorageCatalog, MonitorCatalog, KeyboardCatalog, HeadphonesCatalog, TvCatalog, CameraCatalog, PrinterCatalog, GeneralCatalog], [], 91, 0.99m, "1-3 dias", "1-3 days", "3 anos UE/PT", "3-year EU/PT", "Verificado", "Verified", "https://www.pccomponentes.pt/search/?query={0}", true),
+        new("PT", "Portugal", "Portugal", "Radio Popular", [ApplianceCatalog, SmartphoneCatalog, ChargerCatalog, MouseCatalog, StorageCatalog, HeadphonesCatalog, TvCatalog, CoffeeMachineCatalog, ToyCatalog, GeneralCatalog], [], 89, 1.00m, "3 dias", "3 days", "3 anos PT", "3-year PT", "Verificado", "Verified", "https://www.radiopopular.pt/pesquisa/{0}", true),
         new("PT", "Portugal", "Portugal", "Castro Electronica", [SmartphoneCatalog, ChargerCatalog, ApplianceCatalog, MouseCatalog, StorageCatalog, MonitorCatalog, KeyboardCatalog, HeadphonesCatalog, TvCatalog, CoffeeMachineCatalog, GeneralCatalog], [], 86, 0.98m, "2-4 dias", "2-4 days", "3 anos PT", "3-year PT", "Verificado", "Verified", "https://www.castroelectronica.pt/pt/search?search_query={0}", true),
         new("PT", "Portugal", "Portugal", "Aquario", [SmartphoneCatalog, ChargerCatalog, ApplianceCatalog, MouseCatalog, StorageCatalog, MonitorCatalog, KeyboardCatalog, HeadphonesCatalog, TvCatalog, GeneralCatalog], [], 84, 0.97m, "2-5 dias", "2-5 days", "3 anos PT", "3-year PT", "Verificado", "Verified", "https://www.aquario.pt/pt/pesquisa?controller=search&s={0}", true),
-        new("PT", "Portugal", "Portugal", "Amazon.es", [], [], 88, 0.98m, "2-5 dias", "2-5 days", "3 anos UE", "3-year EU", "Autorizado", "Authorized", "https://www.amazon.es/s?k={0}", true),
+        new("PT", "Portugal", "Portugal", "Amazon.es", [LaptopCatalog, SmartphoneCatalog, ChargerCatalog, ApplianceCatalog, MouseCatalog, RuggedTabletCatalog, TabletCatalog, StorageCatalog, MonitorCatalog, KeyboardCatalog, HeadphonesCatalog, TvCatalog, CameraCatalog, DroneCatalog, CoffeeMachineCatalog, ToolCatalog, ChairCatalog, TyreCatalog, PrinterCatalog, PetFoodCatalog, BabyCareCatalog, ToyCatalog, HealthBeautyCatalog, HomeCatalog, SportCatalog, AutoCatalog, OfficeCatalog, CultureFoodCatalog, FashionCatalog, GardenCatalog, MarketplaceCatalog, GeneralCatalog], [], 88, 0.98m, "2-5 dias", "2-5 days", "3 anos UE", "3-year EU", "Autorizado", "Authorized", "https://www.amazon.es/s?k={0}", true),
         new("PT", "Portugal", "Portugal", "KuantoKusta", [], [], 82, 0.97m, "Confirmar loja", "Confirm store", "Validar vendedor", "Validate seller", "Comparador", "Comparator", "https://www.kuantokusta.pt/search?q={0}", false),
+        new("PT", "Portugal", "Portugal", "Leroy Merlin", [ToolCatalog, GardenCatalog, HomeCatalog, ChairCatalog, ApplianceCatalog], [], 90, 1.00m, "2-5 dias", "2-5 days", "3 anos PT", "3-year PT", "Verificado", "Verified", "https://www.leroymerlin.pt/search?q={0}", true),
+        new("PT", "Portugal", "Portugal", "IKEA Portugal", [ChairCatalog, HomeCatalog, OfficeCatalog, GardenCatalog], [], 88, 1.00m, "2-5 dias", "2-5 days", "Garantia IKEA", "IKEA warranty", "Verificado", "Verified", "https://www.ikea.com/pt/pt/search/?q={0}", true),
+        new("PT", "Portugal", "Portugal", "Decathlon", [SportCatalog, FashionCatalog], [], 90, 0.99m, "2-4 dias", "2-4 days", "Garantia loja", "Store warranty", "Verificado", "Verified", "https://www.decathlon.pt/search?Ntt={0}", true),
+        new("PT", "Portugal", "Portugal", "Continente", [PetFoodCatalog, BabyCareCatalog, HealthBeautyCatalog, HomeCatalog, CultureFoodCatalog, ToyCatalog, GeneralCatalog], [], 87, 1.00m, "1-3 dias", "1-3 days", "Garantia loja", "Store warranty", "Verificado", "Verified", "https://www.continente.pt/search?q={0}", true),
+        new("PT", "Portugal", "Portugal", "Wells", [HealthBeautyCatalog, BabyCareCatalog], [], 88, 1.00m, "1-3 dias", "1-3 days", "Garantia loja", "Store warranty", "Verificado", "Verified", "https://wells.pt/search?q={0}", true),
+        new("PT", "Portugal", "Portugal", "Tiendanimal", [PetFoodCatalog], [], 87, 0.99m, "2-4 dias", "2-4 days", "Garantia loja", "Store warranty", "Verificado", "Verified", "https://www.tiendanimal.pt/search?q={0}", true),
+        new("PT", "Portugal", "Portugal", "Norauto", [AutoCatalog, TyreCatalog], [], 90, 1.00m, "1-3 dias", "1-3 days", "Garantia loja", "Store warranty", "Verificado", "Verified", "https://www.norauto.pt/search?text={0}", true),
+        new("PT", "Portugal", "Portugal", "Staples", [OfficeCatalog, PrinterCatalog, StorageCatalog, LaptopCatalog, GeneralCatalog], [], 86, 1.00m, "1-3 dias", "1-3 days", "Garantia loja", "Store warranty", "Verificado", "Verified", "https://www.staples.pt/pt/pt/search/?text={0}", true),
+        new("PT", "Portugal", "Portugal", "Bertrand", [CultureFoodCatalog], [], 86, 1.00m, "2-5 dias", "2-5 days", "Garantia loja", "Store warranty", "Verificado", "Verified", "https://www.bertrand.pt/pesquisa/{0}", true),
+        new("PT", "Portugal", "Portugal", "Wook", [CultureFoodCatalog], [], 85, 1.00m, "2-5 dias", "2-5 days", "Garantia loja", "Store warranty", "Verificado", "Verified", "https://www.wook.pt/pesquisa/{0}", true),
 
-        new("US", "Estados Unidos", "United States", "Apple Store", [LaptopCatalog, SmartphoneCatalog, ChargerCatalog, HeadphonesCatalog], ["Apple"], 98, 1.00m, "2 days", "2 days", "1-year official", "1-year official", "Verified", "Verified", "https://www.apple.com/us/search/{0}", true),
-        new("US", "Estados Unidos", "United States", "Samsung Store", [SmartphoneCatalog, ApplianceCatalog, StorageCatalog, MonitorCatalog, HeadphonesCatalog, TvCatalog], ["Samsung"], 96, 1.01m, "2 days", "2 days", "1-year official", "1-year official", "Verified", "Verified", "https://www.samsung.com/us/search/searchMain/?searchTerm={0}", true),
+        new("US", "Estados Unidos", "United States", "Apple Store", [LaptopCatalog, SmartphoneCatalog, ChargerCatalog, TabletCatalog, HeadphonesCatalog], ["Apple"], 98, 1.00m, "2 days", "2 days", "1-year official", "1-year official", "Verified", "Verified", "https://www.apple.com/us/search/{0}", true),
+        new("US", "Estados Unidos", "United States", "Samsung Store", [SmartphoneCatalog, ApplianceCatalog, StorageCatalog, MonitorCatalog, HeadphonesCatalog, TvCatalog, TabletCatalog], ["Samsung"], 96, 1.01m, "2 days", "2 days", "1-year official", "1-year official", "Verified", "Verified", "https://www.samsung.com/us/search/searchMain/?searchTerm={0}", true),
         new("US", "Estados Unidos", "United States", "Best Buy", [], [], 94, 1.02m, "2 days", "2 days", "Manufacturer warranty", "Manufacturer warranty", "Verified", "Verified", "https://www.bestbuy.com/site/searchpage.jsp?st={0}", true),
         new("US", "Estados Unidos", "United States", "Amazon.com", [], [], 89, 0.98m, "2-5 days", "2-5 days", "Marketplace warranty", "Marketplace warranty", "Authorized", "Authorized", "https://www.amazon.com/s?k={0}", true),
         new("US", "Estados Unidos", "United States", "Walmart", [SmartphoneCatalog, ChargerCatalog, ApplianceCatalog, MouseCatalog, HeadphonesCatalog, TvCatalog, CoffeeMachineCatalog, PrinterCatalog, BabyCareCatalog, PetFoodCatalog, GeneralCatalog], [], 87, 0.99m, "2-5 days", "2-5 days", "Seller warranty", "Seller warranty", "Verified", "Verified", "https://www.walmart.com/search?q={0}", true),
@@ -4104,23 +4159,33 @@ public sealed class ComparisonDataService(AppText text)
 
         var allOffers = marketRetailers
             .Select(retailer => BuildRetailerOffer(retailer, product, basePriceCents))
+            .Where(offer => !string.IsNullOrWhiteSpace(offer.Url))
+            .Select(offer => new
+            {
+                Offer = offer,
+                StoreScore = ScoreStoreCandidate(offer, product, catalog, queryOrSlug)
+            })
+            .OrderByDescending(item => item.StoreScore)
+            .ThenBy(item => item.Offer.IsLivePrice ? item.Offer.PriceCents : long.MaxValue)
+            .ThenByDescending(item => item.Offer.ReliabilityScore)
             .ToList();
 
-        var liveOffers = allOffers
-            .Where(offer => offer.IsLivePrice)
-            .OrderBy(offer => offer.PriceCents)
-            .ThenByDescending(offer => offer.ReliabilityScore)
+        var directOffers = allOffers
+            .Where(item => item.Offer.IsLivePrice)
+            .Take(4)
             .ToList();
 
-        var estimateLimit = Math.Max(0, 6 - liveOffers.Count);
-        var offers = liveOffers
-            .Concat(allOffers
-                .Where(offer => !offer.IsLivePrice)
-                .OrderBy(offer => offer.PriceCents)
-                .ThenByDescending(offer => offer.ReliabilityScore)
-                .Take(estimateLimit))
-            .OrderBy(offer => offer.PriceCents)
-            .ThenByDescending(offer => offer.ReliabilityScore)
+        var searchOffers = allOffers
+            .Where(item => !item.Offer.IsLivePrice)
+            .Take(Math.Max(0, 6 - directOffers.Count))
+            .ToList();
+
+        var offers = directOffers
+            .Concat(searchOffers)
+            .OrderByDescending(item => item.StoreScore)
+            .ThenBy(item => item.Offer.IsLivePrice ? item.Offer.PriceCents : long.MaxValue)
+            .ThenByDescending(item => item.Offer.ReliabilityScore)
+            .Select(item => item.Offer)
             .ToList();
 
         var preferred = offers
@@ -4129,20 +4194,33 @@ public sealed class ComparisonDataService(AppText text)
             .ThenByDescending(offer => offer.ReliabilityScore)
             .FirstOrDefault()
             ?? offers
-            .Where(offer => offer.ReliabilityScore >= 85)
-            .OrderBy(offer => offer.PriceCents)
-            .ThenByDescending(offer => offer.ReliabilityScore)
-            .FirstOrDefault()
-            ?? offers.OrderByDescending(offer => offer.ReliabilityScore).ThenBy(offer => offer.PriceCents).FirstOrDefault();
+                .OrderByDescending(offer => ScoreStoreCandidate(offer, product, catalog, queryOrSlug))
+                .ThenBy(offer => offer.IsLivePrice ? offer.PriceCents : long.MaxValue)
+                .ThenByDescending(offer => offer.ReliabilityScore)
+                .FirstOrDefault();
 
         var rankedOffers = offers
-            .Select(offer => offer with { Preferred = preferred is not null && offer.Seller == preferred.Seller })
+            .Select(offer => offer with { Preferred = preferred is not null && offer.Seller.Equals(preferred.Seller, StringComparison.OrdinalIgnoreCase) })
             .OrderByDescending(offer => offer.Preferred)
-            .ThenBy(offer => offer.PriceCents)
+            .ThenByDescending(offer => offer.IsLivePrice)
+            .ThenByDescending(offer => ScoreStoreCandidate(offer, product, catalog, queryOrSlug))
+            .ThenBy(offer => offer.IsLivePrice ? offer.PriceCents : long.MaxValue)
             .ThenByDescending(offer => offer.ReliabilityScore)
             .ToList();
 
         return LocalizeOffers(rankedOffers);
+    }
+
+    public IReadOnlyList<SellerOffer> GetSuggestedStoreSearches(ProductResult product, string? queryOrSlug = null, int limit = 6)
+    {
+        var catalog = ResolveOfferCatalog(product, queryOrSlug);
+        return BuildSellerOffersForProduct(product, queryOrSlug)
+            .Where(offer => !IsConfirmedStoreOffer(offer))
+            .OrderByDescending(offer => ScoreStoreCandidate(offer, product, catalog, queryOrSlug))
+            .ThenByDescending(offer => offer.ReliabilityScore)
+            .ThenBy(offer => offer.Seller, StringComparer.OrdinalIgnoreCase)
+            .Take(Math.Clamp(limit, 1, 8))
+            .ToList();
     }
 
     private IReadOnlyList<ProductResult> ResolveProducts(string? query)
@@ -4600,13 +4678,16 @@ public sealed class ComparisonDataService(AppText text)
     {
         var normalizedQuery = NormalizeCatalogText(query);
         var searchTerms = BuildSearchTerms(normalizedQuery);
+        var preferLowerPrice = ContainsBudgetSensitivity(normalizedQuery);
         var ranked = products
             .Select(product => new
             {
                 Product = product,
-                Relevance = ScoreProduct(product, normalizedQuery, searchTerms)
+                Relevance = ScoreProduct(product, normalizedQuery, searchTerms),
+                PriceCents = ParsePriceCents(product.Price)
             })
             .OrderByDescending(item => item.Relevance)
+            .ThenBy(item => preferLowerPrice && item.PriceCents > 0 ? item.PriceCents : long.MaxValue)
             .ThenByDescending(item => item.Product.Score)
             .ToList();
 
@@ -4826,6 +4907,97 @@ public sealed class ComparisonDataService(AppText text)
 
         score += ScoreScreenSizePreference(normalizedQuery, name, specs);
         score += ScoreEnergyClassPreference(normalizedQuery, specs);
+        score += ScoreIntentPreference(product, normalizedQuery, name, brand, specs, highlights, badge, summary);
+
+        return score;
+    }
+
+    private static bool ContainsBudgetSensitivity(string normalizedQuery)
+    {
+        return ContainsAnyTerm(
+            normalizedQuery,
+            "barato",
+            "barata",
+            "economico",
+            "economica",
+            "baixo preco",
+            "preco baixo",
+            "mais barato",
+            "low cost",
+            "ate",
+            "orcamento",
+            "budget");
+    }
+
+    private static int ScoreIntentPreference(
+        ProductResult product,
+        string normalizedQuery,
+        string name,
+        string brand,
+        string specs,
+        string highlights,
+        string badge,
+        string summary)
+    {
+        var productText = $"{name} {brand} {specs} {highlights} {badge} {summary}";
+        var score = 0;
+        var priceCents = ParsePriceCents(product.Price);
+
+        if (ContainsAnyTerm(normalizedQuery, "barato", "barata", "economico", "económico", "low cost", "preco baixo", "preço baixo"))
+        {
+            score += priceCents switch
+            {
+                > 0 and <= 5000 => 30,
+                > 0 and <= 15000 => 22,
+                > 0 and <= 30000 => 14,
+                > 0 and <= 60000 => 6,
+                _ => -8
+            };
+
+            if (ContainsAnyTerm(productText, "melhor preco", "preço competitivo", "bom valor", "economica", "económico", "barato"))
+            {
+                score += 14;
+            }
+        }
+
+        if (ContainsAnyTerm(normalizedQuery, "premium", "topo", "flagship", "melhor", "pro", "profissional"))
+        {
+            score += product.Score >= 90 ? 24 : product.Score >= 84 ? 12 : 0;
+            if (ContainsAnyTerm(productText, "premium", "pro", "ultra", "oled", "professional", "profissional", "garantia superior"))
+            {
+                score += 12;
+            }
+        }
+
+        if (ContainsAnyTerm(normalizedQuery, "gaming", "jogos", "game", "gamer"))
+        {
+            score += ContainsAnyTerm(productText, "gaming", "rtx", "144hz", "165hz", "oled", "playstation", "ps5", "switch") ? 26 : -8;
+        }
+
+        if (ContainsAnyTerm(normalizedQuery, "trabalho", "estudo", "universidade", "escritorio", "escritório", "produtividade"))
+        {
+            score += ContainsAnyTerm(productText, "leve", "bateria", "autonomia", "office", "escritorio", "portatil", "teclado", "ergonomica", "ergonómico") ? 18 : 0;
+        }
+
+        if (ContainsAnyTerm(normalizedQuery, "fotografia", "foto", "video", "vídeo", "camera", "camara", "câmara"))
+        {
+            score += ContainsAnyTerm(productText, "camera", "camara", "câmara", "fotografia", "video", "4k", "sony", "canon", "drone") ? 22 : 0;
+        }
+
+        if (ContainsAnyTerm(normalizedQuery, "autonomia", "bateria", "duracao", "duração"))
+        {
+            score += ContainsAnyTerm(productText, "autonomia", "bateria", "mah", "horas", "50h", "longa") ? 18 : 0;
+        }
+
+        if (ContainsAnyTerm(normalizedQuery, "silencioso", "silenciosa", "baixo ruido", "baixo ruído", "ruido", "ruído"))
+        {
+            score += ContainsAnyTerm(productText, "silencioso", "silenciosa", "baixo ruido", "baixo ruído", "db") ? 18 : 0;
+        }
+
+        if (ContainsAnyTerm(normalizedQuery, "recondicionado", "usado", "outlet", "segunda mao", "segunda mão"))
+        {
+            score += ContainsAnyTerm(productText, "recondicionado", "outlet", "usado", "playstation", "ps5") ? 18 : -6;
+        }
 
         return score;
     }
@@ -5197,9 +5369,18 @@ public sealed class ComparisonDataService(AppText text)
             return LaptopCatalog;
         }
 
-        if (!string.IsNullOrWhiteSpace(queryOrSlug) && TryResolveCatalog(queryOrSlug.Trim(), out var catalog))
+        if (!string.IsNullOrWhiteSpace(queryOrSlug))
         {
-            return catalog;
+            var normalizedQuery = NormalizeCatalogText(queryOrSlug);
+            if (ContainsAnyTerm(normalizedQuery, "microfone", "microfones", "microphone", "microphones", "podcast", "streaming audio"))
+            {
+                return HeadphonesCatalog;
+            }
+
+            if (TryResolveCatalog(queryOrSlug.Trim(), out var catalog))
+            {
+                return catalog;
+            }
         }
 
         return GeneralCatalog;
@@ -5208,11 +5389,19 @@ public sealed class ComparisonDataService(AppText text)
     private static string ResolveUserMarket()
     {
         var culture = CultureInfo.CurrentUICulture;
-        if (culture.Name.Equals("en-US", StringComparison.OrdinalIgnoreCase)
-            || culture.Name.EndsWith("-US", StringComparison.OrdinalIgnoreCase)
-            || culture.TwoLetterISOLanguageName.Equals("en", StringComparison.OrdinalIgnoreCase))
+        if (!culture.IsNeutralCulture)
         {
-            return "US";
+            try
+            {
+                var region = new RegionInfo(culture.Name);
+                return region.TwoLetterISORegionName.Equals("US", StringComparison.OrdinalIgnoreCase)
+                    ? "US"
+                    : "PT";
+            }
+            catch (ArgumentException)
+            {
+                // Keep the Portuguese catalogue as the safe default for unsupported specific cultures.
+            }
         }
 
         return "PT";
@@ -5231,6 +5420,99 @@ public sealed class ComparisonDataService(AppText text)
             || retailer.Brands.Contains(product.Brand, StringComparer.OrdinalIgnoreCase);
     }
 
+    private static int ScoreStoreCandidate(SellerOffer offer, ProductResult product, string catalog, string? queryOrSlug)
+    {
+        var score = offer.ReliabilityScore;
+
+        if (offer.IsLivePrice)
+        {
+            score += 35;
+        }
+
+        if (offer.ValidationState == OfferPriceValidationState.LiveValidated)
+        {
+            score += 45;
+        }
+
+        if (IsOfficialBrandStore(offer.Seller, product.Brand))
+        {
+            score += 30;
+        }
+
+        score += StoreCategorySpecializationScore(offer.Seller, catalog);
+
+        var normalizedQuery = NormalizeCatalogText(queryOrSlug ?? string.Empty);
+        if (ContainsAnyTerm(normalizedQuery, "barato", "barata", "mais barato", "preco baixo", "preço baixo", "low cost"))
+        {
+            score += offer.Seller.Contains("KuantoKusta", StringComparison.OrdinalIgnoreCase) ? 22 : 0;
+            score += offer.Seller.Contains("Amazon", StringComparison.OrdinalIgnoreCase) ? 8 : 0;
+        }
+
+        if (ContainsAnyTerm(normalizedQuery, "garantia", "oficial", "autorizado", "autorizada", "seguro", "baixo risco"))
+        {
+            score += IsOfficialBrandStore(offer.Seller, product.Brand) ? 22 : 0;
+            score += offer.Seller.Contains("Worten", StringComparison.OrdinalIgnoreCase) ? 10 : 0;
+            score += offer.Seller.Contains("FNAC", StringComparison.OrdinalIgnoreCase) ? 8 : 0;
+        }
+
+        if (offer.PriceCents > 0 && offer.IsLivePrice)
+        {
+            score += offer.PriceCents < 5000 ? 4 : 0;
+        }
+
+        return score;
+    }
+
+    private static int StoreCategorySpecializationScore(string seller, string catalog)
+    {
+        var normalizedSeller = NormalizeCatalogText(seller);
+        return catalog switch
+        {
+            LaptopCatalog or StorageCatalog or MonitorCatalog or KeyboardCatalog or MouseCatalog
+                when ContainsAnyTerm(normalizedSeller, "pccomponentes", "pcdiga", "globaldata", "fnac", "staples") => 20,
+            SmartphoneCatalog or ChargerCatalog or HeadphonesCatalog or TabletCatalog
+                when ContainsAnyTerm(normalizedSeller, "worten", "fnac", "pccomponentes", "pcdiga", "apple", "samsung", "globaldata") => 18,
+            ApplianceCatalog or CoffeeMachineCatalog or TvCatalog
+                when ContainsAnyTerm(normalizedSeller, "worten", "radio popular", "darty", "mediamarkt", "leroy merlin") => 20,
+            CultureFoodCatalog
+                when ContainsAnyTerm(normalizedSeller, "fnac", "bertrand", "wook", "continente", "kuantokusta") => 18,
+            ToyCatalog
+                when ContainsAnyTerm(normalizedSeller, "fnac", "worten", "continente", "kuantokusta") => 14,
+            PetFoodCatalog
+                when ContainsAnyTerm(normalizedSeller, "tiendanimal", "continente", "kuantokusta", "amazon") => 22,
+            BabyCareCatalog
+                when ContainsAnyTerm(normalizedSeller, "wells", "continente", "worten", "kuantokusta", "amazon") => 20,
+            HealthBeautyCatalog
+                when ContainsAnyTerm(normalizedSeller, "wells", "continente", "worten", "kuantokusta", "amazon") => 20,
+            ToolCatalog or GardenCatalog
+                when ContainsAnyTerm(normalizedSeller, "leroy merlin", "worten", "kuantokusta", "amazon") => 22,
+            ChairCatalog or HomeCatalog
+                when ContainsAnyTerm(normalizedSeller, "ikea", "leroy merlin", "worten", "amazon") => 20,
+            SportCatalog or FashionCatalog
+                when ContainsAnyTerm(normalizedSeller, "decathlon", "kuantokusta", "amazon") => 22,
+            AutoCatalog or TyreCatalog
+                when ContainsAnyTerm(normalizedSeller, "norauto", "kuantokusta", "amazon") => 22,
+            OfficeCatalog or PrinterCatalog
+                when ContainsAnyTerm(normalizedSeller, "staples", "fnac", "worten", "pcdiga", "globaldata") => 18,
+            _ => 0
+        };
+    }
+
+    private static bool IsOfficialBrandStore(string seller, string brand)
+    {
+        if (string.IsNullOrWhiteSpace(seller) || string.IsNullOrWhiteSpace(brand))
+        {
+            return false;
+        }
+
+        var normalizedSeller = NormalizeCatalogText(seller);
+        var normalizedBrand = NormalizeCatalogText(brand);
+        return normalizedSeller.Contains(normalizedBrand, StringComparison.OrdinalIgnoreCase)
+            && (normalizedSeller.Contains("store", StringComparison.OrdinalIgnoreCase)
+                || normalizedSeller.Contains("loja", StringComparison.OrdinalIgnoreCase)
+                || normalizedSeller.Contains("pt", StringComparison.OrdinalIgnoreCase));
+    }
+
     private SellerOffer BuildRetailerOffer(RetailerProfile retailer, ProductResult product, long basePriceCents)
     {
         var query = Uri.EscapeDataString(product.Name);
@@ -5243,17 +5525,7 @@ public sealed class ComparisonDataService(AppText text)
         var priceCents = hasKnownOffer
             ? knownOffer!.PriceCents
             : ApplyRetailerPrice(basePriceCents, retailer.PriceFactor);
-        var evidence = hasKnownOffer
-            ? text.Pick(
-                "Preço recolhido numa página de produto conhecida. Confirma stock e preço final antes de pagar.",
-                "Price collected from a known product page. Confirm stock and final price before paying.")
-            : retailer.DirectSeller
-            ? text.Pick(
-                "Loja conhecida na tua regiao. Abre a pesquisa para confirmar preco final, stock e vendedor.",
-                "Known store in your region. Open the search to confirm final price, stock and seller.")
-            : text.Pick(
-                "Comparador local. Confirma a loja final antes de comprar.",
-                "Local comparison source. Confirm the final seller before buying.");
+        var evidence = BuildRetailerEvidence(retailer, product, hasKnownOffer);
 
         return new SellerOffer(
             retailer.Name,
@@ -5268,6 +5540,34 @@ public sealed class ComparisonDataService(AppText text)
             text.Pick(retailer.LocationPt, retailer.LocationEn),
             evidence,
             hasKnownOffer);
+    }
+
+    private string BuildRetailerEvidence(RetailerProfile retailer, ProductResult product, bool hasKnownOffer)
+    {
+        if (hasKnownOffer)
+        {
+            return text.Pick(
+                "Página direta conhecida para este produto. Valida stock, preço final e vendedor antes de pagar.",
+                "Known direct product page. Validate stock, final price and seller before paying.");
+        }
+
+        if (IsOfficialBrandStore(retailer.Name, product.Brand))
+        {
+            return text.Pick(
+                "Loja oficial da marca. Boa primeira opção para garantia e autenticidade; preço final a confirmar.",
+                "Official brand store. Strong first option for warranty and authenticity; final price must be confirmed.");
+        }
+
+        if (!retailer.DirectSeller)
+        {
+            return text.Pick(
+                "Comparador útil para encontrar várias lojas portuguesas. Confirma sempre a loja final, portes e garantia.",
+                "Useful comparison source for multiple Portuguese stores. Always confirm final seller, shipping and warranty.");
+        }
+
+        return text.Pick(
+            "Loja recomendada pela categoria e mercado. Abre a pesquisa para confirmar preço, stock e vendedor final.",
+            "Store recommended for this category and market. Open the search to confirm price, stock and final seller.");
     }
 
     private static string RetailerProductUrlKey(string retailerName, string productSlug)

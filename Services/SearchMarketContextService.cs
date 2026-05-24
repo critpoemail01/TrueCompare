@@ -8,8 +8,7 @@ public sealed class SearchMarketContextService(AppText text)
     {
         var culture = CultureInfo.CurrentUICulture;
         var usesUsMarket = culture.Name.Equals("en-US", StringComparison.OrdinalIgnoreCase)
-            || culture.Name.EndsWith("-US", StringComparison.OrdinalIgnoreCase)
-            || culture.TwoLetterISOLanguageName.Equals("en", StringComparison.OrdinalIgnoreCase);
+            || culture.Name.EndsWith("-US", StringComparison.OrdinalIgnoreCase);
 
         return usesUsMarket
             ? new SearchMarketContext(
@@ -25,8 +24,8 @@ public sealed class SearchMarketContextService(AppText text)
                 CultureLabel(culture, "pt-PT"),
                 "EUR",
                 text.Pick(
-                    "Worten, Darty, FNAC, Radio Popular, PCDIGA, Castro Electronica, Aquario, Amazon.es",
-                    "Worten, Darty, FNAC, Radio Popular, PCDIGA, Castro Electronica, Aquario, Amazon.es"),
+                    "Worten, FNAC, PCDIGA, PcComponentes, KuantoKusta, Decathlon, Leroy Merlin, IKEA, Continente, Wells, Norauto, Staples",
+                    "Worten, FNAC, PCDIGA, PcComponentes, KuantoKusta, Decathlon, Leroy Merlin, IKEA, Continente, Wells, Norauto, Staples"),
                 text.Pick("A procurar em Portugal", "Searching in Portugal"));
     }
 

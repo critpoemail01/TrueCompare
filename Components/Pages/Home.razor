@@ -1,13 +1,16 @@
 @page "/"
 @implements IAsyncDisposable
+@using System.Security.Claims
+@using System.Security.Cryptography
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.Web
 @inject ComparisonDataService Data
 @inject ProductConversationService Conversation
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@inject SearchQuotaService QuotaService
 @inject IProductImageSuggestionService ImageSuggestionService
+@inject SearchQuotaService QuotaService
+@inject ExpensiveOperationLimiter OperationLimiter
 @inject IJSRuntime JS
 @inject AppText T
 
@@ -121,7 +124,7 @@
 </section>
 
 <section class="capability-strip" aria-label='@T["Home.Capabilities"]'>
-    <a href="results" style="--accent:#7BE8E0">
+            <a href="/" style="--accent:#7BE8E0">
         <strong>@T["Home.Compare"]</strong>
         <span>@T["Home.Products"]</span>
     </a>
@@ -129,11 +132,11 @@
         <strong>@T["Home.Verify"]</strong>
         <span>@T["Home.Authenticity"]</span>
     </a>
-    <a href="checkout" style="--accent:#E97B7B">
+            <a href="/product/macbook-air-m3" style="--accent:#E97B7B">
         <strong>@T["Home.Choose"]</strong>
         <span>@T["Home.Seller"]</span>
     </a>
-    <a href="checkout" style="--accent:#E9D67B">
+            <a href="/product/macbook-air-m3" style="--accent:#E9D67B">
         <strong>@T["Home.Buy"]</strong>
         <span>@T["Home.Now"]</span>
     </a>
@@ -337,7 +340,7 @@
         ImageSuggestion = null;
         SelectedImageName = string.IsNullOrWhiteSpace(fileName) ? T["Home.ImageSuggestion"] : fileName;
 
-        if (!IsAllowedImage(fileName, contentType) || imageBytes.Length == 0)
+        if (!IsAllowedImage(fileName, contentType, imageBytes) || imageBytes.Length == 0)
         {
             SelectedImagePreviewDataUrl = null;
             QuotaMessage = T["Home.ImageInvalid"];
@@ -351,6 +354,40 @@
             return;
         }
 
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            SelectedImagePreviewDataUrl = null;
+            QuotaMessage = T.Pick(
+                "Inicia sessao para analisar imagens.",
+                "Sign in to analyze images.");
+            Navigation.NavigateTo($"/login?returnUrl={Uri.EscapeDataString("/")}", forceLoad: true);
+            return;
+        }
+
+        if (!OperationLimiter.TryAcquire("image-analysis", userId, permitLimit: 3, window: TimeSpan.FromHours(1)))
+        {
+            SelectedImagePreviewDataUrl = null;
+            QuotaMessage = T.Pick(
+                "Limite de análise de imagem atingido. Tenta novamente mais tarde.",
+                "Image analysis limit reached. Try again later.");
+            return;
+        }
+
+        var imageHash = Convert.ToHexString(SHA256.HashData(imageBytes));
+        var reservation = await QuotaService.TryReserveAsync(
+            userId,
+            $"image-analysis:{SelectedImageName}",
+            $"image-analysis:{imageHash[..32]}");
+        if (!reservation.Allowed)
+        {
+            SelectedImagePreviewDataUrl = null;
+            Navigation.NavigateTo($"/credits?returnUrl={Uri.EscapeDataString("/")}&message={Uri.EscapeDataString(T["Home.NoCredits"])}", forceLoad: true);
+            return;
+        }
+
+        var committed = false;
         IsAnalyzingImage = true;
         await InvokeAsync(StateHasChanged);
 
@@ -358,10 +395,32 @@
         {
             SelectedImagePreviewDataUrl = $"data:{contentType};base64,{Convert.ToBase64String(imageBytes)}";
             ImageSuggestion = await ImageSuggestionService.AnalyzeImageAsync(SelectedImageName, contentType, imageBytes);
-            if (!string.IsNullOrWhiteSpace(ImageSuggestion.SuggestedQuery))
+            if (ImageSuggestion is null || string.IsNullOrWhiteSpace(ImageSuggestion.SuggestedQuery))
             {
-                Prompt = ImageSuggestion.SuggestedQuery;
+                await QuotaService.RefundReservationAsync(
+                    reservation.ReservationId,
+                    "Image analysis did not produce a useful suggestion.");
+                committed = true;
+                QuotaMessage = T.Pick(
+                    "A análise da imagem não encontrou uma sugestão útil e não foi debitada.",
+                    "Image analysis did not find a useful suggestion and was not charged.");
+                return;
             }
+
+            await QuotaService.CommitReservationAsync(reservation.ReservationId, 1);
+            committed = true;
+            Prompt = ImageSuggestion.SuggestedQuery;
+        }
+        catch
+        {
+            if (!committed)
+            {
+                await QuotaService.RefundReservationAsync(
+                    reservation.ReservationId,
+                    "Image analysis failed before a useful result was produced.");
+            }
+
+            throw;
         }
         finally
         {
@@ -377,7 +436,7 @@
         QuotaMessage = null;
     }
 
-    private static bool IsAllowedImage(string fileName, string contentType)
+    private static bool IsAllowedImage(string fileName, string contentType, byte[] imageBytes)
     {
         if (!AllowedImageContentTypes.Contains(contentType))
         {
@@ -385,7 +444,41 @@
         }
 
         var extension = Path.GetExtension(fileName);
-        return string.IsNullOrWhiteSpace(extension) || AllowedImageExtensions.Contains(extension);
+        if (!string.IsNullOrWhiteSpace(extension) && !AllowedImageExtensions.Contains(extension))
+        {
+            return false;
+        }
+
+        return HasValidImageSignature(contentType, imageBytes);
+    }
+
+    private static bool HasValidImageSignature(string contentType, byte[] imageBytes)
+    {
+        return contentType.Equals("image/png", StringComparison.OrdinalIgnoreCase)
+            ? imageBytes.Length >= 8
+                && imageBytes[0] == 0x89
+                && imageBytes[1] == 0x50
+                && imageBytes[2] == 0x4E
+                && imageBytes[3] == 0x47
+                && imageBytes[4] == 0x0D
+                && imageBytes[5] == 0x0A
+                && imageBytes[6] == 0x1A
+                && imageBytes[7] == 0x0A
+            : contentType.Equals("image/jpeg", StringComparison.OrdinalIgnoreCase)
+                ? imageBytes.Length >= 3
+                    && imageBytes[0] == 0xFF
+                    && imageBytes[1] == 0xD8
+                    && imageBytes[2] == 0xFF
+                : contentType.Equals("image/webp", StringComparison.OrdinalIgnoreCase)
+                    && imageBytes.Length >= 12
+                    && imageBytes[0] == 0x52
+                    && imageBytes[1] == 0x49
+                    && imageBytes[2] == 0x46
+                    && imageBytes[3] == 0x46
+                    && imageBytes[8] == 0x57
+                    && imageBytes[9] == 0x45
+                    && imageBytes[10] == 0x42
+                    && imageBytes[11] == 0x50;
     }
 
     private async Task StartComparison()
@@ -445,20 +538,14 @@
     {
         IsSubmitting = true;
 
-        var resultsUrl = $"/results?query={Uri.EscapeDataString(query)}";
+        var reservationToken = Guid.NewGuid().ToString("N");
+        var resultsUrl = $"/results?query={Uri.EscapeDataString(query)}&requestId={reservationToken}";
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
         if (string.IsNullOrWhiteSpace(userId))
         {
             Navigation.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(resultsUrl)}", forceLoad: true);
-            return;
-        }
-
-        var result = await QuotaService.TryConsumeAsync(userId, query);
-        if (!result.Allowed)
-        {
-            Navigation.NavigateTo($"/credits?returnUrl={Uri.EscapeDataString(resultsUrl)}&message={Uri.EscapeDataString(T["Home.NoCredits"])}", forceLoad: true);
             return;
         }
 

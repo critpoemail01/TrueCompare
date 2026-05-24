@@ -4,11 +4,11 @@ public sealed class LlmOptions
 {
     public bool Enabled { get; set; } = true;
 
-    public string Endpoint { get; set; } = "http://172.20.10.55:11434/v1/chat/completions";
+    public string Endpoint { get; set; } = string.Empty;
 
     public string ApiKey { get; set; } = string.Empty;
 
-    public string Model { get; set; } = "qwen3-vl:235b-cloud";
+    public string Model { get; set; } = string.Empty;
 
     public int TimeoutSeconds { get; set; } = 90;
 

@@ -69,7 +69,7 @@ public sealed class SearchQuotaServiceTests
     }
 
     [Fact]
-    public async Task TryConsumeAsync_RecordsSearchWithoutConsumingCredits_WhenRequestIsFromLocalhost()
+    public async Task TryConsumeAsync_UsesNormalQuota_WhenHostIsLocalhostButUnlimitedOptionDisabled()
     {
         await using var dbContext = TestDbContextFactory.Create();
         var user = new ApplicationUser
@@ -99,19 +99,17 @@ public sealed class SearchQuotaServiceTests
         var status = await service.GetStatusAsync(user.Id);
         var persistedUser = await dbContext.Users.SingleAsync(candidate => candidate.Id == user.Id);
 
-        Assert.True(result.Allowed);
-        Assert.True(result.Status.HasUnlimitedCredits);
-        Assert.True(status.HasUnlimitedCredits);
-        Assert.Equal(int.MaxValue, result.Status.Credits);
+        Assert.False(result.Allowed);
+        Assert.False(result.Status.HasUnlimitedCredits);
+        Assert.False(status.HasUnlimitedCredits);
+        Assert.Equal(0, result.Status.Credits);
         Assert.Equal(ApplicationUser.FreeSearchLimit, persistedUser.FreeSearchesUsed);
         Assert.Equal(0, persistedUser.Credits);
-        var searchRequest = await dbContext.SearchRequests.SingleAsync();
-        Assert.Equal("comprar eletrodomesticos", searchRequest.Query);
-        Assert.False(searchRequest.UsedPaidCredit);
+        Assert.Empty(await dbContext.SearchRequests.ToListAsync());
     }
 
     [Fact]
-    public async Task TryConsumeAsync_AllowsLocalhostSearch_WhenAuthenticatedCookieUserIsNotInDatabase()
+    public async Task TryConsumeAsync_DoesNotAllowLocalhostSearch_WhenUserIsMissingAndOptionDisabled()
     {
         await using var dbContext = TestDbContextFactory.Create();
         var httpContextAccessor = new HttpContextAccessor
@@ -128,9 +126,9 @@ public sealed class SearchQuotaServiceTests
 
         var result = await service.TryConsumeAsync("stale-cookie-user", "smartphones premium");
 
-        Assert.True(result.Allowed);
-        Assert.True(result.Status.HasUnlimitedCredits);
-        Assert.Equal(SearchQuotaUnlimitedSource.Localhost, result.Status.UnlimitedSource);
+        Assert.False(result.Allowed);
+        Assert.False(result.Status.HasUnlimitedCredits);
+        Assert.Null(result.Status.UnlimitedSource);
         Assert.Empty(await dbContext.SearchRequests.ToListAsync());
     }
 
@@ -211,4 +209,115 @@ public sealed class SearchQuotaServiceTests
         Assert.Equal(0, result.Status.Credits);
         Assert.Empty(await dbContext.SearchRequests.ToListAsync());
     }
+    [Fact]
+    public async Task TryReserveAsync_RefundRestoresFreeSearch_WhenNoUsefulResultsAreProduced()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var user = new ApplicationUser
+        {
+            Id = "user-refund-free",
+            UserName = "refund-free@example.com",
+            Email = "refund-free@example.com"
+        };
+        dbContext.Users.Add(user);
+        await dbContext.SaveChangesAsync();
+
+        var service = new SearchQuotaService(dbContext);
+
+        var reservation = await service.TryReserveAsync(user.Id, "produto impossivel", "refund-free-key");
+
+        Assert.True(reservation.Allowed);
+        Assert.True(reservation.SearchRequestId.HasValue);
+        Assert.Equal(1, reservation.Status.FreeSearchesUsed);
+
+        await service.RefundAsync(reservation.SearchRequestId.Value, "No useful results.");
+
+        var persistedUser = await dbContext.Users.SingleAsync(candidate => candidate.Id == user.Id);
+        var request = await dbContext.SearchRequests.SingleAsync();
+        Assert.Equal(0, persistedUser.FreeSearchesUsed);
+        Assert.Equal(SearchRequestStatus.Refunded, request.Status);
+        Assert.Equal("No useful results.", request.FailureReason);
+    }
+
+    [Fact]
+    public async Task TryReserveAsync_ReusesIdempotencyKey_WithoutDoubleCharging()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var user = new ApplicationUser
+        {
+            Id = "user-idempotent",
+            UserName = "idempotent@example.com",
+            Email = "idempotent@example.com"
+        };
+        dbContext.Users.Add(user);
+        await dbContext.SaveChangesAsync();
+
+        var service = new SearchQuotaService(dbContext);
+
+        var first = await service.TryReserveAsync(user.Id, "comprar smartphone", "same-search-key");
+        var second = await service.TryReserveAsync(user.Id, "comprar smartphone", "same-search-key");
+
+        Assert.True(first.Allowed);
+        Assert.True(second.Allowed);
+        Assert.Equal(first.SearchRequestId, second.SearchRequestId);
+
+        var persistedUser = await dbContext.Users.SingleAsync(candidate => candidate.Id == user.Id);
+        Assert.Equal(1, persistedUser.FreeSearchesUsed);
+        Assert.Single(await dbContext.SearchRequests.ToListAsync());
+    }
+
+
+    [Fact]
+    public async Task TryReserveAsync_DoesNotReuseIdempotencyKey_ForDifferentQuery()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var user = new ApplicationUser
+        {
+            Id = "user-idempotent-query",
+            UserName = "idempotent-query@example.com",
+            Email = "idempotent-query@example.com"
+        };
+        dbContext.Users.Add(user);
+        await dbContext.SaveChangesAsync();
+
+        var service = new SearchQuotaService(dbContext);
+
+        var first = await service.TryReserveAsync(user.Id, "comprar smartphone", "same-search-key");
+        var second = await service.TryReserveAsync(user.Id, "comprar portatil", "same-search-key");
+
+        Assert.True(first.Allowed);
+        Assert.True(second.Allowed);
+        Assert.NotEqual(first.SearchRequestId, second.SearchRequestId);
+
+        var persistedUser = await dbContext.Users.SingleAsync(candidate => candidate.Id == user.Id);
+        Assert.Equal(2, persistedUser.FreeSearchesUsed);
+        Assert.Equal(2, await dbContext.SearchRequests.CountAsync());
+    }
+
+    [Fact]
+    public async Task CommitAsync_MarksReservationAsCommittedAndRecordsResultCount()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var user = new ApplicationUser
+        {
+            Id = "user-commit",
+            UserName = "commit@example.com",
+            Email = "commit@example.com"
+        };
+        dbContext.Users.Add(user);
+        await dbContext.SaveChangesAsync();
+
+        var service = new SearchQuotaService(dbContext);
+
+        var reservation = await service.TryReserveAsync(user.Id, "comprar rato", "commit-key");
+        Assert.True(reservation.SearchRequestId.HasValue);
+
+        await service.CommitAsync(reservation.SearchRequestId.Value, resultCount: 3);
+
+        var request = await dbContext.SearchRequests.SingleAsync();
+        Assert.Equal(SearchRequestStatus.Committed, request.Status);
+        Assert.Equal(3, request.ResultCount);
+        Assert.NotNull(request.CommittedUtc);
+    }
+
 }

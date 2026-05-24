@@ -74,37 +74,91 @@ public sealed class LlmProviderRouter(
         Func<string, bool> isValidJson,
         CancellationToken cancellationToken)
     {
+        using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var tasks = providers
-            .Select((provider, index) => TryGetProviderResponseAsync(
-                    operation,
-                    provider,
-                    buildRequestJson,
-                    isValidJson,
-                    cancellationToken)
-                .ContinueWith(
-                    task => new ProviderCandidateResult(index, task.Status == TaskStatus.RanToCompletion ? task.Result : null),
-                    CancellationToken.None,
-                    TaskContinuationOptions.ExecuteSynchronously,
-                    TaskScheduler.Default))
-            .ToArray();
-
-        var results = await Task.WhenAll(tasks);
-        var validResponses = results
-            .Where(result => result.Response is not null)
-            .OrderBy(result => result.Index)
-            .Select(result => result.Response)
-            .Cast<LlmProviderResponse>()
+            .Select((provider, index) => RunProviderCandidateAsync(
+                index,
+                operation,
+                provider,
+                buildRequestJson,
+                isValidJson,
+                linkedCancellation.Token))
             .ToList();
 
-        if (validResponses.Count <= 1)
+        var validResponses = new List<ProviderCandidateResult>();
+        var desiredValidResponses = ShouldCrossValidateLocalResponses(operation)
+            ? Math.Min(2, providers.Count)
+            : 1;
+        while (tasks.Count > 0 && validResponses.Count < desiredValidResponses)
         {
-            return validResponses.FirstOrDefault();
+            var completed = await Task.WhenAny(tasks);
+            tasks.Remove(completed);
+
+            var result = await completed;
+            if (result.Response is not null)
+            {
+                validResponses.Add(result);
+            }
         }
 
-        var mergedJson = MergeJsonResponses(validResponses.Select(response => response.JsonContent).ToList());
+        if (validResponses.Count > 0)
+        {
+            linkedCancellation.Cancel();
+        }
+
+        if (tasks.Count > 0)
+        {
+            _ = Task.WhenAll(tasks).ContinueWith(
+                static _ => { },
+                CancellationToken.None,
+                TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
+        }
+
+        var responses = validResponses
+            .OrderBy(result => result.Index)
+            .Select(result => result.Response!)
+            .ToList();
+
+        if (responses.Count == 0)
+        {
+            return null;
+        }
+
+        if (responses.Count == 1)
+        {
+            var response = responses[0];
+            return isValidJson(response.JsonContent) ? response : null;
+        }
+
+        var mergedJson = MergeJsonResponses(responses.Select(response => response.JsonContent).ToList());
         return isValidJson(mergedJson)
-            ? new LlmProviderResponse($"{validResponses[0].ProviderName} + validação cruzada", mergedJson)
-            : validResponses[0];
+            ? new LlmProviderResponse($"{responses[0].ProviderName} + validação cruzada", mergedJson)
+            : responses[0];
+    }
+
+    private async Task<ProviderCandidateResult> RunProviderCandidateAsync(
+        int index,
+        string operation,
+        LlmProviderOptions provider,
+        Func<LlmProviderOptions, string> buildRequestJson,
+        Func<string, bool> isValidJson,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await TryGetProviderResponseAsync(
+                operation,
+                provider,
+                buildRequestJson,
+                isValidJson,
+                cancellationToken);
+            return new ProviderCandidateResult(index, response);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return new ProviderCandidateResult(index, null);
+        }
     }
 
     private async Task<LlmProviderResponse?> TryGetProviderResponseAsync(
@@ -540,18 +594,15 @@ public sealed class LlmProviderRouter(
 
     private void MarkRateLimited(LlmProviderOptions provider, TimeSpan? retryAfter)
     {
-        if (!provider.IsLocal)
-        {
-            quotaService.MarkRateLimited(provider.Name, retryAfter);
-        }
+        var fallbackCooldown = TimeSpan.FromSeconds(Math.Clamp(options.ProviderCooldownSeconds, 5, 600));
+        quotaService.MarkRateLimited(provider.Name, retryAfter ?? fallbackCooldown);
     }
 
     private void MarkTemporarilyUnavailable(LlmProviderOptions provider)
     {
-        if (!provider.IsLocal)
-        {
-            quotaService.MarkTemporarilyUnavailable(provider.Name, TimeSpan.FromSeconds(options.ProviderCooldownSeconds));
-        }
+        quotaService.MarkTemporarilyUnavailable(
+            provider.Name,
+            TimeSpan.FromSeconds(Math.Clamp(options.ProviderCooldownSeconds, 5, 600)));
     }
 
     private bool IsConfigured(LlmProviderOptions provider, out string apiKey)
@@ -579,11 +630,37 @@ public sealed class LlmProviderRouter(
             {
                 return providerKey;
             }
+
+            if (!AllowsGenericApiKeyFallback(provider))
+            {
+                return string.Empty;
+            }
         }
 
         return Environment.GetEnvironmentVariable("TRUECOMPARE_LLM_API_KEY")
             ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY")
             ?? string.Empty;
+    }
+
+    private static bool ShouldCrossValidateLocalResponses(string operation)
+    {
+        return operation.Contains("discovery", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool AllowsGenericApiKeyFallback(LlmProviderOptions provider)
+    {
+        if (string.IsNullOrWhiteSpace(provider.ApiKeyEnvironmentVariable))
+        {
+            return true;
+        }
+
+        if (provider.ApiKeyEnvironmentVariable.Equals("TRUECOMPARE_LLM_API_KEY", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return provider.Name.Contains("openai", StringComparison.OrdinalIgnoreCase)
+            || provider.Endpoint.Contains("api.openai.com", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string ExtractAssistantContent(string responseJson)

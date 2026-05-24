@@ -1,10 +1,16 @@
 using System.Globalization;
+using System.Net;
+using System.Security.Claims;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.OAuth.Claims;
 using Microsoft.AspNetCore.Localization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using TrueCompare.Components;
 using TrueCompare.Data;
 using TrueCompare.Options;
@@ -46,7 +52,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services
     .AddIdentity<ApplicationUser, IdentityRole>(options =>
     {
-        options.SignIn.RequireConfirmedAccount = false;
+        options.SignIn.RequireConfirmedAccount = builder.Configuration.GetValue("Security:RequireConfirmedEmail", false);
         options.User.RequireUniqueEmail = true;
         options.Password.RequiredLength = 10;
         options.Password.RequiredUniqueChars = 4;
@@ -69,6 +75,7 @@ if (!string.IsNullOrWhiteSpace(builder.Configuration["Authentication:Google:Clie
     {
         options.ClientId = builder.Configuration["Authentication:Google:ClientId"]!;
         options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]!;
+        options.ClaimActions.MapJsonKey("email_verified", "email_verified");
     });
 }
 
@@ -85,6 +92,18 @@ builder.Services.ConfigureApplicationCookie(options =>
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddLocalization();
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
+    foreach (var proxy in builder.Configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>() ?? Array.Empty<string>())
+    {
+        if (IPAddress.TryParse(proxy, out var address))
+        {
+            options.KnownProxies.Add(address);
+        }
+    }
+});
+
 builder.Services.AddControllersWithViews(options =>
 {
     options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
@@ -92,31 +111,64 @@ builder.Services.AddControllersWithViews(options =>
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.AddFixedWindowLimiter("auth", limiterOptions =>
-    {
-        limiterOptions.PermitLimit = 8;
-        limiterOptions.Window = TimeSpan.FromMinutes(1);
-        limiterOptions.QueueLimit = 0;
-        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-    });
-    options.AddFixedWindowLimiter("billing", limiterOptions =>
-    {
-        limiterOptions.PermitLimit = 12;
-        limiterOptions.Window = TimeSpan.FromMinutes(1);
-        limiterOptions.QueueLimit = 0;
-        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-    });
-    options.AddFixedWindowLimiter("alerts", limiterOptions =>
-    {
-        limiterOptions.PermitLimit = 20;
-        limiterOptions.Window = TimeSpan.FromMinutes(1);
-        limiterOptions.QueueLimit = 0;
-        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-    });
+    options.AddPolicy("auth", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            BuildRateLimitPartitionKey(context, "auth"),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 8,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+            }));
+    options.AddPolicy("billing", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            BuildRateLimitPartitionKey(context, "billing"),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 12,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+            }));
+    options.AddPolicy("alerts", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            BuildRateLimitPartitionKey(context, "alerts"),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 20,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+            }));
+    options.AddPolicy("search", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            BuildRateLimitPartitionKey(context, "search"),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+            }));
+    options.AddPolicy("image-analysis", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            BuildRateLimitPartitionKey(context, "image-analysis"),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 3,
+                Window = TimeSpan.FromHours(1),
+                QueueLimit = 0,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+            }));
 });
+builder.Services.Configure<AppOptions>(builder.Configuration.GetSection("App"));
 builder.Services.Configure<StripeOptions>(builder.Configuration.GetSection("Stripe"));
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Email"));
 builder.Services.Configure<LlmOptions>(builder.Configuration.GetSection("Llm"));
+builder.Services.Configure<StoreOfferValidationOptions>(builder.Configuration.GetSection("StoreOfferValidation"));
+builder.Services.Configure<SearchQuotaOptions>(builder.Configuration.GetSection("SearchQuota"));
+builder.Services.Configure<PriceAlertOptions>(builder.Configuration.GetSection("PriceAlerts"));
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents(options =>
     {
@@ -144,9 +196,13 @@ builder.Services.AddSingleton<ComparisonDataService>();
 builder.Services.AddScoped<ProductConversationService>();
 builder.Services.AddScoped<SearchMarketContextService>();
 builder.Services.AddScoped<SearchQuotaService>();
+builder.Services.AddScoped<SearchResultSnapshotService>();
+builder.Services.AddScoped<SearchOrchestratorService>();
 builder.Services.AddScoped<TargetPriceAlertService>();
 builder.Services.AddScoped<BillingService>();
 builder.Services.AddSingleton<LlmProviderQuotaService>();
+builder.Services.AddSingleton<StoreValidationLimiter>();
+builder.Services.AddSingleton<ExpensiveOperationLimiter>();
 builder.Services.AddHttpClient<LlmProviderRouter>();
 builder.Services.AddScoped<IProductDiscoveryService, LlmProductDiscoveryService>();
 builder.Services.AddScoped<IProductSuggestionService, LlmSuggestionService>();
@@ -157,13 +213,22 @@ if (builder.Environment.IsEnvironment("Testing") || builder.Environment.IsDevelo
 }
 else
 {
-    builder.Services.AddHttpClient<IStoreOfferValidationService, StoreOfferValidationService>();
+    builder.Services.AddHttpClient<IStoreOfferValidationService, StoreOfferValidationService>((serviceProvider, client) =>
+    {
+        var validationOptions = serviceProvider.GetRequiredService<IOptions<StoreOfferValidationOptions>>().Value;
+        client.Timeout = TimeSpan.FromSeconds(Math.Clamp(validationOptions.RequestTimeoutSeconds, 2, 30));
+    })
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+    {
+        AllowAutoRedirect = false
+    });
 }
 builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<SearchHistoryService>();
 builder.Services.AddScoped<UserSettingsService>();
 if (!builder.Environment.IsEnvironment("Testing"))
 {
+    builder.Services.AddHostedService<SearchMaintenanceService>();
     builder.Services.AddHostedService<TargetPriceMonitorService>();
 }
 
@@ -179,6 +244,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+app.UseForwardedHeaders();
 app.UseHttpsRedirection();
 
 app.Use(async (context, next) =>
@@ -190,7 +256,7 @@ app.Use(async (context, next) =>
         headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
         headers["X-Frame-Options"] = "DENY";
         headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
-        headers["Content-Security-Policy"] = "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:* https://localhost:* ws://localhost:* wss://localhost:* http://172.20.10.55:11434 https: wss:; form-action 'self' https://checkout.stripe.com";
+        headers["Content-Security-Policy"] = BuildContentSecurityPolicy(app.Environment);
 
         return Task.CompletedTask;
     });
@@ -231,6 +297,28 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.Run();
+
+
+static string BuildContentSecurityPolicy(IHostEnvironment environment)
+{
+    if (environment.IsDevelopment() || environment.IsEnvironment("Testing"))
+    {
+        return "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:* https://localhost:* ws://localhost:* wss://localhost:* http://127.0.0.1:* https://127.0.0.1:* wss: https:; form-action 'self' https://checkout.stripe.com";
+    }
+
+    return "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' wss: https://checkout.stripe.com; form-action 'self' https://checkout.stripe.com";
+}
+
+static string BuildRateLimitPartitionKey(HttpContext context, string policyName)
+{
+    var userId = context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+    var subject = !string.IsNullOrWhiteSpace(userId)
+        ? $"user:{userId}"
+        : $"ip:{context.Connection.RemoteIpAddress?.ToString() ?? "unknown"}";
+
+    var path = context.Request.Path.Value?.ToLowerInvariant() ?? "/";
+    return $"{policyName}:{subject}:{path}";
+}
 
 static async Task ApplyDatabaseMigrationsAndSeedAsync(WebApplication app)
 {

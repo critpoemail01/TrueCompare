@@ -1,10 +1,17 @@
 @page "/checkout"
 @using System.Globalization
-@inject IProductDiscoveryService DiscoveryService
+@using System.Security.Claims
+@using Microsoft.AspNetCore.RateLimiting
+@attribute [Authorize]
+@attribute [EnableRateLimiting("search")]
+@inject ComparisonDataService ComparisonData
 @inject IStoreOfferValidationService StoreOfferValidator
+@inject SearchResultSnapshotService SnapshotService
 @inject SearchMarketContextService SearchMarket
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+@inject ILogger<Checkout> Logger
 @inject AppText T
-
 <PageTitle>@T["Checkout.PageTitle"]</PageTitle>
 
 <section class="page-header checkout-header">
@@ -29,7 +36,21 @@
     <section class="empty-state checkout-empty-state">
         <h2>@T["Checkout.NoConfirmedOfferTitle"]</h2>
         <p>@T["Checkout.NoConfirmedOfferLead"]</p>
-        @if (CanShowKuantoKustaFallback)
+        @if (StoreSearches.Count > 0)
+        {
+            <div class="checkout-fallback-search">
+                <p>@T["Checkout.SuggestedStoreSearchesLead"]</p>
+                <div class="store-suggestion-list">
+                    @foreach (var store in StoreSearches)
+                    {
+                        <a class="secondary-button compact" href="@store.Url" target="_blank" rel="noopener noreferrer">
+                            @T.Format("Checkout.SearchStore", store.Seller)
+                        </a>
+                    }
+                </div>
+            </div>
+        }
+        @if (CanShowKuantoKustaFallback && !StoreSearches.Any(store => store.Seller.Contains("KuantoKusta", StringComparison.OrdinalIgnoreCase)))
         {
             <div class="checkout-fallback-search">
                 <p>@T["Checkout.KuantoKustaFallbackLead"]</p>
@@ -69,6 +90,10 @@ else if (SelectedOffer is not null)
                                 {
                                     <span class="recommended-label">@T["Checkout.BestPrice"]</span>
                                 }
+                                @if (!string.IsNullOrWhiteSpace(offer.Evidence))
+                                {
+                                    <small class="offer-evidence">@offer.Evidence</small>
+                                }
                             </td>
                             <td data-label="@T["Checkout.Price"]">@DisplayPrice(offer)</td>
                             <td data-label="@T["Checkout.Delivery"]">@offer.Delivery</td>
@@ -96,6 +121,10 @@ else if (SelectedOffer is not null)
                     <span>@T.Format("Checkout.SelectedOfferLine", DisplayPrice(SelectedOffer), SelectedOffer.Delivery)</span>
                     <small>@OfferTrustLine(SelectedOffer)</small>
                     <small>@PriceConfidenceLine(SelectedOffer)</small>
+                    @if (!string.IsNullOrWhiteSpace(SelectedOffer.Evidence))
+                    {
+                        <small>@SelectedOffer.Evidence</small>
+                    }
                 </div>
 
                 <dl class="totals-list">
@@ -145,7 +174,7 @@ else if (SelectedOffer is not null)
                     <div class="checkout-action-panel checkout-alert-panel">
                         <form method="post" action="/price-alerts/create" class="target-alert-form">
                             <AntiforgeryToken />
-                            <input type="hidden" name="ProductSlug" value="@ResolvedProductSlug" />
+                            <input type="hidden" name="ProductSlug" value="@CheckoutProductSlug" />
                             <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
                             <label>
                                 @T["Checkout.TargetPrice"]
@@ -163,6 +192,7 @@ else if (SelectedOffer is not null)
     </div>
 }
 
+
 @code {
     [SupplyParameterFromQuery]
     public string? Message { get; set; }
@@ -173,25 +203,89 @@ else if (SelectedOffer is not null)
     [SupplyParameterFromQuery]
     public string? Query { get; set; }
 
-    private string ResolvedProductSlug => string.IsNullOrWhiteSpace(ProductSlug) ? "macbook-air-m3" : ProductSlug;
+    [SupplyParameterFromQuery(Name = "requestId")]
+    public string? RequestId { get; set; }
 
-    private string CatalogKey => ProductSlug ?? Query ?? ResolvedProductSlug;
+    private string ResolvedProductSlug => ProductSlug?.Trim() ?? string.Empty;
 
     private ProductResult? Product { get; set; }
 
-    private string ProductDisplayName => Product?.Name ?? HumanizeProductSlug(ResolvedProductSlug);
+    private string CheckoutProductSlug => Product?.Slug ?? ResolvedProductSlug;
+
+    private string ProductDisplayName => Product?.Name
+        ?? (string.IsNullOrWhiteSpace(ResolvedProductSlug)
+            ? T.Pick("Nenhum produto selecionado", "No product selected")
+            : HumanizeProductSlug(ResolvedProductSlug));
 
     private IReadOnlyList<SellerOffer> Offers { get; set; } = Array.Empty<SellerOffer>();
 
-    private string ReturnUrl => $"/checkout?product={Uri.EscapeDataString(ResolvedProductSlug)}";
+    private IReadOnlyList<SellerOffer> StoreSearches { get; set; } = Array.Empty<SellerOffer>();
 
-    private string ResultsUrl => string.IsNullOrWhiteSpace(Query)
-        ? $"/results?query={Uri.EscapeDataString(ProductDisplayName)}"
-        : $"/results?query={Uri.EscapeDataString(Query)}";
+    private string ReturnUrl
+    {
+        get
+        {
+            var url = string.IsNullOrWhiteSpace(CheckoutProductSlug)
+                ? "/checkout"
+                : $"/checkout?product={Uri.EscapeDataString(CheckoutProductSlug)}";
+            if (!string.IsNullOrWhiteSpace(Query))
+            {
+                url += url.Contains('?') ? "&" : "?";
+                url += $"query={Uri.EscapeDataString(Query)}";
+            }
 
-    private string ProductUrl => string.IsNullOrWhiteSpace(Query)
-        ? $"/product/{Uri.EscapeDataString(Product?.Slug ?? ResolvedProductSlug)}"
-        : $"/product/{Uri.EscapeDataString(Product?.Slug ?? ResolvedProductSlug)}?query={Uri.EscapeDataString(Query)}";
+            if (!string.IsNullOrWhiteSpace(RequestId))
+            {
+                url += url.Contains('?') ? "&" : "?";
+                url += $"requestId={Uri.EscapeDataString(RequestId)}";
+            }
+
+            return url;
+        }
+    }
+
+    private string ResultsUrl
+    {
+        get
+        {
+            var url = string.IsNullOrWhiteSpace(Query)
+                ? "/"
+                : $"/results?query={Uri.EscapeDataString(Query)}";
+
+            if (!string.IsNullOrWhiteSpace(RequestId) && !url.Equals("/", StringComparison.Ordinal))
+            {
+                url += url.Contains('?') ? "&" : "?";
+                url += $"requestId={Uri.EscapeDataString(RequestId)}";
+            }
+
+            return url;
+        }
+    }
+
+    private string ProductUrl
+    {
+        get
+        {
+            if (Product is null && string.IsNullOrWhiteSpace(ResolvedProductSlug))
+            {
+                return "/";
+            }
+
+            var url = $"/product/{Uri.EscapeDataString(Product?.Slug ?? ResolvedProductSlug)}";
+            if (!string.IsNullOrWhiteSpace(Query))
+            {
+                url += $"?query={Uri.EscapeDataString(Query)}";
+            }
+
+            if (!string.IsNullOrWhiteSpace(RequestId))
+            {
+                url += url.Contains('?') ? "&" : "?";
+                url += $"requestId={Uri.EscapeDataString(RequestId)}";
+            }
+
+            return url;
+        }
+    }
 
     private bool CanShowKuantoKustaFallback => SearchMarket.Current().MarketCode.Equals("PT", StringComparison.OrdinalIgnoreCase);
 
@@ -205,33 +299,146 @@ else if (SelectedOffer is not null)
 
     private string VatValue => FormatCurrency((long)Math.Round((SelectedOffer?.PriceCents ?? 0) * 23m / 123m, MidpointRounding.AwayFromZero));
 
-    private string DisplayTotal => SelectedOffer?.IsLivePrice == true ? FormattedTotal : T["Checkout.PriceToConfirm"];
+    private string DisplayTotal => SelectedOffer?.IsLiveValidated == true ? FormattedTotal : T["Checkout.PriceToConfirm"];
 
-    private string DisplayVat => SelectedOffer?.IsLivePrice == true ? VatValue : T["Checkout.PriceToConfirm"];
+    private string DisplayVat => SelectedOffer?.IsLiveValidated == true ? VatValue : T["Checkout.PriceToConfirm"];
 
     private string DisplayShipping => SelectedOffer is null
         ? T["Checkout.PriceToConfirm"]
         : ShippingDisplay(SelectedOffer);
 
-    private string PrimaryActionText => SelectedOffer?.IsLivePrice == true
+    private string PrimaryActionText => SelectedOffer?.IsLiveValidated == true
         ? T["Checkout.OpenStore"]
         : T["Checkout.ConfirmStorePrice"];
 
-    private string SecurePaymentNote => SelectedOffer?.IsLivePrice == true
+    private string SecurePaymentNote => SelectedOffer?.IsLiveValidated == true
         ? T["Checkout.SecurePayment"]
         : T["Checkout.EstimatedPriceWarning"];
 
     protected override async Task OnParametersSetAsync()
     {
-        Product = await DiscoveryService.FindProductAsync(ResolvedProductSlug, Query);
-        var candidateOffers = await DiscoveryService.GetSellerOffersAsync(CatalogKey, Query);
-        var syntacticallyConfirmedOffers = candidateOffers
+        Product = null;
+        Offers = Array.Empty<SellerOffer>();
+        StoreSearches = Array.Empty<SellerOffer>();
+        SelectedOffer = null;
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            Navigation.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(ReturnUrl)}", forceLoad: true);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(ResolvedProductSlug) && string.IsNullOrWhiteSpace(Query))
+        {
+            Message = T.Pick(
+                "Seleciona um produto antes de abrir o checkout. Esta página não valida lojas sem produto explícito.",
+                "Select a product before opening checkout. This page does not validate stores without an explicit product.");
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(Query))
+        {
+            var snapshot = await LoadSnapshotAsync(userId, Query, RequestId);
+            var snapshotSummary = ResolveSnapshotSummary(snapshot);
+            if (snapshotSummary is not null)
+            {
+                Product = snapshotSummary.Product;
+                Offers = snapshotSummary.Offers;
+                StoreSearches = ComparisonData.GetSuggestedStoreSearches(Product, Query ?? Product.Slug);
+                SelectBestOffer();
+                return;
+            }
+        }
+
+        Product = ComparisonData.FindProduct(ResolvedProductSlug);
+        if (Product is null)
+        {
+            Logger.LogWarning("Checkout requested unknown product {ProductSlug} without a reusable search snapshot.", ResolvedProductSlug);
+            return;
+        }
+
+        var storeCandidates = ComparisonData.GetSellerOffers(Product.Slug)
+            .Take(6)
+            .ToList();
+        StoreSearches = ComparisonData.GetSuggestedStoreSearches(Product, Query ?? Product.Slug);
+        var directCandidates = storeCandidates
             .Where(ComparisonDataService.IsConfirmedStoreOffer)
             .ToList();
-        Offers = await StoreOfferValidator.ValidateConfirmedOffersAsync(Product, syntacticallyConfirmedOffers);
+        var validatedOffers = await StoreOfferValidator.ValidateConfirmedOffersAsync(Product, directCandidates);
+        Offers = MergeValidatedOffersWithStoreCandidates(validatedOffers, storeCandidates);
+        SelectBestOffer();
+    }
+
+    private SearchProductOfferSummary? ResolveSnapshotSummary(SearchExecutionResult? snapshot)
+    {
+        if (snapshot is null || snapshot.ProductOfferSummaries.Count == 0)
+        {
+            return null;
+        }
+
+        if (!string.IsNullOrWhiteSpace(ProductSlug)
+            && snapshot.ProductOfferSummaries.TryGetValue(ProductSlug, out var summary))
+        {
+            return summary;
+        }
+
+        return snapshot.ProductOfferSummaries.Values.FirstOrDefault();
+    }
+
+    private async Task<SearchExecutionResult?> LoadSnapshotAsync(string userId, string query, string? requestId)
+    {
+        if (!string.IsNullOrWhiteSpace(requestId))
+        {
+            var rawKey = SearchOrchestratorService.BuildSearchIdempotencyKey(userId, query, requestId);
+            var storageKey = SearchQuotaService.NormalizeIdempotencyKeyForStorage(rawKey, query);
+            var snapshot = await SnapshotService.GetByIdempotencyKeyAsync(userId, storageKey, query);
+            if (snapshot is not null)
+            {
+                return snapshot;
+            }
+        }
+
+        return await SnapshotService.GetLatestForQueryAsync(userId, query);
+    }
+
+    private static IReadOnlyList<SellerOffer> MergeValidatedOffersWithStoreCandidates(
+        IReadOnlyList<SellerOffer> validatedOffers,
+        IReadOnlyList<SellerOffer> storeCandidates)
+    {
+        var merged = validatedOffers.ToList();
+        foreach (var candidate in storeCandidates)
+        {
+            if (merged.Any(offer => offer.Seller.Equals(candidate.Seller, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+
+            merged.Add(candidate with
+            {
+                Preferred = false,
+                ValidationState = candidate.IsLivePrice
+                    ? OfferPriceValidationState.ValidationFailed
+                    : OfferPriceValidationState.PendingValidation
+            });
+        }
+
+        return merged
+            .OrderByDescending(offer => offer.IsLiveValidated)
+            .ThenByDescending(offer => offer.Preferred)
+            .ThenBy(offer => offer.IsLiveValidated ? offer.PriceCents : long.MaxValue)
+            .ThenByDescending(offer => offer.ReliabilityScore)
+            .Take(6)
+            .ToList();
+    }
+
+    private void SelectBestOffer()
+    {
         SelectedOffer = Offers
-            .OrderByDescending(offer => offer.Preferred)
-            .ThenBy(offer => offer.PriceCents)
+            .OrderByDescending(offer => offer.IsLiveValidated)
+            .ThenByDescending(offer => offer.Preferred)
+            .ThenBy(offer => offer.IsLiveValidated ? offer.PriceCents : long.MaxValue)
             .ThenByDescending(offer => offer.ReliabilityScore)
             .FirstOrDefault();
     }
@@ -265,12 +472,22 @@ else if (SelectedOffer is not null)
 
     private string DisplayPrice(SellerOffer offer)
     {
-        return offer.IsLivePrice ? offer.Price : T["Checkout.PriceToConfirm"];
+        return offer.IsLiveValidated ? offer.Price : T["Checkout.PriceToConfirm"];
     }
 
     private string PriceConfidenceLine(SellerOffer offer)
     {
-        return offer.IsLivePrice ? T["Checkout.LivePriceVerified"] : T["Checkout.EstimatedPriceWarning"];
+        if (offer.IsLiveValidated && offer.ValidatedUtc is not null)
+        {
+            return T.Format("Checkout.LiveValidatedAt", FormatDateTime(offer.ValidatedUtc.Value));
+        }
+
+        return offer.IsLiveValidated ? T["Checkout.LivePriceVerified"] : T["Checkout.EstimatedPriceWarning"];
+    }
+
+    private static string FormatDateTime(DateTime value)
+    {
+        return value.ToLocalTime().ToString("dd/MM/yyyy HH:mm", CultureInfo.CurrentCulture);
     }
 
     private string ShippingDisplay(SellerOffer offer)

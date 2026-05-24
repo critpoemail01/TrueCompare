@@ -3,17 +3,23 @@ using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
 using TrueCompare.Models;
+using TrueCompare.Options;
 
 namespace TrueCompare.Services;
 
 public sealed class StoreOfferValidationService(
     HttpClient httpClient,
     IMemoryCache cache,
-    ILogger<StoreOfferValidationService> logger) : IStoreOfferValidationService
+    StoreValidationLimiter validationLimiter,
+    ILogger<StoreOfferValidationService> logger,
+    IOptions<StoreOfferValidationOptions>? optionsAccessor = null) : IStoreOfferValidationService
 {
     private static readonly TimeSpan ValidCacheDuration = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan InvalidCacheDuration = TimeSpan.FromMinutes(2);
+
+    private readonly StoreOfferValidationOptions options = optionsAccessor?.Value ?? new();
 
     public async Task<IReadOnlyList<SellerOffer>> ValidateConfirmedOffersAsync(
         ProductResult? product,
@@ -25,16 +31,21 @@ public sealed class StoreOfferValidationService(
             return Array.Empty<SellerOffer>();
         }
 
+        var maxOffers = Math.Clamp(options.MaxOffersPerProduct, 1, 12);
         var directOffers = offers
             .Where(ComparisonDataService.IsConfirmedStoreOffer)
+            .OrderBy(offer => offer.PriceCents)
+            .ThenByDescending(offer => offer.ReliabilityScore)
+            .Take(maxOffers)
             .ToList();
         if (directOffers.Count == 0)
         {
             return Array.Empty<SellerOffer>();
         }
 
+        using var semaphore = new SemaphoreSlim(Math.Clamp(options.MaxConcurrentRequests, 1, 8));
         var validations = await Task.WhenAll(
-            directOffers.Select(offer => ValidateOfferAsync(product, offer, cancellationToken)));
+            directOffers.Select(offer => ValidateOfferWithConcurrencyAsync(product, offer, semaphore, cancellationToken)));
 
         var validOffers = validations
             .Where(offer => offer is not null)
@@ -59,6 +70,23 @@ public sealed class StoreOfferValidationService(
             .ToList();
     }
 
+    private async Task<SellerOffer?> ValidateOfferWithConcurrencyAsync(
+        ProductResult product,
+        SellerOffer offer,
+        SemaphoreSlim semaphore,
+        CancellationToken cancellationToken)
+    {
+        await semaphore.WaitAsync(cancellationToken);
+        try
+        {
+            return await ValidateOfferAsync(product, offer, cancellationToken);
+        }
+        finally
+        {
+            semaphore.Release();
+        }
+    }
+
     private async Task<SellerOffer?> ValidateOfferAsync(
         ProductResult product,
         SellerOffer offer,
@@ -80,74 +108,158 @@ public sealed class StoreOfferValidationService(
         SellerOffer offer,
         CancellationToken cancellationToken)
     {
+        Uri? offerUri = null;
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, offer.Url);
-            request.Headers.UserAgent.ParseAdd("Mozilla/5.0 TrueCompare/1.0");
-            request.Headers.AcceptLanguage.ParseAdd("pt-PT,pt;q=0.9,en;q=0.8");
-
-            using var response = await httpClient.SendAsync(
-                request,
-                HttpCompletionOption.ResponseHeadersRead,
-                cancellationToken);
-
-            if (!response.IsSuccessStatusCode)
+            if (!Uri.TryCreate(offer.Url, UriKind.Absolute, out offerUri))
             {
                 logger.LogWarning(
-                    "Store offer rejected {Seller} for {ProductSlug}: HTTP {StatusCode}.",
+                    "Store offer rejected {Seller} for {ProductSlug}: URL is not absolute. Url={Url}",
                     offer.Seller,
                     product.Slug,
-                    (int)response.StatusCode);
+                    offer.Url);
                 return OfferValidationResult.Invalid;
             }
 
-            var finalUrl = response.RequestMessage?.RequestUri?.ToString() ?? offer.Url;
-            if (!ComparisonDataService.HasDirectProductUrl(finalUrl))
+            if (!IsSafeStoreUri(offerUri))
             {
                 logger.LogWarning(
-                    "Store offer rejected {Seller} for {ProductSlug}: final URL is not a direct product page. FinalUrl={FinalUrl}",
+                    "Store offer rejected {Seller} for {ProductSlug}: URL host or scheme is not allowed. Url={Url}",
                     offer.Seller,
                     product.Slug,
-                    finalUrl);
+                    offer.Url);
                 return OfferValidationResult.Invalid;
             }
 
-            var content = await response.Content.ReadAsStringAsync(cancellationToken);
-            if (!ContainsRequiredProductTerms(product, content))
+            var lease = await validationLimiter.TryAcquireAsync(offerUri, cancellationToken);
+            if (lease is null)
             {
                 logger.LogWarning(
-                    "Store offer rejected {Seller} for {ProductSlug}: product terms were not found on the page. FinalUrl={FinalUrl}",
+                    "Store offer validation skipped for {Seller} and {ProductSlug}: domain backoff is active.",
                     offer.Seller,
-                    product.Slug,
-                    finalUrl);
+                    product.Slug);
                 return OfferValidationResult.Invalid;
             }
 
-            var currentPriceCents = TryExtractCurrentProductPriceCents(content);
-            if (currentPriceCents is > 0)
+            using (lease)
+            using (var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
             {
+                timeout.CancelAfter(TimeSpan.FromSeconds(Math.Clamp(options.RequestTimeoutSeconds, 2, 30)));
+
+                using var request = BuildValidationRequest(offerUri);
+                using var response = await httpClient.SendAsync(
+                    request,
+                    HttpCompletionOption.ResponseHeadersRead,
+                    timeout.Token);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    validationLimiter.RecordDomainFailure(offerUri);
+                    logger.LogWarning(
+                        "Store offer rejected {Seller} for {ProductSlug}: HTTP {StatusCode}.",
+                        offer.Seller,
+                        product.Slug,
+                        (int)response.StatusCode);
+                    return OfferValidationResult.Invalid;
+                }
+
+                validationLimiter.RecordDomainSuccess(offerUri);
+
+                var maxResponseBytes = Math.Clamp(options.MaxResponseBytes, 32_768, 2_000_000);
+                if (response.Content.Headers.ContentLength.HasValue
+                    && response.Content.Headers.ContentLength.Value > maxResponseBytes)
+                {
+                    logger.LogWarning(
+                        "Store offer rejected {Seller} for {ProductSlug}: response was too large ({ContentLength} bytes).",
+                        offer.Seller,
+                        product.Slug,
+                        response.Content.Headers.ContentLength);
+                    return OfferValidationResult.Invalid;
+                }
+
+                var finalUri = response.RequestMessage?.RequestUri ?? offerUri;
+                if (!IsExpectedFinalStoreUri(offerUri, finalUri))
+                {
+                    logger.LogWarning(
+                        "Store offer rejected {Seller} for {ProductSlug}: final URL host changed unexpectedly. InitialHost={InitialHost} FinalHost={FinalHost}",
+                        offer.Seller,
+                        product.Slug,
+                        offerUri.Host,
+                        finalUri.Host);
+                    return OfferValidationResult.Invalid;
+                }
+
+                var finalUrl = finalUri.ToString();
+                if (!ComparisonDataService.HasDirectProductUrl(finalUrl))
+                {
+                    logger.LogWarning(
+                        "Store offer rejected {Seller} for {ProductSlug}: final URL is not a direct product page. FinalUrl={FinalUrl}",
+                        offer.Seller,
+                        product.Slug,
+                        finalUrl);
+                    return OfferValidationResult.Invalid;
+                }
+
+                var content = await ReadLimitedContentAsync(response, timeout.Token);
+                if (content.Length == 0)
+                {
+                    logger.LogWarning(
+                        "Store offer rejected {Seller} for {ProductSlug}: response body was empty.",
+                        offer.Seller,
+                        product.Slug);
+                    return OfferValidationResult.Invalid;
+                }
+
+                if (!ContainsRequiredProductTerms(product, content))
+                {
+                    logger.LogWarning(
+                        "Store offer rejected {Seller} for {ProductSlug}: product terms were not found on the page. FinalUrl={FinalUrl}",
+                        offer.Seller,
+                        product.Slug,
+                        finalUrl);
+                    return OfferValidationResult.Invalid;
+                }
+
+                var validatedUtc = DateTime.UtcNow;
+                var currentPriceCents = TryExtractCurrentProductPriceCents(content);
+                if (currentPriceCents is > 0)
+                {
+                    return new OfferValidationResult(true, offer with
+                    {
+                        Price = FormatCurrency(currentPriceCents.Value),
+                        PriceCents = currentPriceCents.Value,
+                        IsLivePrice = true,
+                        ValidationState = OfferPriceValidationState.LiveValidated,
+                        ValidatedUtc = validatedUtc
+                    });
+                }
+
+                if (!ContainsExpectedPrice(content, offer.PriceCents))
+                {
+                    logger.LogWarning(
+                        "Store offer rejected {Seller} for {ProductSlug}: expected price {PriceCents} was not found. FinalUrl={FinalUrl}",
+                        offer.Seller,
+                        product.Slug,
+                        offer.PriceCents,
+                        finalUrl);
+                    return OfferValidationResult.Invalid;
+                }
+
                 return new OfferValidationResult(true, offer with
                 {
-                    Price = FormatCurrency(currentPriceCents.Value),
-                    PriceCents = currentPriceCents.Value
+                    IsLivePrice = true,
+                    ValidationState = OfferPriceValidationState.LiveValidated,
+                    ValidatedUtc = validatedUtc
                 });
             }
-
-            if (!ContainsExpectedPrice(content, offer.PriceCents))
-            {
-                logger.LogWarning(
-                    "Store offer rejected {Seller} for {ProductSlug}: expected price {PriceCents} was not found. FinalUrl={FinalUrl}",
-                    offer.Seller,
-                    product.Slug,
-                    offer.PriceCents,
-                    finalUrl);
-                return OfferValidationResult.Invalid;
-            }
-
-            return new OfferValidationResult(true, offer);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
+            if (offerUri is not null)
+            {
+                validationLimiter.RecordDomainFailure(offerUri);
+            }
+
             logger.LogWarning(
                 "Store offer validation timed out for {Seller} and {ProductSlug}.",
                 offer.Seller,
@@ -156,6 +268,11 @@ public sealed class StoreOfferValidationService(
         }
         catch (Exception ex)
         {
+            if (offerUri is not null)
+            {
+                validationLimiter.RecordDomainFailure(offerUri);
+            }
+
             logger.LogWarning(
                 ex,
                 "Store offer validation failed for {Seller} and {ProductSlug}.",
@@ -163,6 +280,91 @@ public sealed class StoreOfferValidationService(
                 product.Slug);
             return OfferValidationResult.Invalid;
         }
+    }
+
+    private static HttpRequestMessage BuildValidationRequest(Uri url)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.UserAgent.ParseAdd("Mozilla/5.0 TrueCompare/1.0");
+        request.Headers.AcceptLanguage.ParseAdd("pt-PT,pt;q=0.9,en;q=0.8");
+        return request;
+    }
+
+    private static bool IsSafeStoreUri(Uri uri)
+    {
+        if (!uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+            && !uri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (uri.IsLoopback || uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return !IPAddress.TryParse(uri.Host, out var address) || !IsPrivateOrLocalAddress(address);
+    }
+
+    private static bool IsExpectedFinalStoreUri(Uri originalUri, Uri finalUri)
+    {
+        return IsSafeStoreUri(finalUri)
+            && NormalizeHost(originalUri.Host).Equals(NormalizeHost(finalUri.Host), StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string NormalizeHost(string host)
+    {
+        return host.StartsWith("www.", StringComparison.OrdinalIgnoreCase) ? host[4..] : host;
+    }
+
+    private static bool IsPrivateOrLocalAddress(IPAddress address)
+    {
+        if (IPAddress.IsLoopback(address))
+        {
+            return true;
+        }
+
+        if (address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork)
+        {
+            var ipv6Bytes = address.GetAddressBytes();
+            return address.IsIPv6LinkLocal
+                || address.IsIPv6SiteLocal
+                || (ipv6Bytes.Length > 0 && (ipv6Bytes[0] == 0xFC || ipv6Bytes[0] == 0xFD));
+        }
+
+        var bytes = address.GetAddressBytes();
+        return bytes[0] == 10
+            || (bytes[0] == 172 && bytes[1] is >= 16 and <= 31)
+            || (bytes[0] == 192 && bytes[1] == 168)
+            || (bytes[0] == 169 && bytes[1] == 254);
+    }
+
+    private async Task<string> ReadLimitedContentAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        var maxBytes = Math.Clamp(options.MaxResponseBytes, 32_768, 2_000_000);
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        using var memoryStream = new MemoryStream(capacity: Math.Min(maxBytes, 64 * 1024));
+        var buffer = new byte[8192];
+        var totalBytes = 0;
+
+        while (true)
+        {
+            var bytesRead = await stream.ReadAsync(buffer, cancellationToken);
+            if (bytesRead == 0)
+            {
+                break;
+            }
+
+            totalBytes += bytesRead;
+            if (totalBytes > maxBytes)
+            {
+                throw new InvalidOperationException($"Store response exceeded the configured {maxBytes} byte limit.");
+            }
+
+            memoryStream.Write(buffer, 0, bytesRead);
+        }
+
+        return Encoding.UTF8.GetString(memoryStream.ToArray());
     }
 
     private static long? TryExtractCurrentProductPriceCents(string content)

@@ -18,6 +18,8 @@ public sealed class ApplicationUser : IdentityUser
 
     public string? StripeSubscriptionId { get; set; }
 
+    public string? StripeCustomerId { get; set; }
+
     public DateTime? SubscriptionActiveUntilUtc { get; set; }
 
     public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;

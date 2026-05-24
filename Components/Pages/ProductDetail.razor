@@ -1,5 +1,9 @@
 @page "/product/{Slug}"
-@inject IProductDiscoveryService DiscoveryService
+@using System.Security.Claims
+@inject ComparisonDataService ComparisonData
+@inject SearchResultSnapshotService SnapshotService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
 @inject AppText T
 
 <PageTitle>@T["Product.PageTitle"]</PageTitle>
@@ -8,7 +12,7 @@
 {
     <section class="empty-state">
         <h1>@T["Product.NotFound"]</h1>
-        <a class="primary-button" href="results">@T["Product.Results"]</a>
+        <a class="primary-button" href="/">@T["Product.Results"]</a>
     </section>
 }
 else
@@ -46,6 +50,22 @@ else
             <h2>@T["Product.AiAnalysis"]</h2>
             <p>@Product.AiSummary</p>
         </section>
+
+        @if (StoreSearches.Count > 0)
+        {
+            <section class="analysis-panel flat product-store-suggestions-panel">
+                <h2>@T["Product.SuggestedStores"]</h2>
+                <p>@T["Product.SuggestedStoresLead"]</p>
+                <div class="store-suggestion-list">
+                    @foreach (var store in StoreSearches)
+                    {
+                        <a class="secondary-button compact" href="@store.Url" target="_blank" rel="noopener noreferrer">
+                            @T.Format("Product.SearchStore", store.Seller)
+                        </a>
+                    }
+                </div>
+            </section>
+        }
 
         @if (Product.LifecycleInfo is not null)
         {
@@ -135,6 +155,7 @@ else
 
 }
 
+
 @code {
     [Parameter]
     public string? Slug { get; set; }
@@ -142,20 +163,125 @@ else
     [SupplyParameterFromQuery]
     public string? Query { get; set; }
 
+    [SupplyParameterFromQuery(Name = "requestId")]
+    public string? RequestId { get; set; }
+
     private ProductResult? Product { get; set; }
 
-    private string ResultsUrl => string.IsNullOrWhiteSpace(Query)
-        ? "/results"
-        : $"/results?query={Uri.EscapeDataString(Query)}";
+    private IReadOnlyList<SellerOffer> StoreSearches { get; set; } = Array.Empty<SellerOffer>();
 
-    private string CheckoutUrl => Product is null
-        ? "/checkout"
-        : string.IsNullOrWhiteSpace(Query)
-            ? $"/checkout?product={Uri.EscapeDataString(Product.Slug)}"
-            : $"/checkout?product={Uri.EscapeDataString(Product.Slug)}&query={Uri.EscapeDataString(Query)}";
+    private string ResultsUrl
+    {
+        get
+        {
+            var url = string.IsNullOrWhiteSpace(Query)
+                ? "/"
+                : $"/results?query={Uri.EscapeDataString(Query)}";
+
+            if (!string.IsNullOrWhiteSpace(RequestId) && !url.Equals("/", StringComparison.Ordinal))
+            {
+                url += url.Contains('?') ? "&" : "?";
+                url += $"requestId={Uri.EscapeDataString(RequestId)}";
+            }
+
+            return url;
+        }
+    }
+
+    private string CheckoutUrl
+    {
+        get
+        {
+            if (Product is null)
+            {
+                return "/checkout";
+            }
+
+            var url = $"/checkout?product={Uri.EscapeDataString(Product.Slug)}";
+            if (!string.IsNullOrWhiteSpace(Query))
+            {
+                url += $"&query={Uri.EscapeDataString(Query)}";
+            }
+
+            if (!string.IsNullOrWhiteSpace(RequestId))
+            {
+                url += $"&requestId={Uri.EscapeDataString(RequestId)}";
+            }
+
+            return url;
+        }
+    }
 
     protected override async Task OnParametersSetAsync()
     {
-        Product = await DiscoveryService.FindProductAsync(Slug, Query);
+        Product = null;
+        StoreSearches = Array.Empty<SellerOffer>();
+        if (string.IsNullOrWhiteSpace(Slug))
+        {
+            return;
+        }
+
+        var localProduct = ComparisonData.FindProduct(Slug);
+        if (string.IsNullOrWhiteSpace(Query) && string.IsNullOrWhiteSpace(RequestId))
+        {
+            SetProduct(localProduct);
+            return;
+        }
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!string.IsNullOrWhiteSpace(userId) && !string.IsNullOrWhiteSpace(Query))
+        {
+            var snapshot = await LoadSnapshotAsync(userId, Query, RequestId);
+            SetProduct(snapshot?.Products.FirstOrDefault(product => product.Slug.Equals(Slug, StringComparison.OrdinalIgnoreCase)));
+            if (Product is not null)
+            {
+                return;
+            }
+        }
+
+        SetProduct(ResolveLocalProductFromQuery(localProduct));
+    }
+
+    private void SetProduct(ProductResult? product)
+    {
+        Product = product;
+        StoreSearches = product is null
+            ? Array.Empty<SellerOffer>()
+            : ComparisonData.GetSuggestedStoreSearches(product, Query ?? product.Slug, 4);
+    }
+
+    private ProductResult? ResolveLocalProductFromQuery(ProductResult? localProduct)
+    {
+        if (string.IsNullOrWhiteSpace(Query))
+        {
+            return localProduct;
+        }
+
+        var queryProducts = ComparisonData.GetProducts(Query);
+        if (queryProducts.Count == 0)
+        {
+            return localProduct;
+        }
+
+        return queryProducts.FirstOrDefault(product => product.Slug.Equals(Slug, StringComparison.OrdinalIgnoreCase))
+            ?? queryProducts.FirstOrDefault()
+            ?? localProduct;
+    }
+
+    private async Task<SearchExecutionResult?> LoadSnapshotAsync(string userId, string query, string? requestId)
+    {
+        if (!string.IsNullOrWhiteSpace(requestId))
+        {
+            var rawKey = SearchOrchestratorService.BuildSearchIdempotencyKey(userId, query, requestId);
+            var storageKey = SearchQuotaService.NormalizeIdempotencyKeyForStorage(rawKey, query);
+            var snapshot = await SnapshotService.GetByIdempotencyKeyAsync(userId, storageKey, query);
+            if (snapshot is not null)
+            {
+                return snapshot;
+            }
+        }
+
+        return await SnapshotService.GetLatestForQueryAsync(userId, query);
     }
 }

@@ -45,6 +45,7 @@ else
                     </div>
                     <h2>@alert.ProductName</h2>
                     <p>@T.Format("Alerts.CurrentSeller", alert.LastSeenSeller ?? T["Alerts.NoSeller"])</p>
+                    <p class="muted-label">@ValidationText(alert)</p>
 
                     <div class="alert-progress" aria-label='@T["Alerts.Progress"]'>
                         <span style="@ProgressStyle(alert)"></span>
@@ -103,6 +104,22 @@ else
     private static string FormatDate(DateTime value)
     {
         return value.ToLocalTime().ToString("dd/MM/yyyy HH:mm", System.Globalization.CultureInfo.CurrentCulture);
+    }
+
+    private string ValidationText(PriceAlertListItem alert)
+    {
+        if (string.Equals(alert.LastValidationState, "LiveValidated", StringComparison.OrdinalIgnoreCase)
+            && alert.LastValidatedUtc is not null)
+        {
+            return T.Format("Alerts.LiveValidatedAt", FormatDate(alert.LastValidatedUtc.Value));
+        }
+
+        if (string.Equals(alert.LastValidationState, "ValidationFailed", StringComparison.OrdinalIgnoreCase))
+        {
+            return T["Alerts.ValidationFailed"];
+        }
+
+        return T["Alerts.ValidationPending"];
     }
 
     private string DifferenceText(PriceAlertListItem alert)

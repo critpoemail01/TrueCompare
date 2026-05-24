@@ -56,7 +56,46 @@ public sealed class LlmProductDiscoveryServiceTests
         Assert.Contains("Provider A", result.SourceLabel);
         Assert.Contains(result.Products, product => product.Name == "Blue Snowball iCE");
         Assert.DoesNotContain(result.Products, product => product.Name == "MacBook Air M3");
-        Assert.Empty(result.Offers);
+        Assert.NotEmpty(result.Offers);
+        Assert.Contains(result.Offers, offer => offer.Seller is "KuantoKusta" or "Worten" or "FNAC" or "PcComponentes");
+    }
+
+
+    [Fact]
+    public async Task DiscoverAsync_BuildsSpecializedStoreSearches_WhenLlmOmitsOffers()
+    {
+        var assistantJson = """
+            {
+              "category": "Microfones USB",
+              "confidence": 88,
+              "products": [
+                {
+                  "name": "Blue Snowball iCE",
+                  "brand": "Logitech",
+                  "price": "54,99 €",
+                  "priceCents": 5499,
+                  "score": 86,
+                  "badge": "Melhor valor",
+                  "specs": ["Microfone USB", "Cardioide", "Podcast", "Garantia 2 anos"],
+                  "highlights": ["Dentro do orçamento", "Boa voz", "Facil de encontrar"],
+                  "verificationChecks": ["Produto real", "Vendedor oficial a validar"],
+                  "summary": "Bom microfone USB para podcast dentro do orçamento.",
+                  "warnings": [],
+                  "sellerOffers": []
+                }
+              ]
+            }
+            """;
+        var handler = FakeHttpMessageHandler.ReturningJson(WrapOpenAiResponse(assistantJson));
+        var service = CreateService(handler);
+
+        var result = await service.DiscoverAsync("quero um microfone usb para podcast ate 100 euros");
+
+        Assert.True(result.FromLlm);
+        Assert.Contains(result.Products, product => product.Name == "Blue Snowball iCE");
+        Assert.NotEmpty(result.Offers);
+        Assert.Contains(result.Offers.Take(4), offer => offer.Seller is "Worten" or "FNAC" or "PcComponentes" or "Globaldata");
+        Assert.DoesNotContain(result.Offers.Take(3), offer => offer.Seller == "Tiendanimal");
     }
 
     [Fact]

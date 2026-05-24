@@ -155,9 +155,12 @@ public sealed partial class LlmProductDiscoveryService(
         string? originalQuery = null,
         CancellationToken cancellationToken = default)
     {
-        if (!string.IsNullOrWhiteSpace(queryOrSlug) && data.FindProduct(queryOrSlug) is not null)
+        var localProductForStores = !string.IsNullOrWhiteSpace(queryOrSlug)
+            ? data.FindProduct(queryOrSlug)
+            : null;
+        if (localProductForStores is not null)
         {
-            return data.GetSellerOffers(queryOrSlug);
+            return data.BuildSellerOffersForProduct(localProductForStores, originalQuery ?? queryOrSlug);
         }
 
         if (!string.IsNullOrWhiteSpace(queryOrSlug)
@@ -183,9 +186,29 @@ public sealed partial class LlmProductDiscoveryService(
             return cachedOffers;
         }
 
-        return discovery.Offers.Count > 0
-            ? discovery.Offers
-            : data.GetSellerOffers(null);
+        if (discovery.Offers.Count > 0)
+        {
+            return discovery.Offers;
+        }
+
+        var productForStores = discovery.Products
+            .FirstOrDefault(product => !string.IsNullOrWhiteSpace(queryOrSlug)
+                && product.Slug.Equals(queryOrSlug, StringComparison.OrdinalIgnoreCase))
+            ?? discovery.Products.FirstOrDefault()
+            ?? data.GetProducts(query).FirstOrDefault();
+
+        if (productForStores is null)
+        {
+            return Array.Empty<SellerOffer>();
+        }
+
+        var generatedStoreSearches = data.BuildSellerOffersForProduct(productForStores, query);
+        if (!string.IsNullOrWhiteSpace(queryOrSlug) && generatedStoreSearches.Count > 0)
+        {
+            cache.Set(OffersCacheKey(queryOrSlug), generatedStoreSearches, TimeSpan.FromMinutes(30));
+        }
+
+        return generatedStoreSearches;
     }
 
     private string BuildRequestJson(LlmProviderOptions provider, string query, long? maxBudgetCents)
@@ -203,17 +226,19 @@ public sealed partial class LlmProductDiscoveryService(
                     role = "system",
                     content = """
                     Es o motor de descoberta de produtos da TrueCompare. Responde apenas JSON valido, sem markdown.
-                    Tens de sugerir produtos reais que correspondem diretamente ao pedido. Nao uses o catalogo de portateis por defeito.
+                    Tens de sugerir produtos reais, identificaveis por marca e modelo, que correspondem diretamente ao pedido. Nao uses o catalogo de portateis por defeito.
+                    Devolve uma lista curta e util: idealmente 3 produtos, no minimo 2 e no maximo 4. Se o pedido for um modelo exato, devolve apenas variantes realmente compatíveis desse modelo.
                     Se o pedido for rato, devolve ratos. Se for cadeira, devolve cadeiras. Se for ferramenta, devolve ferramentas. Se for carregador ou cabo de iPhone, devolve carregadores ou cabos, nao telemoveis.
-                    Considera categorias comuns de comparadores portugueses como informatica, smartphones, imagem e som, gaming, electrodomesticos, bricolage, auto, animais, puericultura, casa e escritorio.
-                    A categoria principal do pedido e obrigatoria: cadeira nao pode devolver mesa/escrivaninha, rato nao pode devolver portatil.
-                    Se houver orcamento maximo, todos os produtos devem ficar dentro desse orcamento.
+                    Considera categorias comuns de comparadores portugueses como informatica, smartphones, imagem e som, gaming, electrodomesticos, bricolage, auto, animais, puericultura, casa, escritorio, desporto e saude/beleza.
+                    A categoria principal do pedido e obrigatoria: cadeira nao pode devolver mesa/escrivaninha, rato nao pode devolver portatil, pneu nao pode devolver bicicleta, racao nao pode devolver fraldas.
+                    Se houver orcamento maximo, todos os produtos devem ficar dentro desse orcamento. Nao forces uma recomendacao se so existirem opcoes acima do limite.
+                    Ordena por utilidade real para o pedido: 1) correspondencia de categoria/modelo, 2) adequacao ao uso descrito, 3) preco plausivel, 4) garantia/baixo risco, 5) diversidade de marcas.
                     Usa precos aproximados e publicamente plausiveis; nao afirmes stock real nem disponibilidade em tempo real.
-                    Nao cries URLs de pesquisa nem links de loja. A aplicacao so mostra lojas validadas fora da resposta do LLM.
+                    Nao cries URLs de pesquisa nem links de loja. A aplicacao so mostra lojas validadas ou pesquisas externas selecionadas fora da resposta do LLM.
                     O JSON deve ter: category, confidence, products.
-                    products deve ter exatamente 1 item com: name, brand, price, priceCents, score, badge, specs, highlights, verificationChecks, summary, warnings.
+                    products deve ter 2 a 4 itens com: name, brand, price, priceCents, score, badge, specs, highlights, verificationChecks, summary, warnings.
                     Mantem specs, highlights, verificationChecks e warnings curtos. Nao preenchas sellerOffers; usa sellerOffers: [].
-                    Se nao conseguires sugerir produtos reais e compatveis, devolve products: [].
+                    Se nao conseguires sugerir produtos reais e compativeis, devolve products: [].
                     """
                 },
                 new
@@ -228,7 +253,11 @@ public sealed partial class LlmProductDiscoveryService(
                         {
                             mustMatchQuery = true,
                             rejectWrongCategory = true,
-                            rejectAboveBudget = maxBudgetCents.HasValue
+                            rejectAboveBudget = maxBudgetCents.HasValue,
+                            minProductsWhenPossible = 2,
+                            maxProducts = 4,
+                            preferRealModelsOverGenericDescriptions = true,
+                            avoidStoreLinks = true
                         }
                     }, JsonOptions)
                 }
@@ -252,6 +281,8 @@ public sealed partial class LlmProductDiscoveryService(
             .Select(product => data.EnrichProduct(product, query))
             .GroupBy(product => product.Slug, StringComparer.OrdinalIgnoreCase)
             .Select(group => group.First())
+            .OrderByDescending(product => ScoreGeneratedProduct(product, query, maxBudgetCents))
+            .ThenByDescending(product => product.Score)
             .Take(4)
             .Select((product, index) => product with { Rank = index + 1, Accent = AccentPalette[index % AccentPalette.Length] })
             .ToList();
@@ -261,6 +292,11 @@ public sealed partial class LlmProductDiscoveryService(
         {
             var sourceProduct = Clean(payload?.Products).ElementAtOrDefault(index);
             var offers = NormalizeOffers(sourceProduct?.SellerOffers, products[index]);
+            if (offers.Count == 0)
+            {
+                offers = data.BuildSellerOffersForProduct(products[index], query);
+            }
+
             offersBySlug[products[index].Slug] = offers;
             cache.Set(OffersCacheKey(products[index].Slug), offers, TimeSpan.FromMinutes(30));
             cache.Set(ProductCacheKey(products[index].Slug), products[index], TimeSpan.FromMinutes(30));
@@ -394,11 +430,23 @@ public sealed partial class LlmProductDiscoveryService(
                 CreateFallbackProduct("songmics-obg22b", "SONGMICS OBG22B", "SONGMICS", 8999, "Mais confortavel", "Cadeira escritorio", "Apoio lombar"),
                 CreateFallbackProduct("vinsetto-cadeira-escritorio", "Vinsetto Cadeira de Escritorio", "Vinsetto", 9499, "Boa ergonomia", "Cadeira escritorio", "Bracos ajustaveis")
             },
+            "mesa" or "desk" => new[]
+            {
+                CreateFallbackProduct("ikea-lagkapten-adils", "IKEA LAGKAPTEN / ADILS", "IKEA", Math.Min(budget, 3999), "Home office económico", "Mesa escritorio", "120x60 cm"),
+                CreateFallbackProduct("flexispot-e7", "FlexiSpot E7", "FlexiSpot", Math.Min(budget, 34900), "Altura ajustável", "Secretária elevatória", "Motor duplo"),
+                CreateFallbackProduct("homcom-mesa-escritorio", "HOMCOM Mesa de Escritório", "HOMCOM", Math.Min(budget, 7999), "Boa relação valor", "Mesa escritorio", "Arrumação lateral")
+            },
             "teclado" or "keyboard" => new[]
             {
                 CreateFallbackProduct("logitech-k380", "Logitech K380", "Logitech", Math.Min(budget, 4499), "Melhor compacto", "Teclado bluetooth", "Multi-dispositivo"),
                 CreateFallbackProduct("keychron-c3-pro", "Keychron C3 Pro", "Keychron", Math.Min(budget, 6999), "Mecanico", "Teclado mecanico", "USB-C"),
                 CreateFallbackProduct("logitech-k120", "Logitech K120", "Logitech", Math.Min(budget, 1499), "Mais barato", "Teclado com fio", "Layout PT")
+            },
+            "microfone" or "microfones" or "microphone" or "microphones" => new[]
+            {
+                CreateFallbackProduct("blue-snowball-ice", "Blue Snowball iCE", "Logitech", Math.Min(budget, 5499), "Melhor valor", "Microfone USB", "Podcast e chamadas"),
+                CreateFallbackProduct("rode-nt-usb-mini", "Rode NT-USB Mini", "Rode", Math.Min(budget, 8900), "Voz compacta", "Microfone USB", "Cardioide"),
+                CreateFallbackProduct("hyperx-solocast", "HyperX SoloCast", "HyperX", Math.Min(budget, 5999), "Streaming económico", "Microfone USB", "Tap-to-mute")
             },
             "carregador" or "carregadores" or "charger" or "chargers" or "adaptador" or "cabo" or "lightning" or "magsafe" or "powerbank" => new[]
             {
@@ -472,17 +520,7 @@ public sealed partial class LlmProductDiscoveryService(
                 CreateFallbackProduct("xiaomi-electric-scooter-4", "Xiaomi Electric Scooter 4", "Xiaomi", Math.Min(budget, 44900), "Mobilidade urbana", "Trotinete eletrica", "Autonomia urbana"),
                 CreateFallbackProduct("garmin-forerunner-255", "Garmin Forerunner 255", "Garmin", Math.Min(budget, 24900), "Desporto conectado", "Relogio desportivo", "GPS")
             },
-            _ => new[]
-            {
-                CreateFallbackProduct(
-                    $"{primaryTerm}-pesquisa-validada",
-                    $"{ToDisplayName(primaryTerm)} recomendado",
-                    "TrueCompare",
-                    Math.Min(budget, 9999),
-                    "Pesquisa validada",
-                    ToDisplayName(primaryTerm),
-                    "Confirmar modelo")
-            }
+            _ => Array.Empty<ProductResult>()
         };
     }
 
@@ -521,7 +559,7 @@ public sealed partial class LlmProductDiscoveryService(
     private IReadOnlyList<SellerOffer> BuildDefaultOffers(ProductResult product)
     {
         return data.BuildSellerOffersForProduct(product)
-            .Where(ComparisonDataService.IsConfirmedStoreOffer)
+            .Take(6)
             .ToList();
     }
 
@@ -570,6 +608,46 @@ public sealed partial class LlmProductDiscoveryService(
             CleanText(product.Summary));
     }
 
+    private static int ScoreGeneratedProduct(ProductResult product, string query, long? maxBudgetCents)
+    {
+        var productText = NormalizeText(string.Join(' ', new[]
+        {
+            product.Name,
+            product.Brand,
+            product.Badge,
+            product.AiSummary,
+            string.Join(' ', product.Specs),
+            string.Join(' ', product.Highlights)
+        }));
+        var terms = ExtractMeaningfulTerms(query).ToList();
+        var score = product.Score;
+
+        foreach (var term in terms)
+        {
+            var expandedMatches = ExpandTerm(term)
+                .Any(expanded => productText.Contains(expanded, StringComparison.OrdinalIgnoreCase));
+            if (expandedMatches)
+            {
+                score += IsProductNounTerm(term) ? 18 : 8;
+            }
+        }
+
+        if (maxBudgetCents.HasValue)
+        {
+            var priceCents = ParsePriceCents(product.Price);
+            if (priceCents > 0 && priceCents <= maxBudgetCents.Value)
+            {
+                score += 12;
+                if (priceCents <= maxBudgetCents.Value * 0.85m)
+                {
+                    score += 6;
+                }
+            }
+        }
+
+        return score;
+    }
+
     private static bool IsRelevantProduct(ProductResult product, string query, long? maxBudgetCents)
     {
         var priceCents = ParsePriceCents(product.Price);
@@ -601,6 +679,16 @@ public sealed partial class LlmProductDiscoveryService(
             string.Join(' ', product.Specs),
             string.Join(' ', product.Highlights)
         }));
+
+        if (LooksLikePhoneQuery(query) && !LooksLikeAccessoryQuery(query) && !LooksLikePhoneProduct(identityText))
+        {
+            return false;
+        }
+
+        if (LooksLikeLaptopQuery(query) && !LooksLikeLaptopProduct(identityText))
+        {
+            return false;
+        }
 
         var primaryProductTerms = terms.Where(IsProductNounTerm).ToList();
         if (primaryProductTerms.Count > 0)
@@ -686,6 +774,7 @@ public sealed partial class LlmProductDiscoveryService(
             "monitor" or "ecra" or "ecran" or "display" => new[] { "monitor", "display", "ecra", "ecran" },
             "auscultadores" or "headphones" or "auriculares" => new[] { "auscultadores", "headphones", "auriculares" },
             "camara" or "camera" => new[] { "camara", "camera" },
+            "microfone" or "microfones" or "microphone" or "microphones" => new[] { "microfone", "microphone", "usb", "podcast", "streaming" },
             "frigorifico" or "fridge" => new[] { "frigorifico", "fridge", "combinado" },
             "tablet" or "tablets" or "tablete" or "tabela" => new[] { "tablet", "touch", "rugged", "industrial" },
             "rugged" or "robusto" or "todoterreno" or "industrial" or "fabrica" => new[] { "rugged", "industrial", "ip66", "ip68", "mil-std" },
@@ -702,6 +791,34 @@ public sealed partial class LlmProductDiscoveryService(
         {
             yield return expanded;
         }
+    }
+
+    private static bool LooksLikePhoneQuery(string query)
+    {
+        var normalized = NormalizeText(query);
+        return ContainsAny(normalized, "iphone", "galaxy", "pixel", "smartphone", "telemovel", "telemoveis", "telefone");
+    }
+
+    private static bool LooksLikeAccessoryQuery(string query)
+    {
+        var normalized = NormalizeText(query);
+        return ContainsAny(normalized, "carregador", "charger", "cabo", "adaptador", "magsafe", "lightning", "powerbank", "capa", "pelicula", "pelicula");
+    }
+
+    private static bool LooksLikePhoneProduct(string identityText)
+    {
+        return ContainsAny(identityText, "smartphone", "telemovel", "telefone", "iphone", "galaxy s", "galaxy a", "pixel", "redmi", "poco");
+    }
+
+    private static bool LooksLikeLaptopQuery(string query)
+    {
+        var normalized = NormalizeText(query);
+        return ContainsAny(normalized, "portatil", "laptop", "notebook", "macbook", "thinkpad", "vivobook", "zenbook");
+    }
+
+    private static bool LooksLikeLaptopProduct(string identityText)
+    {
+        return ContainsAny(identityText, "portatil", "laptop", "notebook", "macbook", "thinkpad", "vivobook", "zenbook", "computador");
     }
 
     private static bool IsDescriptorTerm(string term)
@@ -721,7 +838,7 @@ public sealed partial class LlmProductDiscoveryService(
             or "display" or "auscultadores" or "headphones" or "auriculares" or "camara"
             or "camera" or "frigorifico" or "fridge" or "tablet" or "tablets" or "tablete" or "tabela"
             or "bicicleta" or "bike" or "berbequim" or "drill" or "aparafusadora"
-            or "impressora" or "printer" or "microfone" or "microphone" or "disco" or "hdd"
+            or "impressora" or "printer" or "microfone" or "microfones" or "microphone" or "microphones" or "disco" or "hdd"
             or "ssd" or "armazenamento" or "televisor" or "televisao" or "tv" or "cafe"
             or "espresso" or "pneu" or "pneus" or "tyre" or "tyres" or "racao"
             or "cao" or "gato" or "fralda" or "fraldas" or "bebe" or "baby";

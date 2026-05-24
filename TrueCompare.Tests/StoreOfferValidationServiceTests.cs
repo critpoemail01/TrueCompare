@@ -2,7 +2,9 @@ using System.Globalization;
 using System.Net;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using TrueCompare.Models;
+using TrueCompare.Options;
 using TrueCompare.Services;
 using TrueCompare.Tests.Support;
 
@@ -126,9 +128,16 @@ public sealed class StoreOfferValidationServiceTests
 
     private static StoreOfferValidationService CreateService(FakeHttpMessageHandler handler, IMemoryCache cache)
     {
+        var limiter = new StoreValidationLimiter(Microsoft.Extensions.Options.Options.Create(new StoreOfferValidationOptions
+        {
+            DomainBackoffSeconds = 0,
+            MaxGlobalConcurrentRequests = 8
+        }));
+
         return new StoreOfferValidationService(
             new HttpClient(handler),
             cache,
+            limiter,
             NullLogger<StoreOfferValidationService>.Instance);
     }
 

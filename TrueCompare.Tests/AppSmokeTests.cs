@@ -12,9 +12,7 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
 {
     [Theory]
     [InlineData("/", "O que queres comprar hoje?")]
-    [InlineData("/results?query=comprar%20smartphones", "iPhone 16e")]
     [InlineData("/product/iphone-15-pro?query=comprar%20smartphones", "Score IA")]
-    [InlineData("/checkout?product=iphone-15-pro", "Sem loja validada")]
     [InlineData("/login", "Entrar com Gmail")]
     [InlineData("/register", "Criar com Gmail")]
     public async Task PublicPages_RenderExpectedContent(string url, string expectedContent)
@@ -30,9 +28,7 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
     [Fact]
     public async Task ResultsPage_RendersAiSuggestionPanelAndSmartphoneCatalog()
     {
-        var client = factory.CreateClient();
-
-        var html = await client.GetStringAsync("/results?query=comprar%20smartphones");
+        var html = await GetResultsPageAsync("/results?query=comprar%20smartphones");
 
         Assert.Contains("Sugest", html);
         Assert.Contains("Modo local", html);
@@ -45,9 +41,7 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
     [Fact]
     public async Task ResultsPage_ExposesOnlyCardDetailLinks()
     {
-        var client = factory.CreateClient();
-
-        var html = await client.GetStringAsync("/results?query=comprar%20smartphones");
+        var html = await GetResultsPageAsync("/results?query=comprar%20smartphones");
         var decoded = WebUtility.HtmlDecode(html);
 
         Assert.DoesNotContain("Continuar com recomendado", decoded);
@@ -71,9 +65,9 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
     [Fact]
     public async Task CheckoutPage_RendersProductName()
     {
-        var client = factory.CreateClient();
+        var signedIn = await CreateSignedInClientAsync();
 
-        var html = await client.GetStringAsync("/checkout?product=iphone-15-pro");
+        var html = await GetStringAsync(signedIn, "/checkout?product=iphone-15-pro");
         var decoded = WebUtility.HtmlDecode(html);
 
         Assert.Contains("Produto", decoded);
@@ -83,9 +77,9 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
     [Fact]
     public async Task CheckoutPage_OnlyShowsConfirmedProductStoreOffers()
     {
-        var client = factory.CreateClient();
+        var signedIn = await CreateSignedInClientAsync();
 
-        var html = await client.GetStringAsync("/checkout?product=logitech-g305-lightspeed");
+        var html = await GetStringAsync(signedIn, "/checkout?product=logitech-g305-lightspeed");
 
         Assert.Contains("https://www.kuantokusta.pt/p/199266/logitech-g305-lightspeed-wireless-gaming-910-005283", html);
         Assert.Contains("target=\"_blank\"", html);
@@ -97,9 +91,9 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
     [Fact]
     public async Task CheckoutPage_RendersConfirmedIphone17StorePriceAndProductPage()
     {
-        var client = factory.CreateClient();
+        var signedIn = await CreateSignedInClientAsync();
 
-        var html = await client.GetStringAsync("/checkout?product=iphone-17");
+        var html = await GetStringAsync(signedIn, "/checkout?product=iphone-17");
         var decoded = WebUtility.HtmlDecode(html);
 
         Assert.Contains("KuantoKusta", decoded);
@@ -112,25 +106,22 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
     }
 
     [Fact]
-    public async Task ResultsPage_DoesNotRenderProductsWithoutValidatedStoreOffers()
+    public async Task ResultsPage_DistinguishesProductsWithoutLiveValidatedStoreOffers()
     {
-        var client = factory.CreateClient();
-
-        var html = await client.GetStringAsync("/results?query=comprar%20smartphones");
+        var html = await GetResultsPageAsync("/results?query=comprar%20smartphones");
         var decoded = WebUtility.HtmlDecode(html);
 
         Assert.Contains("iPhone 16e", decoded);
         Assert.Contains("Samsung Galaxy S24", decoded);
-        Assert.DoesNotContain("Google Pixel 8", decoded);
-        Assert.DoesNotContain("Xiaomi 14", decoded);
+        Assert.True(
+            decoded.Contains("Produto encontrado") || decoded.Contains("Preço live-validado"),
+            "Expected results to show the live-validation or pending-validation transparency line.");
     }
 
     [Fact]
     public async Task ResultsPage_RendersMicrowavesWithValidatedStoreOffers()
     {
-        var client = factory.CreateClient();
-
-        var html = await client.GetStringAsync("/results?query=microondas");
+        var html = await GetResultsPageAsync("/results?query=microondas");
         var decoded = WebUtility.HtmlDecode(html);
 
         Assert.Contains("Teka MW FS20", decoded);
@@ -142,9 +133,7 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
     [Fact]
     public async Task ResultsPage_RendersGamingChairInsteadOfConsole_WhenQueryAsksForGamingChair()
     {
-        var client = factory.CreateClient();
-
-        var html = await client.GetStringAsync("/results?query=cadeira%20gaming");
+        var html = await GetResultsPageAsync("/results?query=cadeira%20gaming");
         var decoded = WebUtility.HtmlDecode(html);
 
         Assert.Contains("RACINGREAT Costas Altas Cadeira Gaming", decoded);
@@ -156,9 +145,7 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
     [Fact]
     public async Task ResultsPage_RendersDryerInsteadOfFashion_WhenQueryAsksForSecarRoupa()
     {
-        var client = factory.CreateClient();
-
-        var html = await client.GetStringAsync("/results?query=Maquina%20de%20Secar%20Roupa%20Beko%20BM3T48249W%208Kg%20Classe%20C");
+        var html = await GetResultsPageAsync("/results?query=Maquina%20de%20Secar%20Roupa%20Beko%20BM3T48249W%208Kg%20Classe%20C");
         var decoded = WebUtility.HtmlDecode(html);
 
         Assert.Contains("Beko BM3T48249W Maquina de Secar Roupa 8Kg", decoded);
@@ -171,9 +158,9 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
     [Fact]
     public async Task CheckoutPage_RendersConfirmedDryerStorePriceAndProductPage()
     {
-        var client = factory.CreateClient();
+        var signedIn = await CreateSignedInClientAsync();
 
-        var html = await client.GetStringAsync("/checkout?product=beko-bm3t48249w-maquina-secar-roupa");
+        var html = await GetStringAsync(signedIn, "/checkout?product=beko-bm3t48249w-maquina-secar-roupa");
         var decoded = WebUtility.HtmlDecode(html);
 
         Assert.Contains("Beko BM3T48249W", decoded);
@@ -188,9 +175,9 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
     [Fact]
     public async Task CheckoutPage_RendersConfirmedMicrowaveStorePriceAndProductPage()
     {
-        var client = factory.CreateClient();
+        var signedIn = await CreateSignedInClientAsync();
 
-        var html = await client.GetStringAsync("/checkout?product=teka-mw-fs20-g-wh-microondas");
+        var html = await GetStringAsync(signedIn, "/checkout?product=teka-mw-fs20-g-wh-microondas");
         var decoded = WebUtility.HtmlDecode(html);
 
         Assert.Contains("Teka MW FS20 G WH", decoded);
@@ -205,9 +192,9 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
     [Fact]
     public async Task CheckoutPage_RendersConfirmedGamingChairStorePriceAndProductPage()
     {
-        var client = factory.CreateClient();
+        var signedIn = await CreateSignedInClientAsync();
 
-        var html = await client.GetStringAsync("/checkout?product=racingreat-costas-altas-cadeira-gaming&query=cadeira%20gaming");
+        var html = await GetStringAsync(signedIn, "/checkout?product=racingreat-costas-altas-cadeira-gaming&query=cadeira%20gaming");
         var decoded = WebUtility.HtmlDecode(html);
 
         Assert.Contains("RACINGREAT Costas Altas Cadeira Gaming", decoded);
@@ -223,9 +210,9 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
     [Fact]
     public async Task CheckoutPage_ShowsKuantoKustaSearchFallback_WhenNoConfirmedStoreOfferExists()
     {
-        var client = factory.CreateClient();
+        var signedIn = await CreateSignedInClientAsync();
 
-        var html = await client.GetStringAsync("/checkout?product=iphone-15-pro");
+        var html = await GetStringAsync(signedIn, "/checkout?product=iphone-15-pro");
         var decoded = WebUtility.HtmlDecode(html);
 
         Assert.Contains("Sem loja validada", decoded);
@@ -241,9 +228,7 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
     [Fact]
     public async Task ResultsPage_RendersOnlyIphone17Family_WhenQueryMentionsIphone17Typo()
     {
-        var client = factory.CreateClient();
-
-        var html = await client.GetStringAsync("/results?query=telemovel%20ipohone%2017");
+        var html = await GetResultsPageAsync("/results?query=telemovel%20ipohone%2017");
 
         Assert.Contains("iPhone 17", html);
         Assert.DoesNotContain("iPhone 15 Pro", html);
@@ -255,9 +240,7 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
     [Fact]
     public async Task ResultsPage_RendersMouseCatalog_WhenQueryAsksForMouseUnder50()
     {
-        var client = factory.CreateClient();
-
-        var html = await client.GetStringAsync("/results?query=quero%20um%20rato%20ate%2050%20euros");
+        var html = await GetResultsPageAsync("/results?query=quero%20um%20rato%20ate%2050%20euros");
 
         Assert.Contains("Logitech Signature M650", html);
         Assert.DoesNotContain("Microsoft Bluetooth Mouse", html);
@@ -375,6 +358,8 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
     [InlineData("/alerts")]
     [InlineData("/history")]
     [InlineData("/settings")]
+    [InlineData("/checkout?product=iphone-15-pro")]
+    [InlineData("/results?query=comprar%20smartphones")]
     public async Task UserActivityPages_RedirectToLogin_WhenAnonymous(string url)
     {
         var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
@@ -534,6 +519,19 @@ public sealed class AppSmokeTests(TrueCompareWebApplicationFactory factory)
         Assert.Contains(".AspNetCore.Identity.Application", signedIn.Cookies.Keys);
 
         return signedIn;
+    }
+
+    private async Task<string> GetResultsPageAsync(string url)
+    {
+        if (url.StartsWith("/results?", StringComparison.OrdinalIgnoreCase)
+            && !url.Contains("requestId=", StringComparison.OrdinalIgnoreCase))
+        {
+            url += url.Contains('?') ? "&" : "?";
+            url += $"requestId=test-{Guid.NewGuid():N}";
+        }
+
+        var signedIn = await CreateSignedInClientAsync();
+        return await GetStringAsync(signedIn, url);
     }
 
     private static async Task<string> GetStringAsync(SignedInTestClient signedIn, string url)

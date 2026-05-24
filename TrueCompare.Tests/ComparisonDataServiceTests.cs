@@ -1040,5 +1040,69 @@ public sealed class ComparisonDataServiceTests
             CultureInfo.CurrentUICulture = originalUiCulture;
         }
     }
+    [Fact]
+    public void GetSellerOffers_ReturnsUsefulStoreCandidates_WhenNoDirectProductPageExists()
+    {
+        var service = new ComparisonDataService(new AppText());
+        var product = service.GetProducts("microfone usb podcast ate 100 euros").FirstOrDefault()
+            ?? new TrueCompare.Models.ProductResult(
+                "blue-snowball-ice",
+                1,
+                86,
+                "Blue Snowball iCE",
+                "Logitech",
+                "54,99 €",
+                "#5EE9A8",
+                "Melhor valor",
+                new[] { "Microfone USB", "Podcast", "Garantia a validar", "Preço estimado" },
+                new[] { "Boa voz", "Fácil de encontrar" },
+                new[] { "Produto real", "Preço final a confirmar" },
+                Array.Empty<TrueCompare.Models.FraudAlert>(),
+                "Microfone USB para podcast.");
+
+        var offers = service.BuildSellerOffersForProduct(product, "microfone usb podcast ate 100 euros");
+
+        Assert.NotEmpty(offers);
+        Assert.Contains(offers, offer => offer.Seller is "Worten" or "FNAC" or "PcComponentes" or "KuantoKusta");
+        Assert.All(offers, offer => Assert.False(string.IsNullOrWhiteSpace(offer.Evidence)));
+    }
+
+    [Fact]
+    public void GetProducts_RanksBudgetAndUseCaseAheadOfGenericMatches()
+    {
+        var service = new ComparisonDataService(new AppText());
+
+        var cheapPhones = service.GetProducts("smartphone barato ate 200 euros boa bateria");
+
+        Assert.NotEmpty(cheapPhones);
+        Assert.DoesNotContain(cheapPhones.Take(2), product => product.Name.Contains("MacBook", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(cheapPhones.Take(3), product =>
+            product.Name.Contains("Galaxy", StringComparison.OrdinalIgnoreCase)
+            || product.Name.Contains("Redmi", StringComparison.OrdinalIgnoreCase)
+            || product.Name.Contains("A16", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Theory]
+    [InlineData("racao cao adulto 15kg", "Tiendanimal", "Globaldata")]
+    [InlineData("berbequim sem fios 18v", "Leroy Merlin", "Wells")]
+    [InlineData("pneu 205 55 r16", "Norauto", "Wells")]
+    [InlineData("cadeira escritorio confortável", "IKEA Portugal", "Tiendanimal")]
+    [InlineData("impressora multifuncoes wifi", "Staples", "Tiendanimal")]
+    [InlineData("bicicleta estatica fitness", "Decathlon", "Wells")]
+    public void GetSuggestedStoreSearches_PrioritizesSpecialistStores(string query, string expectedStore, string rejectedStore)
+    {
+        var service = new ComparisonDataService(new AppText());
+
+        var product = service.GetProducts(query).First();
+        var stores = service.GetSuggestedStoreSearches(product, query, 6)
+            .Select(offer => offer.Seller)
+            .ToList();
+
+        Assert.NotEmpty(stores);
+        Assert.Contains(stores, store => store.Contains(expectedStore, StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(stores.Take(3), store => store.Contains(rejectedStore, StringComparison.OrdinalIgnoreCase));
+    }
+
+
 }
 

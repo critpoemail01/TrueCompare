@@ -224,6 +224,10 @@ namespace TrueCompare.Data.Migrations
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("StripeCustomerId")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<string>("StripeSubscriptionId")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
@@ -251,6 +255,8 @@ namespace TrueCompare.Data.Migrations
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
+
+                    b.HasIndex("StripeCustomerId");
 
                     b.HasIndex("StripeSubscriptionId");
 
@@ -339,15 +345,46 @@ namespace TrueCompare.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime?>("CommittedUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("CreatedUtc")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETUTCDATE()");
 
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(160)
+                        .HasColumnType("nvarchar(160)");
+
                     b.Property<string>("Query")
                         .IsRequired()
                         .HasMaxLength(800)
                         .HasColumnType("nvarchar(800)");
+
+                    b.Property<DateTime?>("RefundedUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ResultCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasDefaultValue("Committed");
+
+                    b.Property<bool>("UsedFreeSearch")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("UsedPaidCredit")
                         .HasColumnType("bit");
@@ -360,7 +397,128 @@ namespace TrueCompare.Data.Migrations
 
                     b.HasIndex("UserId", "CreatedUtc");
 
+                    b.HasIndex("UserId", "IdempotencyKey")
+                        .IsUnique()
+                        .HasFilter("[IdempotencyKey] IS NOT NULL");
+
+                    b.HasIndex("UserId", "Status", "CreatedUtc");
+
                     b.ToTable("SearchRequests");
+                });
+
+
+            modelBuilder.Entity("TrueCompare.Data.SearchResultSnapshot", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AiSuggestionsJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<DateTime>("ExpiresUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("OffersJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ProductOfferSummariesJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ResultCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("ProductsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Query")
+                        .IsRequired()
+                        .HasMaxLength(800)
+                        .HasColumnType("nvarchar(800)");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("nvarchar(160)");
+
+                    b.Property<int?>("SearchRequestId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SearchRequestId");
+
+                    b.HasIndex("ExpiresUtc");
+
+                    b.HasIndex("UserId", "Query", "CreatedUtc");
+
+                    b.HasIndex("UserId", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.ToTable("SearchResultSnapshots");
+                });
+
+
+            modelBuilder.Entity("TrueCompare.Data.StripeProcessedEvent", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<DateTime?>("ProcessedUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("StripeEventId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StripeEventId")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "CreatedUtc");
+
+                    b.ToTable("StripeProcessedEvents");
                 });
 
             modelBuilder.Entity("TrueCompare.Data.TargetPriceAlert", b =>
@@ -379,6 +537,14 @@ namespace TrueCompare.Data.Migrations
                     b.Property<bool>("EmailSent")
                         .HasColumnType("bit");
 
+                    b.Property<int>("EmailFailureCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTime?>("EmailSuppressedUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -388,6 +554,26 @@ namespace TrueCompare.Data.Migrations
                     b.Property<string>("LastSeenSeller")
                         .HasMaxLength(160)
                         .HasColumnType("nvarchar(160)");
+
+                    b.Property<DateTime?>("LastEmailAttemptUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LastEmailError")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("NextEmailRetryUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LastValidationState")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasDefaultValue("CatalogKnown");
+
+                    b.Property<DateTime?>("LastValidatedUtc")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("ProductName")
                         .IsRequired()
@@ -489,6 +675,25 @@ namespace TrueCompare.Data.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+
+            modelBuilder.Entity("TrueCompare.Data.SearchResultSnapshot", b =>
+                {
+                    b.HasOne("TrueCompare.Data.SearchRequest", "SearchRequest")
+                        .WithMany()
+                        .HasForeignKey("SearchRequestId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("TrueCompare.Data.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SearchRequest");
 
                     b.Navigation("User");
                 });

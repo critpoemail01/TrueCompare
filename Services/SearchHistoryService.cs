@@ -17,7 +17,7 @@ public sealed class SearchHistoryService(ApplicationDbContext dbContext)
 
         return await dbContext.SearchRequests
             .AsNoTracking()
-            .Where(search => search.UserId == userId)
+            .Where(search => search.UserId == userId && search.Status == SearchRequestStatus.Committed)
             .OrderByDescending(search => search.CreatedUtc)
             .Take(take)
             .Select(search => new SearchHistoryItem(

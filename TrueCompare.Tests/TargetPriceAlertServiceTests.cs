@@ -36,7 +36,7 @@ public sealed class TargetPriceAlertServiceTests
     }
 
     [Fact]
-    public async Task CreateAsync_StoresAlertWithCurrentBestOffer()
+    public async Task CreateAsync_StoresAlertWithCurrentBestLiveValidatedOffer()
     {
         await using var dbContext = TestDbContextFactory.Create();
         var user = new ApplicationUser
@@ -48,20 +48,54 @@ public sealed class TargetPriceAlertServiceTests
         dbContext.Users.Add(user);
         await dbContext.SaveChangesAsync();
 
-        var service = new TargetPriceAlertService(dbContext, new ComparisonDataService(new AppText()));
+        var service = new TargetPriceAlertService(
+            dbContext,
+            new ComparisonDataService(new AppText()),
+            new LiveValidatingStoreOfferValidator());
+
+        var expectedOffer = await service.GetBestLiveValidatedOfferAsync("logitech-g305-lightspeed");
 
         var alert = await service.CreateAsync(user.Id, "logitech-g305-lightspeed", "Logitech G305 Lightspeed", 35m);
 
         Assert.Equal("logitech-g305-lightspeed", alert.ProductSlug);
         Assert.Equal(3500, alert.TargetPriceCents);
-        Assert.Equal(4080, alert.LastSeenPriceCents);
-        Assert.Equal("Aquario", alert.LastSeenSeller);
+        Assert.NotNull(expectedOffer);
+        Assert.Equal(expectedOffer!.PriceCents, alert.LastSeenPriceCents);
+        Assert.Equal(expectedOffer.Seller, alert.LastSeenSeller);
         Assert.True(alert.IsActive);
         Assert.False(alert.EmailSent);
+        Assert.True(alert.IsLiveValidated);
+        Assert.Equal(nameof(OfferPriceValidationState.LiveValidated), alert.LastValidationState);
+        Assert.NotNull(alert.LastValidatedUtc);
 
         var storedAlert = Assert.Single(dbContext.TargetPriceAlerts);
         Assert.Equal(alert.ProductSlug, storedAlert.ProductSlug);
         Assert.Equal(alert.TargetPriceCents, storedAlert.TargetPriceCents);
+    }
+
+    [Fact]
+    public async Task CreateAsync_CreatesPendingAlert_WhenLiveValidationIsUnavailable()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var user = new ApplicationUser
+        {
+            Id = "alert-pending-user",
+            UserName = "alert-pending@example.com",
+            Email = "alert-pending@example.com"
+        };
+        dbContext.Users.Add(user);
+        await dbContext.SaveChangesAsync();
+
+        var service = new TargetPriceAlertService(
+            dbContext,
+            new ComparisonDataService(new AppText()),
+            new RejectingStoreOfferValidator());
+
+        var alert = await service.CreateAsync(user.Id, "logitech-g305-lightspeed", "Logitech G305 Lightspeed", 35m);
+
+        Assert.False(alert.IsLiveValidated);
+        Assert.Equal(nameof(OfferPriceValidationState.PendingValidation), alert.LastValidationState);
+        Assert.Null(alert.LastValidatedUtc);
     }
 
     [Fact]
@@ -70,8 +104,9 @@ public sealed class TargetPriceAlertServiceTests
         await using var dbContext = TestDbContextFactory.Create();
         var service = new TargetPriceAlertService(dbContext, new ComparisonDataService(new AppText()));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var exception = await Assert.ThrowsAsync<PriceAlertCreationException>(() =>
             service.CreateAsync("alert-user", "iphone-15-pro", "iPhone 15 Pro", 700m));
+        Assert.Equal(PriceAlertCreationError.NoConfirmedStoreOffer, exception.Code);
     }
 
     [Fact]
@@ -113,5 +148,35 @@ public sealed class TargetPriceAlertServiceTests
         Assert.Equal("TrueCompare - Western Digital My Passport 1TB  bcc:test@example.com baixou de preço", subject);
         Assert.DoesNotContain("\r", subject);
         Assert.DoesNotContain("\n", subject);
+    }
+
+    private sealed class LiveValidatingStoreOfferValidator : IStoreOfferValidationService
+    {
+        public Task<IReadOnlyList<SellerOffer>> ValidateConfirmedOffersAsync(
+            ProductResult? product,
+            IReadOnlyList<SellerOffer> offers,
+            CancellationToken cancellationToken = default)
+        {
+            var validatedUtc = DateTime.UtcNow;
+            return Task.FromResult((IReadOnlyList<SellerOffer>)offers
+                .Select(offer => offer with
+                {
+                    IsLivePrice = true,
+                    ValidationState = OfferPriceValidationState.LiveValidated,
+                    ValidatedUtc = validatedUtc
+                })
+                .ToList());
+        }
+    }
+
+    private sealed class RejectingStoreOfferValidator : IStoreOfferValidationService
+    {
+        public Task<IReadOnlyList<SellerOffer>> ValidateConfirmedOffersAsync(
+            ProductResult? product,
+            IReadOnlyList<SellerOffer> offers,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult((IReadOnlyList<SellerOffer>)Array.Empty<SellerOffer>());
+        }
     }
 }

@@ -153,27 +153,110 @@ public sealed class BillingService(
             return false;
         }
 
-        if (stripeEvent.Type == "checkout.session.completed"
-            && stripeEvent.Data.Object is Session session
-            && string.Equals(session.PaymentStatus, "paid", StringComparison.OrdinalIgnoreCase))
+        var processedEvent = await TryBeginStripeEventAsync(stripeEvent);
+        if (processedEvent is null)
         {
-            await CompletePurchaseAsync(session);
-        }
-        else if (stripeEvent.Type == "invoice.paid" && stripeEvent.Data.Object is Invoice invoice)
-        {
-            await CompleteSubscriptionRenewalAsync(invoice);
-        }
-        else if (stripeEvent.Type == "customer.subscription.deleted" && stripeEvent.Data.Object is Subscription subscription)
-        {
-            await DeactivateSubscriptionAsync(subscription);
+            return true;
         }
 
-        return true;
+        try
+        {
+            if (stripeEvent.Type == "checkout.session.completed"
+                && stripeEvent.Data.Object is Session session
+                && string.Equals(session.PaymentStatus, "paid", StringComparison.OrdinalIgnoreCase))
+            {
+                await CompletePurchaseAsync(session);
+            }
+            else if (stripeEvent.Type == "invoice.paid" && stripeEvent.Data.Object is Invoice invoice)
+            {
+                await CompleteSubscriptionRenewalAsync(invoice);
+            }
+            else if (stripeEvent.Type == "invoice.payment_failed" && stripeEvent.Data.Object is Invoice failedInvoice)
+            {
+                await MarkSubscriptionPaymentFailedAsync(failedInvoice);
+            }
+            else if (stripeEvent.Type == "customer.subscription.updated" && stripeEvent.Data.Object is Subscription updatedSubscription)
+            {
+                await UpdateSubscriptionStatusAsync(updatedSubscription);
+            }
+            else if (stripeEvent.Type == "customer.subscription.deleted" && stripeEvent.Data.Object is Subscription subscription)
+            {
+                await DeactivateSubscriptionAsync(subscription);
+            }
+
+            await MarkStripeEventProcessedAsync(processedEvent);
+            return true;
+        }
+        catch (Exception exception)
+        {
+            await MarkStripeEventFailedAsync(processedEvent, exception);
+            return false;
+        }
     }
 
     private static string CreditsRedirect(string message)
     {
         return $"/credits?message={Uri.EscapeDataString(message)}";
+    }
+
+    private async Task<StripeProcessedEvent?> TryBeginStripeEventAsync(Event stripeEvent)
+    {
+        var eventId = stripeEvent.Id?.Trim();
+        if (string.IsNullOrWhiteSpace(eventId))
+        {
+            return null;
+        }
+
+        var existingEvent = await dbContext.StripeProcessedEvents
+            .SingleOrDefaultAsync(candidate => candidate.StripeEventId == eventId);
+        if (existingEvent is not null)
+        {
+            if (existingEvent.Status == StripeProcessedEventStatus.Failed)
+            {
+                existingEvent.Status = StripeProcessedEventStatus.Processing;
+                existingEvent.Error = null;
+                await dbContext.SaveChangesAsync();
+                return existingEvent;
+            }
+
+            return null;
+        }
+
+        var processedEvent = new StripeProcessedEvent
+        {
+            StripeEventId = eventId,
+            EventType = stripeEvent.Type,
+            Status = StripeProcessedEventStatus.Processing
+        };
+
+        dbContext.StripeProcessedEvents.Add(processedEvent);
+        try
+        {
+            await dbContext.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            dbContext.Entry(processedEvent).State = EntityState.Detached;
+            return null;
+        }
+
+        return processedEvent;
+    }
+
+    private async Task MarkStripeEventProcessedAsync(StripeProcessedEvent processedEvent)
+    {
+        processedEvent.Status = StripeProcessedEventStatus.Processed;
+        processedEvent.ProcessedUtc = DateTime.UtcNow;
+        processedEvent.Error = null;
+        await dbContext.SaveChangesAsync();
+    }
+
+    private async Task MarkStripeEventFailedAsync(StripeProcessedEvent processedEvent, Exception exception)
+    {
+        processedEvent.Status = StripeProcessedEventStatus.Failed;
+        processedEvent.ProcessedUtc = DateTime.UtcNow;
+        processedEvent.Error = TrimStripeError(exception.Message);
+        await dbContext.SaveChangesAsync();
     }
 
     private async Task CompletePurchaseAsync(Session session)
@@ -184,6 +267,7 @@ public sealed class BillingService(
 
         if (purchase is null || purchase.Status == PurchaseStatus.Paid)
         {
+            await transaction.CommitAsync();
             return;
         }
 
@@ -209,6 +293,7 @@ public sealed class BillingService(
         purchase.Status = PurchaseStatus.Paid;
         purchase.StripePaymentIntentId = session.PaymentIntentId;
         purchase.StripeSubscriptionId ??= session.SubscriptionId;
+        user.StripeCustomerId ??= session.CustomerId;
         purchase.CompletedUtc = DateTime.UtcNow;
 
         await dbContext.SaveChangesAsync();
@@ -242,12 +327,14 @@ public sealed class BillingService(
             .AnyAsync(candidate => candidate.StripeSessionId == invoicePurchaseId);
         if (alreadyCredited)
         {
+            await transaction.CommitAsync();
             return;
         }
 
         var user = await dbContext.Users.SingleOrDefaultAsync(candidate => candidate.Id == userId);
         if (user is null)
         {
+            await transaction.CommitAsync();
             return;
         }
 
@@ -364,12 +451,86 @@ public sealed class BillingService(
         await dbContext.SaveChangesAsync();
     }
 
+    private async Task MarkSubscriptionPaymentFailedAsync(Invoice invoice)
+    {
+        var subscriptionId = invoice.Parent?.SubscriptionDetails?.SubscriptionId;
+        if (string.IsNullOrWhiteSpace(subscriptionId))
+        {
+            return;
+        }
+
+        var user = await dbContext.Users.SingleOrDefaultAsync(candidate => candidate.StripeSubscriptionId == subscriptionId);
+        if (user is null)
+        {
+            return;
+        }
+
+        user.HasUnlimitedSubscription = false;
+        user.SubscriptionActiveUntilUtc = DateTime.UtcNow;
+        await dbContext.SaveChangesAsync();
+    }
+
+    private async Task UpdateSubscriptionStatusAsync(Subscription subscription)
+    {
+        var user = await dbContext.Users
+            .SingleOrDefaultAsync(candidate => candidate.StripeSubscriptionId == subscription.Id);
+
+        if (user is null
+            && TryGetMetadata(subscription.Metadata, "userId", out var userId))
+        {
+            user = await dbContext.Users.SingleOrDefaultAsync(candidate => candidate.Id == userId);
+        }
+
+        if (user is null)
+        {
+            return;
+        }
+
+        user.StripeSubscriptionId = subscription.Id;
+        user.StripeCustomerId ??= subscription.CustomerId;
+
+        if (TryGetMetadata(subscription.Metadata, "planId", out var planId))
+        {
+            user.SubscriptionPlanId = planId;
+        }
+
+        if (subscription.Status.Equals("active", StringComparison.OrdinalIgnoreCase)
+            || subscription.Status.Equals("trialing", StringComparison.OrdinalIgnoreCase))
+        {
+            var currentPeriodEnd = subscription.Items?.Data.FirstOrDefault()?.CurrentPeriodEnd;
+            user.HasUnlimitedSubscription = true;
+            user.SubscriptionActiveUntilUtc = currentPeriodEnd is null || currentPeriodEnd == default
+                ? DateTime.UtcNow.AddMonths(1)
+                : currentPeriodEnd.Value;
+        }
+        else if (subscription.Status.Equals("canceled", StringComparison.OrdinalIgnoreCase)
+            || subscription.Status.Equals("unpaid", StringComparison.OrdinalIgnoreCase)
+            || subscription.Status.Equals("incomplete_expired", StringComparison.OrdinalIgnoreCase))
+        {
+            user.HasUnlimitedSubscription = false;
+            user.SubscriptionActiveUntilUtc = DateTime.UtcNow;
+        }
+
+        await dbContext.SaveChangesAsync();
+    }
+
     private static bool TryGetMetadata(IReadOnlyDictionary<string, string>? metadata, string key, out string value)
     {
         value = string.Empty;
         return metadata is not null
             && metadata.TryGetValue(key, out var found)
             && !string.IsNullOrWhiteSpace(value = found);
+    }
+
+    private static string TrimStripeError(string message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return "Stripe webhook processing failed.";
+        }
+
+        var trimmed = message.Trim();
+        return trimmed.Length <= 500 ? trimmed : trimmed[..500];
     }
 }
 

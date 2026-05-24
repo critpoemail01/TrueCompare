@@ -131,6 +131,8 @@ public sealed class LlmSuggestionService(
                     Não inventes preços em tempo real, stock, links ou vendedores. Usa preços só quando vierem em "ofertasConhecidas".
                     Se sugerires produtos fora do catálogo, marca source como "Sugestão IA" e usa targetPrice como "confirmar".
                     Se o pedido tiver um orcamento maximo, nao sugiras produtos acima desse valor. Se nao houver opcoes dentro do orcamento, explica isso sem recomendar produtos fora do limite.
+                    As suggestedQueries devem ser pesquisas executáveis, curtas e específicas: modelo + prioridade + orçamento/loja/garantia quando existir.
+                    Os productLeads devem ser alternativas reais e úteis, não repetir o mesmo produto com palavras diferentes.
                     O JSON deve ter: intent, summary, confidence, buyingSignals, suggestedQueries, warnings, productLeads.
                     productLeads deve ter no máximo 4 itens com name, reason, targetPrice, searchHint e source.
                     """
@@ -243,15 +245,34 @@ public sealed class LlmSuggestionService(
                     $"Melhor ponto de partida: {bestProduct.Name}. Lojas conhecidas encontradas; preço final a confirmar na loja.",
                     $"Best starting point: {bestProduct.Name}. Known stores found; final price must be confirmed in store.");
 
+        var leadOffers = offers
+            .OrderByDescending(offer => offer.IsLiveValidated)
+            .ThenByDescending(offer => offer.Preferred)
+            .ThenByDescending(offer => offer.IsLivePrice)
+            .ThenByDescending(offer => offer.ReliabilityScore)
+            .Take(4)
+            .ToList();
+
         var leads = products
-            .OrderByDescending(product => product.Score)
-            .Take(3)
-            .Select(product => new LlmProductLead(
-                product.Name,
-                product.AiSummary,
-                product.Price,
-                text.Pick($"{product.Brand} {product.Name} melhor preço garantia Portugal", $"{product.Brand} {product.Name} best price warranty Portugal"),
-                text.Pick("Catálogo", "Catalog")))
+            .OrderBy(product => product.Rank)
+            .ThenByDescending(product => product.Score)
+            .Take(4)
+            .Select((product, index) =>
+            {
+                var storeHint = leadOffers.ElementAtOrDefault(index % Math.Max(1, leadOffers.Count));
+                var reason = storeHint is null
+                    ? product.AiSummary
+                    : text.Pick(
+                        $"{product.AiSummary} Loja a verificar primeiro: {storeHint.Seller}.",
+                        $"{product.AiSummary} First store to check: {storeHint.Seller}.");
+
+                return new LlmProductLead(
+                    product.Name,
+                    reason,
+                    product.Price,
+                    BuildProductSearchHint(query, product, storeHint),
+                    product.Rank <= 4 ? text.Pick("Resultado recomendado", "Recommended result") : text.Pick("Catálogo", "Catalog"));
+            })
             .ToList();
 
         var warnings = products
@@ -337,21 +358,59 @@ public sealed class LlmSuggestionService(
 
     private IReadOnlyList<string> BuildFallbackQueries(string query)
     {
-        return text.IsEnglish
-            ? new[]
+        var normalized = query.Trim();
+        var baseQueries = text.IsEnglish
+            ? new List<string>
             {
-                $"{query} best price authorized seller",
-                $"{query} warranty Portugal",
-                $"{query} alternative best price",
-                $"{query} target price alert"
+                $"{normalized} best price authorized seller",
+                $"{normalized} warranty Portugal",
+                $"{normalized} alternative best price",
+                $"{normalized} target price alert"
             }
-            : new[]
+            : new List<string>
             {
-                $"{query} melhor preço vendedor autorizado",
-                $"{query} garantia Portugal",
-                $"{query} alternativa melhor preço",
-                $"{query} alerta preço alvo"
+                $"{normalized} melhor preço vendedor autorizado",
+                $"{normalized} garantia Portugal",
+                $"{normalized} alternativa melhor preço",
+                $"{normalized} alerta preço alvo"
             };
+
+        var lower = normalized.ToLowerInvariant();
+        if (lower.Contains("barat", StringComparison.OrdinalIgnoreCase) || lower.Contains("baixo", StringComparison.OrdinalIgnoreCase))
+        {
+            baseQueries.Insert(0, text.IsEnglish
+                ? $"{normalized} best value under budget"
+                : $"{normalized} melhor valor dentro do orçamento");
+        }
+
+        if (lower.Contains("garantia", StringComparison.OrdinalIgnoreCase) || lower.Contains("oficial", StringComparison.OrdinalIgnoreCase))
+        {
+            baseQueries.Insert(0, text.IsEnglish
+                ? $"{normalized} official warranty store"
+                : $"{normalized} loja oficial garantia");
+        }
+
+        if (lower.Contains("gaming", StringComparison.OrdinalIgnoreCase) || lower.Contains("jogos", StringComparison.OrdinalIgnoreCase))
+        {
+            baseQueries.Insert(0, text.IsEnglish
+                ? $"{normalized} gaming reviews Portugal"
+                : $"{normalized} gaming reviews Portugal");
+        }
+
+        return baseQueries
+            .Where(item => !string.IsNullOrWhiteSpace(item))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(4)
+            .ToList();
+    }
+
+    private string BuildProductSearchHint(string query, ProductResult product, SellerOffer? storeHint)
+    {
+        var storePart = storeHint is null
+            ? text.Pick("melhor preço garantia", "best price warranty")
+            : text.Pick($"{storeHint.Seller} preço garantia", $"{storeHint.Seller} price warranty");
+
+        return $"{product.Brand} {product.Name} {storePart}".Trim();
     }
 
     private static IReadOnlyList<T> Clean<T>(IReadOnlyList<T>? values)

@@ -9,6 +9,7 @@ A aplicacao deve ajudar o utilizador a procurar qualquer produto por texto ou im
 - [Blueprint da aplicacao](docs/TRUECOMPARE_BLUEPRINT.md): visao do produto, regras de negocio, mercados, lojas, ofertas validas, LLM, alertas e roadmap.
 - [Testes e qualidade](docs/TESTING_AND_QUALITY.md): checklist funcional, matriz de pesquisas, Playwright, testes .NET, seguranca, acessibilidade e criterios de pronto.
 - [AGENTS.md](AGENTS.md): regras curtas para Codex e agentes de IA.
+- [Melhorias aplicadas](docs/IMPROVEMENTS_APPLIED.md): resumo das alteracoes deste pacote.
 
 ## Stack
 
@@ -56,6 +57,18 @@ dotnet user-secrets set "Email:UserName" "..."
 dotnet user-secrets set "Email:Password" "..."
 dotnet user-secrets set "Email:FromEmail" "alerts@truecompare.pt"
 ```
+
+## Configuracao de producao
+
+Define a origem publica usada por Stripe e redirects externos:
+
+```json
+"App": {
+  "PublicBaseUrl": "https://truecompare.pt"
+}
+```
+
+Ajusta tambem `AllowedHosts` para os dominios reais da instalacao. Em desenvolvimento, `appsettings.Development.json` usa `https://localhost:5001`.
 
 ## LLM
 

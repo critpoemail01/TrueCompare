@@ -16,8 +16,8 @@
 
         redirected = true;
         var resultsUrl = string.IsNullOrWhiteSpace(Query)
-            ? "/results"
-            : $"/results?query={Uri.EscapeDataString(Query)}";
+            ? "/"
+            : $"/results?query={Uri.EscapeDataString(Query)}&requestId={Guid.NewGuid():N}";
 
         Navigation.NavigateTo(resultsUrl, replace: true);
     }

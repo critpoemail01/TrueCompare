@@ -58,6 +58,15 @@ public sealed record FeatureItem(
     string Description,
     string Accent);
 
+public enum OfferPriceValidationState
+{
+    Estimated,
+    CatalogKnown,
+    PendingValidation,
+    LiveValidated,
+    ValidationFailed
+}
+
 public sealed record SellerOffer(
     string Seller,
     string Price,
@@ -70,7 +79,16 @@ public sealed record SellerOffer(
     int ReliabilityScore = 0,
     string LocationLabel = "",
     string Evidence = "",
-    bool IsLivePrice = false);
+    bool IsLivePrice = false)
+{
+    public OfferPriceValidationState ValidationState { get; init; } = IsLivePrice
+        ? OfferPriceValidationState.CatalogKnown
+        : OfferPriceValidationState.Estimated;
+
+    public DateTime? ValidatedUtc { get; init; }
+
+    public bool IsLiveValidated => ValidationState == OfferPriceValidationState.LiveValidated;
+}
 
 public sealed record TutorialItem(
     string Category,
